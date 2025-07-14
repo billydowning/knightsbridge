@@ -18,9 +18,24 @@ io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   // Join a game room
-  socket.on('joinGame', (gameId) => {
+  socket.on('joinGame', async (gameId) => {
     socket.join(gameId);
     console.log(`User ${socket.id} joined game ${gameId}`);
+
+    // Get number of players in room
+    const socketsInRoom = await io.in(gameId).fetchSockets();
+    const playerCount = socketsInRoom.length;
+
+    // Assign color based on count (first is white, second is black)
+    let color = 'white';
+    let isTurn = true; // White starts
+    if (playerCount === 2) {
+      color = 'black';
+      isTurn = false;
+    }
+
+    // Send assigned color and turn to the joining player
+    socket.emit('assignedColor', { color, isTurn });
   });
 
   // Broadcast a move to the other player in the room
