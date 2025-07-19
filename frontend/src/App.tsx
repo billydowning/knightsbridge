@@ -919,11 +919,8 @@ const useGameStateWithChessRules = () => {
     });
   };
 
-  // Reset and restart game
-  const resetGame = () => {
-    // Reset claim status
-    setWinningsClaimed(false);
-    
+  // Reset and restart game (simplified version for the hook)
+  const resetGame = (roomId = null) => {
     // Reset local game state
     setGameState({
       position: {
@@ -934,7 +931,7 @@ const useGameStateWithChessRules = () => {
       },
       currentPlayer: 'white',
       selectedSquare: null,
-      gameActive: true, // Keep game active for restart
+      gameActive: true,
       winner: null,
       draw: false,
       moveHistory: [],
@@ -946,7 +943,7 @@ const useGameStateWithChessRules = () => {
       inCheck: false
     });
 
-    // Save reset state to multiplayer if in a room
+    // Save reset state to multiplayer if roomId provided
     if (roomId) {
       const resetGameState = {
         position: {
@@ -972,8 +969,6 @@ const useGameStateWithChessRules = () => {
       mockMultiplayerState.saveGameState(roomId, resetGameState);
       console.log('🔄 Game reset and synced to multiplayer state');
     }
-
-    setGameStatus(`Game reset! You are ${playerRole}. ${playerRole === 'white' ? 'Your turn!' : 'White goes first.'}`);
   };
 
   const loadGameState = (newState) => {
@@ -1098,6 +1093,10 @@ function ChessApp() {
       if (escrows[myWallet] && !escrowCreated) {
         setEscrowCreated(true);
         console.log('✅ Detected my escrow in sync');
+      } else if (!escrows[myWallet] && escrowCreated) {
+        // Escrow was reset (new game started)
+        setEscrowCreated(false);
+        console.log('🔄 Escrow reset detected in sync');
       }
       
       // Check if game should start
@@ -1106,6 +1105,15 @@ function ChessApp() {
         setGameMode('game');
         setGameActive(true);
         setGameStatus(`Game started! You are ${playerRole}. ${playerRole === 'white' ? 'Your turn!' : 'White goes first.'}`);
+      }
+      
+      // Check if new game was started (escrows cleared)
+      if (escrowCount === 0 && !roomStatus.gameStarted && gameMode === 'game') {
+        console.log('🔄 New game started, returning to lobby');
+        setGameMode('lobby');
+        setEscrowCreated(false);
+        setWinningsClaimed(false);
+        setGameStatus(`New game started! You are ${playerRole}. Create escrow to begin.`);
       }
       
       // Sync game state (moves) if we're in game mode
@@ -1131,7 +1139,11 @@ function ChessApp() {
             
             // Update turn status based on game state
             if (savedGameState.winner) {
-              setGameStatus(`Game Over! ${savedGameState.winner} wins!`);
+              if (savedGameState.resignedBy) {
+                setGameStatus(`Game Over! ${savedGameState.resignedBy} resigned. ${savedGameState.winner} wins!`);
+              } else {
+                setGameStatus(`Game Over! ${savedGameState.winner} wins!`);
+              }
             } else if (savedGameState.draw) {
               setGameStatus('Game Over! Draw!');
             } else {
@@ -1156,15 +1168,97 @@ function ChessApp() {
           setGameStatus(`Both escrows created! Game starting...`);
         } else if (escrowCreated) {
           setGameStatus(`Escrow created! Waiting for opponent... (${escrowCount}/2)`);
+        } else {
+          setGameStatus(`Create escrow to start new game. You are ${playerRole}.`);
         }
       }
     } catch (error) {
       console.error('❌ Error in syncRoomState:', error);
-      // Don't crash the app, just log the error
+      // Don't crash the app, just log the error and set safe status
+      setGameStatus('Sync error occurred. Game state may be inconsistent.');
     }
   };
 
-  // Check wallet balance
+  // Resign game function
+  const handleResignGame = () => {
+    try {
+      console.log('🏳️ Player resigning:', playerRole);
+      
+      // Determine winner (opposite of current player)
+      const winner = playerRole === 'white' ? 'black' : 'white';
+      
+      // Update local game state immediately
+      setGameState(prev => {
+        const newState = {
+          ...prev,
+          winner: winner,
+          gameActive: false,
+          resignedBy: playerRole,
+          lastUpdated: Date.now()
+        };
+        
+        // Save resignation to multiplayer state
+        if (roomId) {
+          mockMultiplayerState.saveGameState(roomId, newState);
+          console.log('🏳️ Resignation saved to multiplayer state');
+          
+          // Force sync to notify other player immediately
+          setTimeout(() => {
+            mockMultiplayerState.triggerSync();
+          }, 50);
+        }
+        
+        return newState;
+      });
+      
+      setGameStatus(`${playerRole} resigned. ${winner} wins!`);
+    } catch (error) {
+      console.error('❌ Error resigning game:', error);
+      setGameStatus('Error resigning game. Please try again.');
+    }
+  };
+
+  // Start new game with new escrow
+  const startNewGameWithEscrow = () => {
+    try {
+      console.log('🎮 Starting new game with fresh escrow');
+      
+      // Reset escrow states
+      setEscrowCreated(false);
+      setWinningsClaimed(false);
+      
+      // Reset the room escrows in multiplayer state
+      if (roomId) {
+        const rooms = mockMultiplayerState.getRooms();
+        const room = rooms[roomId];
+        if (room) {
+          // Clear escrows but keep players
+          room.escrows = {};
+          room.gameStarted = false;
+          mockMultiplayerState.saveRooms(rooms);
+          console.log('🔄 Cleared escrows for new game');
+          
+          // Force trigger sync to notify other player
+          mockMultiplayerState.triggerSync();
+        }
+      }
+      
+      // Reset game state
+      resetGame(roomId);
+      
+      // Go back to lobby to create new escrows
+      setGameMode('lobby');
+      setGameStatus(`New game started! You are ${playerRole}. Create escrow to begin.`);
+      
+      // Force sync after a short delay to ensure state is saved
+      setTimeout(() => {
+        mockMultiplayerState.triggerSync();
+      }, 100);
+    } catch (error) {
+      console.error('❌ Error starting new game:', error);
+      setGameStatus('Error starting new game. Please try again.');
+    }
+  };
   useEffect(() => {
     if (connected && publicKey) {
       checkBalance();
@@ -1174,11 +1268,9 @@ function ChessApp() {
   const checkBalance = async () => {
     if (connected && publicKey) {
       try {
-        const newBalance = await connection.getBalance(publicKey) / LAMPORTS_PER_SOL;
-        setBalance(newBalance);
-        if (gameMode === 'menu') {
-          setGameStatus(`Wallet connected! Balance: ${newBalance.toFixed(3)} SOL`);
-        }
+        const balance = await connection.getBalance(publicKey);
+        setBalance(balance / LAMPORTS_PER_SOL);
+        setGameStatus(`Wallet connected! Balance: ${(balance / LAMPORTS_PER_SOL).toFixed(3)} SOL`);
       } catch (error) {
         setGameStatus(`Error checking balance: ${error.message}`);
       }
@@ -1288,9 +1380,6 @@ function ChessApp() {
       // const signature = await connection.sendRawTransaction(signed.serialize());
       
       setEscrowCreated(true);
-      
-      // Simulate balance update for mock
-      setBalance(prev => prev - betAmount);
       
       // Check room status after creating escrow with safety checks
       setTimeout(() => {
@@ -1418,12 +1507,10 @@ function ChessApp() {
       
       if (gameState.winner === playerRole) {
         const winnings = betAmount * 2;
-        setBalance(prev => prev + winnings);
         setGameStatus(`🎉 SUCCESS! You won ${winnings} SOL! Winnings have been transferred to your wallet.`);
         setWinningsClaimed(true);
         console.log('🎉 Winner claimed:', winnings, 'SOL');
       } else if (gameState.draw) {
-        setBalance(prev => prev + betAmount);
         setGameStatus(`🤝 Draw payout processed! You received ${betAmount} SOL back.`);
         setWinningsClaimed(true);
         console.log('🤝 Draw claimed:', betAmount, 'SOL');
@@ -1432,20 +1519,15 @@ function ChessApp() {
         console.log('❌ Non-winner tried to claim');
       }
       
+      // Update balance after a delay
+      setTimeout(() => {
+        checkBalance();
+      }, 500);
+      
     } catch (error) {
       console.error('❌ Claim error:', error);
       setGameStatus(`❌ Claim failed: ${error.message}`);
     }
-  };
-
-  // Back to Menu handler
-  const handleBackToMenu = () => {
-    setGameMode('menu');
-    setRoomId('');
-    setPlayerRole('');
-    setEscrowCreated(false);
-    setWinningsClaimed(false);
-    setGameStatus('Ready for new game');
   };
 
   // Render Menu
@@ -1521,7 +1603,6 @@ function ChessApp() {
         <p>Your Role: <strong style={{ color: playerRole === 'white' ? '#4CAF50' : '#FF9800' }}>{playerRole}</strong></p>
         <p>Your Wallet: <strong>{publicKey?.toString().slice(0, 6)}...{publicKey?.toString().slice(-4)}</strong></p>
         <p>Bet Amount: <strong>{betAmount} SOL</strong></p>
-        <p>Balance: <strong>{balance.toFixed(3)} SOL</strong></p>
         <p>Players: <strong>{roomStatus ? roomStatus.playerCount : 0}/2</strong></p>
         <p>Escrows: <strong>{roomStatus ? roomStatus.escrowCount : 0}/2</strong></p>
         
@@ -1549,6 +1630,14 @@ function ChessApp() {
         <div style={{ background: '#e7f3ff', padding: '5px', borderRadius: '3px', margin: '10px 0', fontSize: '12px' }}>
           🔄 Real-time sync active...
         </div>
+        
+        {/* New game indicator */}
+        {roomStatus && roomStatus.escrowCount === 0 && (
+          <div style={{ background: '#fff3cd', padding: '10px', borderRadius: '5px', margin: '10px 0' }}>
+            <p><strong>🎮 Ready for New Game!</strong></p>
+            <p>Both players need to create new escrows to start playing again.</p>
+          </div>
+        )}
         
         {!escrowCreated ? (
           <button
@@ -1597,7 +1686,7 @@ function ChessApp() {
         )}
         
         <button
-          onClick={handleBackToMenu}
+          onClick={() => setGameMode('menu')}
           style={{
             padding: '10px 20px',
             backgroundColor: '#666',
@@ -1625,9 +1714,6 @@ function ChessApp() {
         <div>
           <strong>Turn:</strong> {gameState.currentPlayer} | <strong>Pot:</strong> {betAmount * 2} SOL
         </div>
-        <div>
-          <strong>Balance:</strong> {balance.toFixed(3)} SOL
-        </div>
       </div>
       
       {/* Enhanced Status Display */}
@@ -1639,7 +1725,11 @@ function ChessApp() {
         border: gameState.inCheck ? '2px solid #ff6b6b' : '1px solid #ddd'
       }}>
         <strong>Game Status:</strong> {
-          gameState.winner ? `${gameState.winner} wins!` :
+          gameState.winner ? (
+            gameState.resignedBy ? 
+              `${gameState.resignedBy} resigned. ${gameState.winner} wins!` :
+              `${gameState.winner} wins!`
+          ) :
           gameState.draw ? 'Draw!' :
           gameState.inCheck ? `${gameState.currentPlayer} is in check!` :
           gameState.gameActive ? `${gameState.currentPlayer}'s turn` :
@@ -1648,6 +1738,11 @@ function ChessApp() {
         {gameState.winner && (
           <div style={{ marginTop: '10px', fontSize: '18px', fontWeight: 'bold', color: '#4CAF50' }}>
             🏆 {gameState.winner === playerRole ? 'You Win!' : 'You Lose!'}
+            {gameState.resignedBy && (
+              <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+                {gameState.resignedBy === playerRole ? 'You resigned' : 'Opponent resigned'}
+              </div>
+            )}
           </div>
         )}
         {gameState.draw && (
@@ -1691,22 +1786,20 @@ function ChessApp() {
       </div>
       
       <div style={{ marginTop: '20px' }}>
-        {gameState.gameActive && (
-          <button
-            onClick={resetGame}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#607D8B',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              margin: '10px'
-            }}
-          >
-            Restart Game
-          </button>
-        )}
+        <button
+          onClick={resetGame}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#607D8B',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            margin: '10px'
+          }}
+        >
+          Restart Game
+        </button>
         
         {(gameState.winner === playerRole || gameState.draw) && !winningsClaimed && (
           <button
@@ -1742,7 +1835,7 @@ function ChessApp() {
 
         {(gameState.winner || gameState.draw) && (
           <button
-            onClick={resetGame}
+            onClick={startNewGameWithEscrow}
             style={{
               padding: '15px 30px',
               backgroundColor: '#2196F3',
@@ -1759,7 +1852,7 @@ function ChessApp() {
         )}
         
         <button
-          onClick={handleBackToMenu}
+          onClick={() => setGameMode('menu')}
           style={{
             padding: '10px 20px',
             backgroundColor: '#666',
