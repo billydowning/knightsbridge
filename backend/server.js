@@ -1,7 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const { dbService } = require('./database');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,6 +15,22 @@ const io = new Server(server, {
 });
 
 app.use(cors());
+app.use(express.json()); // Parse JSON bodies
+
+// Rate limiting middleware
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
+
+// API Routes
+const apiRoutes = require('./routes/api');
+app.use('/api', apiRoutes);
 
 // Handle Socket.io connections
 io.on('connection', (socket) => {

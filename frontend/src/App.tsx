@@ -167,7 +167,7 @@ function ChessApp() {
   };
 
   // Handle square clicks with complete chess rules
-  const handleSquareClick = (square: string) => {
+  const handleSquareClick = async (square: string) => {
     if (!roomId || !gameState.gameActive) return;
     
     const isMyTurn = gameState.currentPlayer === playerRole;
@@ -180,14 +180,19 @@ function ChessApp() {
     const pieceColor = piece ? ChessEngine.getPieceColor(piece) : null;
     
     if (gameState.selectedSquare) {
-      const result = makeMove(gameState.selectedSquare, square, roomId);
-      if (result.success) {
-        setGameStatus(result.message);
-      } else {
-        setGameStatus(result.message);
-        if (piece && pieceColor === playerRole) {
-          selectSquare(square);
+      try {
+        const result = await makeMove(gameState.selectedSquare!, square, roomId);
+        if (result.success) {
+          setGameStatus(result.message);
+        } else {
+          setGameStatus(result.message);
+          if (piece && pieceColor === playerRole) {
+            selectSquare(square);
+          }
         }
+      } catch (error) {
+        console.error('Error making move:', error);
+        setGameStatus('Error making move. Please try again.');
       }
     } else {
       if (piece && pieceColor === playerRole) {
@@ -293,7 +298,7 @@ function ChessApp() {
   };
 
   // Resign game handler
-  const handleResignGame = () => {
+  const handleResignGame = async () => {
     const resigningPlayer = playerRole as 'white' | 'black';
     const winner = resigningPlayer === 'white' ? 'black' : 'white';
     
@@ -303,9 +308,25 @@ function ChessApp() {
     );
     
     if (confirmed) {
-      resignGame(resigningPlayer, roomId);
-      setGameStatus(`${playerRole} resigned. ${winner} wins!`);
-      console.log(`🏳️ ${playerRole} player resigned. ${winner} wins by resignation.`);
+      try {
+        // Update local state
+        resignGame(resigningPlayer, roomId);
+        setGameStatus(`${playerRole} resigned. ${winner} wins!`);
+        console.log(`🏳️ ${playerRole} player resigned. ${winner} wins by resignation.`);
+        
+        // Declare result on blockchain
+        const { declareResult } = useSolanaWallet();
+        if (declareResult && roomId) {
+          const result = await declareResult(roomId, winner, 'resignation');
+          if (result) {
+            console.log('✅ Resignation recorded on blockchain');
+            setGameStatus(`${playerRole} resigned. ${winner} wins! (Blockchain confirmed)`);
+          }
+        }
+      } catch (error) {
+        console.error('Error handling resignation:', error);
+        setGameStatus('Resignation processed locally but blockchain sync failed');
+      }
     }
   };
 

@@ -1,9 +1,9 @@
 /**
- * Chess Board Component with Move Hints
- * Displays an interactive chess board with legal move highlighting and visual feedback
+ * Chess Board Component with Enhanced Visual Feedback
+ * Displays an interactive chess board with legal move highlighting, animations, and improved UX
  */
 
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ChessEngine from '../engine/chessEngine';
 import type { GameState, Position } from '../types';
 
@@ -15,6 +15,7 @@ export interface ChessBoardProps {
   gameState: GameState;
   playerRole: string;
   disabled?: boolean;
+  lastMove?: { from: string; to: string } | null;
 }
 
 interface SquareProps {
@@ -24,12 +25,13 @@ interface SquareProps {
   isSelected: boolean;
   isLegalMove: boolean;
   isInCheck: boolean;
+  isLastMove: boolean;
   onClick: () => void;
   disabled?: boolean;
 }
 
 /**
- * Individual chess square component
+ * Individual chess square component with enhanced styling
  */
 const ChessSquare: React.FC<SquareProps> = ({
   square,
@@ -38,13 +40,18 @@ const ChessSquare: React.FC<SquareProps> = ({
   isSelected,
   isLegalMove,
   isInCheck,
+  isLastMove,
   onClick,
   disabled = false
 }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
   const getBackgroundColor = (): string => {
     if (isInCheck) return '#ff6b6b';
     if (isSelected) return '#ffd700';
-    if (isLegalMove) return '#90EE90';
+    if (isLastMove) return '#ffeb3b';
+    if (isLegalMove) return isHovered ? '#7cb342' : '#90EE90';
+    if (isHovered) return isLight ? '#e8d5b5' : '#a67c53';
     return isLight ? '#f0d9b5' : '#b58863';
   };
 
@@ -53,10 +60,28 @@ const ChessSquare: React.FC<SquareProps> = ({
     return 'pointer';
   };
 
+  const getPieceStyle = (): React.CSSProperties => {
+    const baseStyle: React.CSSProperties = {
+      fontSize: '2.5rem',
+      fontWeight: 'bold',
+      textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+      transition: 'transform 0.2s ease',
+      filter: disabled ? 'grayscale(50%)' : 'none',
+    };
+
+    if (isHovered && !disabled) {
+      baseStyle.transform = 'scale(1.1)';
+    }
+
+    return baseStyle;
+  };
+
   return (
     <div
       className={`chess-square ${isLight ? 'light' : 'dark'} ${isSelected ? 'selected' : ''}`}
       onClick={disabled ? undefined : onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         width: '60px',
         height: '60px',
@@ -65,16 +90,27 @@ const ChessSquare: React.FC<SquareProps> = ({
         justifyContent: 'center',
         backgroundColor: getBackgroundColor(),
         cursor: getCursor(),
-        fontSize: '2rem',
         border: '1px solid #999',
-        transition: 'background-color 0.2s',
+        transition: 'all 0.2s ease',
         position: 'relative',
         opacity: disabled ? 0.6 : 1,
-        userSelect: 'none'
+        userSelect: 'none',
+        boxShadow: isSelected ? 'inset 0 0 10px rgba(255, 215, 0, 0.5)' : 'none',
       }}
       title={`${square}${piece ? ` - ${piece}` : ''}`}
+      role="button"
+      aria-label={`${square}${piece ? ` with ${piece}` : ' empty'}`}
+      tabIndex={disabled ? -1 : 0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
-      {piece}
+      <span style={getPieceStyle()}>
+        {piece}
+      </span>
       
       {/* Legal move indicator for empty squares */}
       {isLegalMove && !piece && (
@@ -84,7 +120,9 @@ const ChessSquare: React.FC<SquareProps> = ({
             width: '20px',
             height: '20px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(0, 128, 0, 0.5)',
+            backgroundColor: 'rgba(0, 128, 0, 0.6)',
+            border: '2px solid rgba(0, 128, 0, 0.8)',
+            animation: 'pulse 1.5s infinite',
           }} 
           aria-label="Legal move"
         />
@@ -100,11 +138,27 @@ const ChessSquare: React.FC<SquareProps> = ({
             width: '15px',
             height: '15px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(255, 0, 0, 0.7)',
+            backgroundColor: 'rgba(255, 0, 0, 0.6)',
+            border: '2px solid rgba(255, 0, 0, 0.8)',
+            animation: 'pulse 1.5s infinite',
           }}
-          aria-label="Capture available"
+          aria-label="Capture move"
         />
       )}
+
+      {/* Square label for accessibility */}
+      <span 
+        style={{
+          position: 'absolute',
+          bottom: '2px',
+          right: '2px',
+          fontSize: '8px',
+          color: isLight ? '#b58863' : '#f0d9b5',
+          fontWeight: 'bold',
+        }}
+      >
+        {square}
+      </span>
     </div>
   );
 };
@@ -113,7 +167,7 @@ const ChessSquare: React.FC<SquareProps> = ({
  * Chess Board Component with Move Hints
  * Displays a complete chess board with legal move highlighting
  */
-export const ChessBoard: React.FC<ChessBoardProps> = ({ 
+export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({ 
   position, 
   onSquareClick, 
   selectedSquare, 
@@ -149,6 +203,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
         const isSelected = selectedSquare === square;
         const isLegalMove = legalMoves.includes(square);
         const isInCheck = isKingInCheck && square === kingSquare;
+                  const isLastMove = Boolean(gameState?.lastMove && gameState.lastMove.from === square && gameState.lastMove.to === square);
         
         squares.push(
           <ChessSquare
@@ -159,6 +214,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
             isSelected={isSelected}
             isLegalMove={isLegalMove}
             isInCheck={isInCheck}
+            isLastMove={isLastMove}
             onClick={() => onSquareClick(square)}
             disabled={disabled}
           />

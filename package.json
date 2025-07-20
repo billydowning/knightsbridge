@@ -1,0 +1,47 @@
+{
+  "name": "knightsbridge-chess",
+  "version": "1.0.0",
+  "description": "A decentralized chess application built on Solana blockchain with escrow betting",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install && cd ../programs/escrow && yarn install",
+    "dev": "./scripts/deploy.sh dev",
+    "deploy": "./scripts/deploy.sh deploy",
+    "build": "./scripts/deploy.sh build",
+    "cleanup": "./scripts/deploy.sh cleanup",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "test": "cd programs/escrow && anchor test",
+    "lint": "cd frontend && npm run lint",
+    "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\""
+  },
+  "keywords": [
+    "chess",
+    "solana",
+    "blockchain",
+    "escrow",
+    "betting",
+    "decentralized",
+    "anchor",
+    "react",
+    "typescript"
+  ],
+  "author": "Knightsbridge Chess Team",
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/knightsbridge-chess.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/knightsbridge-chess/issues"
+  },
+  "homepage": "https://github.com/your-username/knightsbridge-chess#readme"
+} 

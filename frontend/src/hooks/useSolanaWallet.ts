@@ -5,12 +5,12 @@
 
 import { useState, useEffect } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction } from '@solana/web3.js';
+import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
+import { Program, AnchorProvider, BN, web3 } from '@coral-xyz/anchor';
+import { ChessEscrow } from '../../../src/idl/chess_escrow';
+import ChessEscrowIDL from '../../../src/idl/chess_escrow.json';
 import multiplayerState from '../services/multiplayerState';
-
-// Solana Integration Constants
-const PROGRAM_ID = new PublicKey('F4Py3YTF1JGhbY9ACztXaseFF89ZfLS69ke5Z7EBGQGr');
-const FEE_WALLET = new PublicKey('UFGCHLdHGYQDwCag4iUTTYmvTyayvdjo9BsbDBs56r1');
+import { CHESS_PROGRAM_ID, FEE_WALLET_ADDRESS } from '../config/solanaConfig';
 
 export interface SolanaWalletHook {
   // Wallet state
@@ -21,7 +21,13 @@ export interface SolanaWalletHook {
   // Wallet operations
   checkBalance: () => Promise<void>;
   createEscrow: (roomId: string, betAmount: number) => Promise<boolean>;
-  claimWinnings: (playerRole: string, gameWinner: string | null, isDraw: boolean, betAmount: number) => Promise<string>;
+  joinAndDepositStake: (roomId: string, betAmount: number) => Promise<boolean>;
+  claimWinnings: (roomId: string, playerRole: string, gameWinner: string | null, isDraw: boolean) => Promise<string>;
+  recordMove: (roomId: string, moveNotation: string, positionHash: Uint8Array) => Promise<boolean>;
+  declareResult: (roomId: string, winner: 'white' | 'black' | null, reason: string) => Promise<string>;
+  handleTimeout: (roomId: string) => Promise<string>;
+  cancelGame: (roomId: string) => Promise<boolean>;
+  getGameStatus: (roomId: string) => Promise<any>;
   
   // Status
   isLoading: boolean;
@@ -32,7 +38,7 @@ export interface SolanaWalletHook {
  * Custom hook for Solana wallet operations
  */
 export const useSolanaWallet = (): SolanaWalletHook => {
-  const { publicKey, connected, signTransaction } = useWallet();
+  const { publicKey, connected, signTransaction, sendTransaction } = useWallet();
   const { connection } = useConnection();
   
   const [balance, setBalance] = useState<number>(0);
@@ -45,6 +51,22 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       checkBalance();
     }
   }, [connected, publicKey]);
+
+  /**
+   * Get Anchor program instance
+   */
+  const getProgram = (): Program<ChessEscrow> | null => {
+    if (!publicKey || !signTransaction || !sendTransaction) return null;
+    
+    const provider = new AnchorProvider(
+      connection,
+      { publicKey, signTransaction, sendTransaction },
+      { commitment: 'confirmed' }
+    );
+    
+    // Use the imported IDL
+    return new Program(ChessEscrowIDL as ChessEscrow, CHESS_PROGRAM_ID, provider);
+  };
 
   /**
    * Check wallet balance
@@ -68,13 +90,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
   };
 
   /**
-   * Create escrow for a game
+   * Create escrow for a game (initialize game)
    * @param roomId - Room ID to create escrow for
    * @param betAmount - Amount to bet in SOL
    * @returns Success status
    */
   const createEscrow = async (roomId: string, betAmount: number): Promise<boolean> => {
-    if (!connected || !publicKey || !signTransaction) {
+    if (!connected || !publicKey) {
       setError('Please connect your wallet first');
       return false;
     }
@@ -84,46 +106,91 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       return false;
     }
 
+    const program = getProgram();
+    if (!program) {
+      setError('Failed to connect to program');
+      return false;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
       
       console.log('🔄 Creating escrow for room:', roomId, 'amount:', betAmount, 'SOL');
       
-      // Add to multiplayer state (this will auto-start game if both escrows ready)
+      // Derive PDAs
+      const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(roomId)],
+        CHESS_PROGRAM_ID
+      );
+      
+      const [gameVaultPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), gameEscrowPda.toBuffer()],
+        CHESS_PROGRAM_ID
+      );
+      
+      // Initialize game
+      const tx = await program.methods
+        .initializeGame(
+          roomId,
+          new BN(betAmount * LAMPORTS_PER_SOL),
+          new BN(300) // 5 minute time limit
+        )
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          player: publicKey,
+          feeCollector: FEE_WALLET_ADDRESS,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      console.log('✅ Game initialized, tx:', tx);
+      
+      // Now deposit stake
+      const depositTx = await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          player: publicKey,
+          gameVault: gameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      console.log('✅ Stake deposited, tx:', depositTx);
+      
+      // Add to multiplayer state
       multiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
       
-      // Simple SOL transfer simulation (in real app, you'd use your smart contract)
-      const lamports = betAmount * LAMPORTS_PER_SOL;
-      
-      // Create a simple transaction (this is a placeholder)
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: FEE_WALLET, // This would be your escrow account
-          lamports: lamports,
-        })
-      );
-
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = publicKey;
-
-      // In production, you'd sign and send this transaction
-      // const signed = await signTransaction(transaction);
-      // const signature = await connection.sendRawTransaction(signed.serialize());
-      
-      console.log('✅ Escrow created successfully for room:', roomId);
-      
-      // Update balance after escrow creation
+      // Update balance after transactions
       setTimeout(() => {
         checkBalance();
       }, 1000);
       
       return true;
       
-    } catch (err) {
-      const errorMessage = `Escrow creation failed: ${(err as Error).message}`;
+    } catch (err: any) {
+      let errorMessage = 'Escrow creation failed';
+      
+      // Parse Anchor errors
+      if (err.error?.errorCode?.code) {
+        switch (err.error.errorCode.code) {
+          case 'RoomIdTooLong':
+            errorMessage = 'Room ID is too long (max 32 characters)';
+            break;
+          case 'InvalidStakeAmount':
+            errorMessage = 'Invalid stake amount';
+            break;
+          case 'AlreadyDeposited':
+            errorMessage = 'You have already deposited for this game';
+            break;
+          default:
+            errorMessage = err.error.errorCode.code;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       console.error('❌ Escrow creation error:', err);
       return false;
@@ -133,18 +200,124 @@ export const useSolanaWallet = (): SolanaWalletHook => {
   };
 
   /**
+   * Join existing game and deposit stake
+   * @param roomId - Room ID to join
+   * @param betAmount - Amount to bet in SOL
+   * @returns Success status
+   */
+  const joinAndDepositStake = async (roomId: string, betAmount: number): Promise<boolean> => {
+    if (!connected || !publicKey) {
+      setError('Please connect your wallet first');
+      return false;
+    }
+
+    if (balance < betAmount) {
+      setError(`Insufficient balance! Need ${betAmount} SOL, have ${balance.toFixed(3)} SOL`);
+      return false;
+    }
+
+    const program = getProgram();
+    if (!program) {
+      setError('Failed to connect to program');
+      return false;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log('🔄 Joining game and depositing stake for room:', roomId);
+      
+      // Derive PDAs
+      const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(roomId)],
+        CHESS_PROGRAM_ID
+      );
+      
+      const [gameVaultPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), gameEscrowPda.toBuffer()],
+        CHESS_PROGRAM_ID
+      );
+      
+      // Join game
+      const joinTx = await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          player: publicKey,
+        })
+        .rpc();
+      
+      console.log('✅ Joined game, tx:', joinTx);
+      
+      // Deposit stake
+      const depositTx = await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          player: publicKey,
+          gameVault: gameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      console.log('✅ Stake deposited, tx:', depositTx);
+      
+      // Add to multiplayer state
+      multiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+      
+      // Update balance
+      setTimeout(() => {
+        checkBalance();
+      }, 1000);
+      
+      return true;
+      
+    } catch (err: any) {
+      let errorMessage = 'Failed to join game';
+      
+      if (err.error?.errorCode?.code) {
+        switch (err.error.errorCode.code) {
+          case 'GameNotWaitingForPlayers':
+            errorMessage = 'Game is not accepting new players';
+            break;
+          case 'CannotPlayAgainstSelf':
+            errorMessage = 'You cannot play against yourself';
+            break;
+          case 'UnauthorizedPlayer':
+            errorMessage = 'You are not authorized for this game';
+            break;
+          case 'AlreadyDeposited':
+            errorMessage = 'You have already deposited for this game';
+            break;
+          default:
+            errorMessage = err.error.errorCode.code;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      console.error('❌ Join game error:', err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
    * Claim winnings from a completed game
+   * @param roomId - Room ID of the game
    * @param playerRole - Player's role ('white' or 'black')
    * @param gameWinner - Winner of the game ('white', 'black', or null for draw)
    * @param isDraw - Whether the game was a draw
-   * @param betAmount - Original bet amount
    * @returns Status message
    */
   const claimWinnings = async (
+    roomId: string,
     playerRole: string, 
     gameWinner: string | null, 
-    isDraw: boolean, 
-    betAmount: number
+    isDraw: boolean
   ): Promise<string> => {
     if (!connected || !publicKey) {
       const errorMsg = 'Wallet not connected';
@@ -158,41 +331,383 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       return errorMsg;
     }
 
+    const program = getProgram();
+    if (!program) {
+      const errorMsg = 'Failed to connect to program';
+      setError(errorMsg);
+      return errorMsg;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
       
-      console.log('🏆 Claiming winnings for player:', playerRole, 'Winner:', gameWinner, 'Draw:', isDraw);
+      console.log('🏆 Claiming winnings for room:', roomId, 'Player:', playerRole, 'Winner:', gameWinner, 'Draw:', isDraw);
       
-      // Simulate transaction time
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Derive PDAs
+      const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(roomId)],
+        CHESS_PROGRAM_ID
+      );
+      
+      const [gameVaultPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), gameEscrowPda.toBuffer()],
+        CHESS_PROGRAM_ID
+      );
+      
+      // Get game account to find player addresses
+      const gameAccount = await program.account.gameEscrow.fetch(gameEscrowPda);
+      
+      // Determine winner enum for contract
+      let winner;
+      let reason;
+      
+      if (isDraw) {
+        winner = { draw: {} };
+        reason = { agreement: {} }; // or stalemate
+      } else if (gameWinner === 'white') {
+        winner = { white: {} };
+        reason = { checkmate: {} }; // You might need to determine actual reason
+      } else {
+        winner = { black: {} };
+        reason = { checkmate: {} };
+      }
+      
+      // Declare result
+      const tx = await program.methods
+        .declareResult(winner, reason)
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          player: publicKey,
+          gameVault: gameVaultPda,
+          playerWhite: gameAccount.playerWhite,
+          playerBlack: gameAccount.playerBlack,
+          feeCollector: gameAccount.feeCollector,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      console.log('✅ Game result declared and funds distributed, tx:', tx);
       
       let statusMessage = '';
       
       if (gameWinner === playerRole) {
-        const winnings = betAmount * 2;
-        statusMessage = `🎉 SUCCESS! You won ${winnings} SOL! Winnings have been transferred to your wallet.`;
-        console.log('🎉 Winner claimed:', winnings, 'SOL');
+        // Winner gets 99% of total pot (1% fee)
+        const totalPot = gameAccount.stakeAmount.toNumber() * 2 / LAMPORTS_PER_SOL;
+        const winnings = totalPot * 0.99;
+        statusMessage = `🎉 SUCCESS! You won ${winnings.toFixed(3)} SOL! Funds have been transferred to your wallet.`;
       } else if (isDraw) {
-        statusMessage = `🤝 Draw payout processed! You received ${betAmount} SOL back.`;
-        console.log('🤝 Draw claimed:', betAmount, 'SOL');
+        // Each player gets back 49.5% (1% fee)
+        const stake = gameAccount.stakeAmount.toNumber() / LAMPORTS_PER_SOL;
+        const refund = stake * 0.99;
+        statusMessage = `🤝 Draw! You received ${refund.toFixed(3)} SOL back.`;
       } else {
-        statusMessage = `❌ No winnings available - you did not win this game.`;
-        console.log('❌ Non-winner tried to claim');
+        statusMessage = `❌ You lost this game. Better luck next time!`;
       }
       
-      // Update balance after claim
+      // Update balance
       setTimeout(() => {
         checkBalance();
-      }, 500);
+      }, 1000);
       
       return statusMessage;
       
-    } catch (err) {
-      const errorMessage = `❌ Claim failed: ${(err as Error).message}`;
+    } catch (err: any) {
+      let errorMessage = `❌ Claim failed: ${(err as Error).message}`;
+      
+      if (err.error?.errorCode?.code) {
+        switch (err.error.errorCode.code) {
+          case 'GameNotInProgress':
+            errorMessage = 'Game is not in progress';
+            break;
+          case 'UnauthorizedPlayer':
+            errorMessage = 'You are not authorized to declare this result';
+            break;
+          case 'InvalidWinnerDeclaration':
+            errorMessage = 'Invalid winner declaration';
+            break;
+          default:
+            errorMessage = err.error.errorCode.code;
+        }
+      }
+      
       setError(errorMessage);
       console.error('❌ Claim error:', err);
       return errorMessage;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Record a move on-chain (for anti-cheat)
+   */
+  const recordMove = async (
+    roomId: string, 
+    moveNotation: string, 
+    positionHash: Uint8Array
+  ): Promise<boolean> => {
+    const program = getProgram();
+    if (!program || !publicKey) return false;
+    
+    try {
+      const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(roomId)],
+        CHESS_PROGRAM_ID
+      );
+      
+      const tx = await program.methods
+        .recordMove(moveNotation, Array.from(positionHash))
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          player: publicKey,
+        })
+        .rpc();
+      
+      console.log('📝 Move recorded on-chain:', moveNotation, 'tx:', tx);
+      return true;
+    } catch (err) {
+      console.error('Failed to record move:', err);
+      return false;
+    }
+  };
+
+  /**
+   * Handle timeout - can be called by anyone after time limit
+   */
+  const handleTimeout = async (roomId: string): Promise<string> => {
+    const program = getProgram();
+    if (!program || !publicKey) {
+      return 'Failed to connect to program';
+    }
+    
+    try {
+      const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(roomId)],
+        CHESS_PROGRAM_ID
+      );
+      
+      const [gameVaultPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), gameEscrowPda.toBuffer()],
+        CHESS_PROGRAM_ID
+      );
+      
+      const gameAccount = await program.account.gameEscrow.fetch(gameEscrowPda);
+      
+      const tx = await program.methods
+        .handleTimeout()
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          gameVault: gameVaultPda,
+          playerWhite: gameAccount.playerWhite,
+          playerBlack: gameAccount.playerBlack,
+          feeCollector: gameAccount.feeCollector,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      console.log('⏰ Timeout handled, tx:', tx);
+      
+      // Update balance
+      setTimeout(() => checkBalance(), 1000);
+      
+      return 'Timeout claimed successfully!';
+    } catch (err: any) {
+      if (err.error?.errorCode?.code === 'TimeNotExceeded') {
+        return 'Time limit has not been exceeded yet';
+      }
+      return `Failed to handle timeout: ${err.message}`;
+    }
+  };
+
+  /**
+   * Cancel game (only before it starts)
+   */
+  const cancelGame = async (roomId: string): Promise<boolean> => {
+    const program = getProgram();
+    if (!program || !publicKey) return false;
+    
+    try {
+      const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(roomId)],
+        CHESS_PROGRAM_ID
+      );
+      
+      const [gameVaultPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), gameEscrowPda.toBuffer()],
+        CHESS_PROGRAM_ID
+      );
+      
+      const gameAccount = await program.account.gameEscrow.fetch(gameEscrowPda);
+      
+      const tx = await program.methods
+        .cancelGame()
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          player: publicKey,
+          gameVault: gameVaultPda,
+          playerWhite: gameAccount.playerWhite,
+          playerBlack: gameAccount.playerBlack,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      console.log('🚫 Game cancelled, tx:', tx);
+      
+      // Update balance
+      setTimeout(() => checkBalance(), 1000);
+      
+      return true;
+    } catch (err: any) {
+      console.error('Failed to cancel game:', err);
+      return false;
+    }
+  };
+
+  /**
+   * Get game status from blockchain
+   */
+  const getGameStatus = async (roomId: string): Promise<any> => {
+    const program = getProgram();
+    if (!program) return null;
+    
+    try {
+      const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(roomId)],
+        CHESS_PROGRAM_ID
+      );
+      
+      const gameAccount = await program.account.gameEscrow.fetch(gameEscrowPda);
+      
+      return {
+        roomId: gameAccount.roomId,
+        playerWhite: gameAccount.playerWhite.toString(),
+        playerBlack: gameAccount.playerBlack.toString(),
+        stakeAmount: gameAccount.stakeAmount.toNumber() / LAMPORTS_PER_SOL,
+        gameState: Object.keys(gameAccount.gameState)[0],
+        winner: gameAccount.winner ? Object.keys(gameAccount.winner)[0] : null,
+        whiteDeposited: gameAccount.whiteDeposited,
+        blackDeposited: gameAccount.blackDeposited,
+        moveCount: gameAccount.moveCount,
+        startedAt: gameAccount.startedAt.toNumber(),
+        lastMoveTime: gameAccount.lastMoveTime.toNumber(),
+      };
+    } catch (err) {
+      console.error('Failed to get game status:', err);
+      return null;
+    }
+  };
+
+  /**
+   * Declare game result on blockchain
+   * @param roomId - Room ID
+   * @param winner - Winner of the game
+   * @param reason - Reason for game end
+   * @returns Transaction signature
+   */
+  const declareResult = async (roomId: string, winner: 'white' | 'black' | null, reason: string): Promise<string> => {
+    if (!connected || !publicKey) {
+      setError('Please connect your wallet first');
+      return '';
+    }
+
+    const program = getProgram();
+    if (!program) {
+      setError('Failed to connect to program');
+      return '';
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log('🔄 Declaring game result:', { roomId, winner, reason });
+      
+      // Derive PDAs
+      const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(roomId)],
+        CHESS_PROGRAM_ID
+      );
+      
+      const [gameVaultPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), gameEscrowPda.toBuffer()],
+        CHESS_PROGRAM_ID
+      );
+      
+      // Convert winner to smart contract enum
+      let gameWinner: any;
+      switch (winner) {
+        case 'white':
+          gameWinner = { white: {} };
+          break;
+        case 'black':
+          gameWinner = { black: {} };
+          break;
+        default:
+          gameWinner = { draw: {} };
+      }
+      
+      // Convert reason to smart contract enum
+      let gameEndReason: any;
+      switch (reason.toLowerCase()) {
+        case 'checkmate':
+          gameEndReason = { checkmate: {} };
+          break;
+        case 'resignation':
+          gameEndReason = { resignation: {} };
+          break;
+        case 'timeout':
+          gameEndReason = { timeout: {} };
+          break;
+        case 'stalemate':
+          gameEndReason = { stalemate: {} };
+          break;
+        default:
+          gameEndReason = { agreement: {} };
+      }
+      
+      // Declare result
+      const tx = await program.methods
+        .declareResult(gameWinner, gameEndReason)
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          player: publicKey,
+          gameVault: gameVaultPda,
+          playerWhite: new web3.PublicKey('11111111111111111111111111111111'), // Will be set by program
+          playerBlack: new web3.PublicKey('11111111111111111111111111111111'), // Will be set by program
+          feeCollector: FEE_WALLET_ADDRESS,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      console.log('✅ Game result declared, tx:', tx);
+      return tx;
+      
+    } catch (err: any) {
+      let errorMessage = 'Game result declaration failed';
+      
+      // Parse Anchor errors
+      if (err.error?.errorCode?.code) {
+        switch (err.error.errorCode.code) {
+          case 'GameNotInProgress':
+            errorMessage = 'Game is not in progress';
+            break;
+          case 'InvalidWinnerDeclaration':
+            errorMessage = 'Invalid winner declaration';
+            break;
+          case 'UnauthorizedPlayer':
+            errorMessage = 'You are not authorized to declare result';
+            break;
+          default:
+            errorMessage = err.error.errorCode.code;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      console.error('❌ Game result declaration error:', err);
+      return '';
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +722,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     // Wallet operations
     checkBalance,
     createEscrow,
+    joinAndDepositStake,
     claimWinnings,
+    recordMove,
+    declareResult,
+    handleTimeout,
+    cancelGame,
+    getGameStatus,
     
     // Status
     isLoading,

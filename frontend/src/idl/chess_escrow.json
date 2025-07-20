@@ -1,0 +1,907 @@
+{
+  "address": "F4Py3YTF1JGhbY9ACztXaseFF89ZfLS69ke5Z7EBGQGr",
+  "metadata": {
+    "name": "chess_escrow",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "cancel_game",
+      "docs": [
+        "Cancel game (only if not started or both players agree)"
+      ],
+      "discriminator": [
+        121,
+        194,
+        154,
+        118,
+        103,
+        235,
+        149,
+        52
+      ],
+      "accounts": [
+        {
+          "name": "game_escrow",
+          "writable": true
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "game_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "game_escrow"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_white",
+          "writable": true
+        },
+        {
+          "name": "player_black",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "declare_result",
+      "docs": [
+        "Declare game result and distribute funds"
+      ],
+      "discriminator": [
+        205,
+        129,
+        155,
+        217,
+        131,
+        167,
+        175,
+        38
+      ],
+      "accounts": [
+        {
+          "name": "game_escrow",
+          "writable": true
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "game_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "game_escrow"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_white",
+          "writable": true
+        },
+        {
+          "name": "player_black",
+          "writable": true
+        },
+        {
+          "name": "fee_collector",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "winner",
+          "type": {
+            "defined": {
+              "name": "GameWinner"
+            }
+          }
+        },
+        {
+          "name": "reason",
+          "type": {
+            "defined": {
+              "name": "GameEndReason"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "deposit_stake",
+      "docs": [
+        "Player deposits their stake"
+      ],
+      "discriminator": [
+        160,
+        167,
+        9,
+        220,
+        74,
+        243,
+        228,
+        43
+      ],
+      "accounts": [
+        {
+          "name": "game_escrow",
+          "writable": true
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "game_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "game_escrow"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "handle_timeout",
+      "docs": [
+        "Handle timeout (can be called by anyone after time limit exceeded)"
+      ],
+      "discriminator": [
+        55,
+        38,
+        141,
+        178,
+        11,
+        84,
+        214,
+        227
+      ],
+      "accounts": [
+        {
+          "name": "game_escrow",
+          "writable": true
+        },
+        {
+          "name": "game_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "game_escrow"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_white",
+          "writable": true
+        },
+        {
+          "name": "player_black",
+          "writable": true
+        },
+        {
+          "name": "fee_collector",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_game",
+      "docs": [
+        "Initialize a new chess game escrow"
+      ],
+      "discriminator": [
+        44,
+        62,
+        102,
+        247,
+        126,
+        208,
+        130,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "game_escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "room_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "fee_collector"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "room_id",
+          "type": "string"
+        },
+        {
+          "name": "stake_amount",
+          "type": "u64"
+        },
+        {
+          "name": "time_limit_seconds",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "join_game",
+      "docs": [
+        "Second player joins the game"
+      ],
+      "discriminator": [
+        107,
+        112,
+        18,
+        38,
+        56,
+        173,
+        60,
+        128
+      ],
+      "accounts": [
+        {
+          "name": "game_escrow",
+          "writable": true
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "record_move",
+      "docs": [
+        "Record a move (for anti-cheat and timing)"
+      ],
+      "discriminator": [
+        111,
+        244,
+        88,
+        207,
+        200,
+        48,
+        59,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "game_escrow",
+          "writable": true
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "move_notation",
+          "type": "string"
+        },
+        {
+          "name": "game_position_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "GameEscrow",
+      "discriminator": [
+        37,
+        195,
+        2,
+        234,
+        81,
+        128,
+        248,
+        133
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "GameCancelled",
+      "discriminator": [
+        113,
+        20,
+        200,
+        104,
+        76,
+        35,
+        9,
+        241
+      ]
+    },
+    {
+      "name": "GameCreated",
+      "discriminator": [
+        218,
+        25,
+        150,
+        94,
+        177,
+        112,
+        96,
+        2
+      ]
+    },
+    {
+      "name": "GameFinished",
+      "discriminator": [
+        0,
+        128,
+        235,
+        237,
+        115,
+        180,
+        62,
+        221
+      ]
+    },
+    {
+      "name": "GameStarted",
+      "discriminator": [
+        222,
+        247,
+        78,
+        255,
+        61,
+        184,
+        156,
+        41
+      ]
+    },
+    {
+      "name": "MoveRecorded",
+      "discriminator": [
+        198,
+        243,
+        206,
+        103,
+        150,
+        145,
+        178,
+        34
+      ]
+    },
+    {
+      "name": "PlayerJoined",
+      "discriminator": [
+        39,
+        144,
+        49,
+        106,
+        108,
+        210,
+        183,
+        38
+      ]
+    },
+    {
+      "name": "StakeDeposited",
+      "discriminator": [
+        69,
+        152,
+        144,
+        109,
+        232,
+        34,
+        225,
+        19
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "RoomIdTooLong",
+      "msg": "Room ID too long (max 32 characters)"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidStakeAmount",
+      "msg": "Invalid stake amount"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidTimeLimit",
+      "msg": "Invalid time limit"
+    },
+    {
+      "code": 6003,
+      "name": "GameNotWaitingForPlayers",
+      "msg": "Game is not waiting for players"
+    },
+    {
+      "code": 6004,
+      "name": "CannotPlayAgainstSelf",
+      "msg": "Cannot play against yourself"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidGameStateForDeposit",
+      "msg": "Invalid game state for deposit"
+    },
+    {
+      "code": 6006,
+      "name": "UnauthorizedPlayer",
+      "msg": "Unauthorized player"
+    },
+    {
+      "code": 6007,
+      "name": "AlreadyDeposited",
+      "msg": "Player has already deposited"
+    },
+    {
+      "code": 6008,
+      "name": "GameNotInProgress",
+      "msg": "Game is not in progress"
+    },
+    {
+      "code": 6009,
+      "name": "MoveNotationTooLong",
+      "msg": "Move notation too long"
+    },
+    {
+      "code": 6010,
+      "name": "MoveTimeExceeded",
+      "msg": "Move time exceeded"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidWinnerDeclaration",
+      "msg": "Invalid winner declaration"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidDrawDeclaration",
+      "msg": "Invalid draw declaration"
+    },
+    {
+      "code": 6013,
+      "name": "CannotCancelStartedGame",
+      "msg": "Cannot cancel a started game"
+    },
+    {
+      "code": 6014,
+      "name": "TimeNotExceeded",
+      "msg": "Time limit not exceeded"
+    }
+  ],
+  "types": [
+    {
+      "name": "GameCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room_id",
+            "type": "string"
+          },
+          {
+            "name": "cancelled_by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room_id",
+            "type": "string"
+          },
+          {
+            "name": "player_white",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameEndReason",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Checkmate"
+          },
+          {
+            "name": "Resignation"
+          },
+          {
+            "name": "Timeout"
+          },
+          {
+            "name": "Agreement"
+          },
+          {
+            "name": "Stalemate"
+          },
+          {
+            "name": "Abandonment"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameEscrow",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room_id",
+            "type": "string"
+          },
+          {
+            "name": "player_white",
+            "type": "pubkey"
+          },
+          {
+            "name": "player_black",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_deposited",
+            "type": "u64"
+          },
+          {
+            "name": "game_state",
+            "type": {
+              "defined": {
+                "name": "GameState"
+              }
+            }
+          },
+          {
+            "name": "winner",
+            "type": {
+              "defined": {
+                "name": "GameWinner"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "started_at",
+            "type": "i64"
+          },
+          {
+            "name": "finished_at",
+            "type": "i64"
+          },
+          {
+            "name": "time_limit_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "fee_collector",
+            "type": "pubkey"
+          },
+          {
+            "name": "white_deposited",
+            "type": "bool"
+          },
+          {
+            "name": "black_deposited",
+            "type": "bool"
+          },
+          {
+            "name": "move_count",
+            "type": "u32"
+          },
+          {
+            "name": "last_move_time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameFinished",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room_id",
+            "type": "string"
+          },
+          {
+            "name": "winner",
+            "type": {
+              "defined": {
+                "name": "GameWinner"
+              }
+            }
+          },
+          {
+            "name": "reason",
+            "type": {
+              "defined": {
+                "name": "GameEndReason"
+              }
+            }
+          },
+          {
+            "name": "finished_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameStarted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room_id",
+            "type": "string"
+          },
+          {
+            "name": "started_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "WaitingForPlayers"
+          },
+          {
+            "name": "WaitingForDeposits"
+          },
+          {
+            "name": "InProgress"
+          },
+          {
+            "name": "Finished"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameWinner",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "None"
+          },
+          {
+            "name": "White"
+          },
+          {
+            "name": "Black"
+          },
+          {
+            "name": "Draw"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MoveRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room_id",
+            "type": "string"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "move_count",
+            "type": "u32"
+          },
+          {
+            "name": "move_notation",
+            "type": "string"
+          },
+          {
+            "name": "position_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerJoined",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room_id",
+            "type": "string"
+          },
+          {
+            "name": "player_black",
+            "type": "pubkey"
+          },
+          {
+            "name": "joined_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeDeposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room_id",
+            "type": "string"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

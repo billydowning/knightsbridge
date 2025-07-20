@@ -15,6 +15,7 @@ export interface Position {
 }
 
 export interface GameState {
+  position: Position;
   currentPlayer: 'white' | 'black';
   selectedSquare: string | null;
   gameActive: boolean;
@@ -27,6 +28,7 @@ export interface GameState {
   halfmoveClock: number;
   fullmoveNumber: number;
   inCheck: boolean;
+  lastMove?: { from: string; to: string } | null;
 }
 
 export interface MoveResult {

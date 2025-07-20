@@ -7,6 +7,8 @@ import { useState } from 'react';
 import ChessEngine from '../engine/chessEngine';
 import type { GameState, Move } from '../types/chess';
 import multiplayerState from '../services/multiplayerState';
+import { useSolanaWallet } from './useSolanaWallet';
+import { generatePositionHash, generateMoveNotation, validateMoveNotation } from '../utils/blockchainUtils';
 
 export interface MoveResult {
   success: boolean;
@@ -15,7 +17,7 @@ export interface MoveResult {
 
 export interface GameStateHook {
   gameState: GameState;
-  makeMove: (from: string, to: string, roomId?: string) => MoveResult;
+  makeMove: (from: string, to: string, roomId?: string) => Promise<MoveResult>;
   selectSquare: (square: string) => void;
   resetGame: (roomId?: string | null) => void;
   loadGameState: (newState: GameState) => void;
@@ -31,20 +33,24 @@ export interface GameStateHook {
  */
 export const useGameState = (): GameStateHook => {
   const [gameState, setGameState] = useState<GameState>({
-    position: ChessEngine.getInitialPosition(),
-    ...ChessEngine.getInitialGameState()
+    ...ChessEngine.getInitialGameState(),
+    position: ChessEngine.getInitialPosition()
   });
 
-  /**
+  // Get Solana wallet functions
+  const { recordMove: recordMoveOnChain } = useSolanaWallet();
+
+    /**
    * Make a move on the chess board
    * @param from - Source square (e.g., "e2")
    * @param to - Target square (e.g., "e4")
    * @param roomId - Optional room ID for multiplayer sync
    * @returns Object with success status and message
    */
-  const makeMove = (from: string, to: string, roomId?: string): MoveResult => {
+  const makeMove = async (from: string, to: string, roomId?: string): Promise<MoveResult> => {
     let moveSuccessful = false;
     let statusMessage = '';
+    let moveData: { piece: string; capturedPiece?: string; position: any; isCheck: boolean; isCheckmate: boolean } | null = null;
     
     setGameState((prev) => {
       const piece = prev.position[from];
@@ -84,6 +90,17 @@ export const useGameState = (): GameStateHook => {
       }
 
       const nextPlayer: 'white' | 'black' = prev.currentPlayer === 'white' ? 'black' : 'white';
+      const isCheck = ChessEngine.isInCheck(result.position, nextPlayer);
+      const isCheckmate = ChessEngine.isCheckmate(result.position, nextPlayer, result.gameState);
+      
+      // Store move data for blockchain recording
+      moveData = {
+        piece,
+        capturedPiece: result.capturedPiece,
+        position: result.position,
+        isCheck,
+        isCheckmate
+      };
       
       // Build new state
       const newState: GameState = {
@@ -102,11 +119,12 @@ export const useGameState = (): GameStateHook => {
         enPassantTarget: result.gameState.enPassantTarget || null,
         halfmoveClock: result.gameState.halfmoveClock || 0,
         fullmoveNumber: result.gameState.fullmoveNumber || 1,
-        inCheck: ChessEngine.isInCheck(result.position, nextPlayer)
+        inCheck,
+        lastMove: { from, to }
       };
 
       // Check for game end conditions
-      if (ChessEngine.isCheckmate(result.position, nextPlayer, result.gameState)) {
+      if (isCheckmate) {
         newState.winner = prev.currentPlayer;
         newState.gameActive = false;
         statusMessage = `Checkmate! ${prev.currentPlayer} wins!`;
@@ -118,7 +136,7 @@ export const useGameState = (): GameStateHook => {
         newState.draw = true;
         newState.gameActive = false;
         statusMessage = 'Draw by 50-move rule!';
-      } else if (newState.inCheck) {
+      } else if (isCheck) {
         statusMessage = `${nextPlayer} is in check!`;
       } else {
         statusMessage = `${nextPlayer}'s turn`;
@@ -132,6 +150,42 @@ export const useGameState = (): GameStateHook => {
       moveSuccessful = true;
       return newState;
     });
+
+    // Record move on blockchain if in multiplayer mode with roomId
+    if (moveSuccessful && roomId && moveData) {
+      try {
+        // Generate proper move notation
+        const moveNotation = generateMoveNotation(
+          from,
+          to,
+          moveData.piece,
+          moveData.capturedPiece,
+          moveData.isCheck,
+          moveData.isCheckmate
+        );
+        
+        // Validate move notation length
+        if (!validateMoveNotation(moveNotation)) {
+          console.warn('⚠️ Move notation too long for blockchain');
+          statusMessage += ' (notation too long)';
+        } else {
+          // Generate position hash
+          const positionHash = generatePositionHash(moveData.position);
+          
+          // Record move on blockchain
+          const blockchainSuccess = await recordMoveOnChain(roomId, moveNotation, positionHash);
+          if (!blockchainSuccess) {
+            console.warn('⚠️ Move recorded locally but failed on blockchain');
+            statusMessage += ' (blockchain sync failed)';
+          } else {
+            console.log('✅ Move recorded on blockchain:', moveNotation);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error recording move on blockchain:', error);
+        statusMessage += ' (blockchain error)';
+      }
+    }
     
     return { success: moveSuccessful, message: statusMessage };
   };
@@ -173,8 +227,8 @@ export const useGameState = (): GameStateHook => {
   const resetGame = (roomId?: string | null): void => {
     // Reset local game state
     const initialState: GameState = {
-      position: ChessEngine.getInitialPosition(),
       ...ChessEngine.getInitialGameState(),
+      position: ChessEngine.getInitialPosition(),
       gameActive: true
     };
 
@@ -226,6 +280,13 @@ export const useGameState = (): GameStateHook => {
     return legalMoves.filter(move => move.from === square).map(move => move.to);
   };
 
+  // Get all legal moves for the current position
+  const getAllLegalMoves = (): string[] => {
+    if (!gameState.gameActive) return [];
+    const moves = ChessEngine.getLegalMoves(gameState.position, gameState.currentPlayer, gameState);
+    return moves.map(move => move.to);
+  };
+
   /**
    * Set game active status
    * @param active - Whether the game is active
@@ -240,6 +301,49 @@ export const useGameState = (): GameStateHook => {
    */
   const setWinner = (winner: 'white' | 'black' | null): void => {
     setGameState(prev => ({ ...prev, winner, gameActive: false }));
+  };
+
+  /**
+   * Declare game result on blockchain
+   * @param roomId - Room ID for blockchain integration
+   * @param winner - Winner of the game
+   * @param reason - Reason for game end
+   */
+  const declareGameResult = async (roomId: string, winner: 'white' | 'black' | null, reason: string): Promise<boolean> => {
+    try {
+      const { declareResult } = useSolanaWallet();
+      
+      if (!declareResult) {
+        console.warn('⚠️ Declare result function not available');
+        return false;
+      }
+
+      const result = await declareResult(roomId, winner, reason);
+      console.log('✅ Game result declared on blockchain:', result);
+      return true;
+    } catch (error) {
+      console.error('❌ Error declaring game result on blockchain:', error);
+      return false;
+    }
+  };
+
+  /**
+   * Handle game end with blockchain integration
+   * @param roomId - Room ID for blockchain integration
+   * @param winner - Winner of the game
+   * @param reason - Reason for game end
+   */
+  const handleGameEnd = async (roomId: string, winner: 'white' | 'black' | null, reason: string): Promise<void> => {
+    // Update local state
+    setWinner(winner);
+    
+    // Declare result on blockchain
+    if (roomId) {
+      const blockchainSuccess = await declareGameResult(roomId, winner, reason);
+      if (!blockchainSuccess) {
+        console.warn('⚠️ Game ended locally but blockchain declaration failed');
+      }
+    }
   };
 
   /**
