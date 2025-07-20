@@ -1,304 +1,1043 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { SolanaEscrow } from "../target/types/solana_escrow";
-import { PublicKey, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { ChessEscrow } from "../target/types/chess_escrow";
 import { assert } from "chai";
+import { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-describe("solana_escrow", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
+describe("chess_escrow", () => {
+  // Configure the client to use the local cluster
+  const provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
 
-  const program = anchor.workspace.SolanaEscrow as Program<SolanaEscrow>;
-
-  const initializer = Keypair.generate();
-  // Replace this with your actual wallet address where you want to receive fees
-  const feeCollectorAddress = new PublicKey("67c89e9AaAnXavrXBEi4C25spybND1KxvxVb4nK1Z6Hn"); // <- Put your wallet address here
-  const winner = Keypair.generate();
-
-  // Generate a new keypair for the escrow account
-  const escrowAccount = Keypair.generate();
-  let escrowVaultPda: PublicKey;
-  let vaultBump: number;
+  const program = anchor.workspace.ChessEscrow as Program<ChessEscrow>;
+  
+  // Test accounts
+  let playerWhite: Keypair;
+  let playerBlack: Keypair;
+  let feeCollector: Keypair;
+  let unauthorizedPlayer: Keypair;
+  
+  // Test data
+  const roomId = "test-room-123";
+  const stakeAmount = new anchor.BN(LAMPORTS_PER_SOL); // 1 SOL
+  const timeLimitSeconds = new anchor.BN(300); // 5 minutes
+  
+  // PDAs
+  let gameEscrowPda: PublicKey;
+  let gameVaultPda: PublicKey;
+  let gameEscrowBump: number;
+  let gameVaultBump: number;
 
   before(async () => {
-    const connection = anchor.getProvider().connection;
-
-    console.log("=== SETUP INFORMATION ===");
-    console.log("Program ID from workspace:", program.programId.toString());
-    console.log("Cluster endpoint:", connection.rpcEndpoint);
+    // Create test keypairs
+    playerWhite = Keypair.generate();
+    playerBlack = Keypair.generate();
+    feeCollector = Keypair.generate();
+    unauthorizedPlayer = Keypair.generate();
     
-    // Check if program exists on the current cluster
-    try {
-      const programAccount = await connection.getAccountInfo(program.programId);
-      if (!programAccount) {
-        console.error("❌ Program account not found!");
-        console.log("Expected program ID:", program.programId.toString());
-        
-        // Try to get the actual deployed program ID
-        try {
-          const fs = require('fs');
-          const keypairPath = 'target/deploy/solana_escrow-keypair.json';
-          if (fs.existsSync(keypairPath)) {
-            const keypairData = JSON.parse(fs.readFileSync(keypairPath, 'utf8'));
-            const actualProgramId = Keypair.fromSecretKey(new Uint8Array(keypairData)).publicKey;
-            console.log("Actual deployed program ID:", actualProgramId.toString());
-            
-            if (!actualProgramId.equals(program.programId)) {
-              console.error("❌ PROGRAM ID MISMATCH!");
-              console.log("Update your lib.rs declare_id! to:", actualProgramId.toString());
-            }
-          }
-        } catch (e) {
-          console.log("Could not read keypair file:", e.message);
-        }
-        
-        throw new Error(`Program ${program.programId.toString()} does not exist. Make sure program IDs match and deployment was successful.`);
-      }
-      console.log("✅ Program found on cluster");
-      console.log("Program account owner:", programAccount.owner.toString());
-      console.log("Program account executable:", programAccount.executable);
-    } catch (error) {
-      console.error("❌ Program check failed:", error.message);
-      throw error;
-    }
-
-    // Check balances before airdrop
-    console.log("=== AIRDROP PHASE ===");
-    const initBalance = await connection.getBalance(initializer.publicKey);
-    const winnerBalance = await connection.getBalance(winner.publicKey);
-    const feeCollectorBalance = await connection.getBalance(feeCollectorAddress);
-    console.log("Initializer balance before airdrop:", initBalance);
-    console.log("Winner balance before airdrop:", winnerBalance);
-    console.log("Fee collector balance:", feeCollectorBalance);
-
-    // Airdrop SOL to initializer
-    console.log("Requesting airdrop for initializer...");
-    const airdropSig1 = await connection.requestAirdrop(initializer.publicKey, 10 * LAMPORTS_PER_SOL);
-    await connection.confirmTransaction({
-      signature: airdropSig1,
-      blockhash: (await connection.getLatestBlockhash()).blockhash,
-      lastValidBlockHeight: (await connection.getLatestBlockhash()).lastValidBlockHeight,
-    });
-
-    // Airdrop SOL to winner
-    console.log("Requesting airdrop for winner...");
-    const airdropSig2 = await connection.requestAirdrop(winner.publicKey, 10 * LAMPORTS_PER_SOL);
-    await connection.confirmTransaction({
-      signature: airdropSig2,
-      blockhash: (await connection.getLatestBlockhash()).blockhash,
-      lastValidBlockHeight: (await connection.getLatestBlockhash()).lastValidBlockHeight,
-    });
-
-    // Note: No airdrop needed for fee collector since it's your existing wallet
-
-    // Find PDA for escrow_vault
-    [escrowVaultPda, vaultBump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), escrowAccount.publicKey.toBuffer()],
+  // Airdrop SOL to test accounts
+    const airdropAmount = 100 * LAMPORTS_PER_SOL; // Increase airdrop amount
+    await provider.connection.requestAirdrop(playerWhite.publicKey, airdropAmount);
+    await provider.connection.requestAirdrop(playerBlack.publicKey, airdropAmount);
+    await provider.connection.requestAirdrop(unauthorizedPlayer.publicKey, airdropAmount);
+    
+    // Wait for airdrops to confirm
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Derive PDAs
+    [gameEscrowPda, gameEscrowBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("game"), Buffer.from(roomId)],
       program.programId
     );
-
-    console.log("=== ACCOUNT INFORMATION ===");
-    console.log("Escrow account:", escrowAccount.publicKey.toString());
-    console.log("Escrow vault PDA:", escrowVaultPda.toString());
-    console.log("Vault bump:", vaultBump);
-    console.log("Initializer:", initializer.publicKey.toString());
-    console.log("Fee collector (YOUR WALLET):", feeCollectorAddress.toString());
-    console.log("Winner:", winner.publicKey.toString());
-    console.log("=========================");
+    
+    [gameVaultPda, gameVaultBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), gameEscrowPda.toBuffer()],
+      program.programId
+    );
   });
 
-  it("Initializes the escrow", async () => {
-    try {
-      await program.methods
-        .initialize(new anchor.BN(LAMPORTS_PER_SOL)) // amount = 1 SOL
+  describe("initialize_game", () => {
+    it("should initialize a new game", async () => {
+      const tx = await program.methods
+        .initializeGame(roomId, stakeAmount, timeLimitSeconds)
         .accounts({
-          escrow: escrowAccount.publicKey,
-          initializer: initializer.publicKey,
-          feeCollector: feeCollectorAddress, // Using your specific wallet address
-          systemProgram: anchor.web3.SystemProgram.programId,
+          gameEscrow: gameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
         })
-        .signers([initializer, escrowAccount]) // Include escrowAccount as signer
+        .signers([playerWhite])
         .rpc();
-
-      const escrowAccountData = await program.account.escrowAccount.fetch(escrowAccount.publicKey);
-      assert.equal(escrowAccountData.initializer.toString(), initializer.publicKey.toString());
-      assert.equal(escrowAccountData.amount.toNumber(), LAMPORTS_PER_SOL);
-      assert.equal(escrowAccountData.feeCollector.toString(), feeCollectorAddress.toString());
       
-      console.log("✅ Escrow initialized successfully");
-    } catch (error) {
-      console.error("Initialize error:", error);
-      throw error;
-    }
-  });
-
-  it("Deposits to the escrow", async () => {
-    try {
-      const initialVaultBalance = await anchor.getProvider().connection.getBalance(escrowVaultPda);
-      const initialInitializerBalance = await anchor.getProvider().connection.getBalance(initializer.publicKey);
-
-      console.log("Initial vault balance:", initialVaultBalance);
-      console.log("Initial initializer balance:", initialInitializerBalance);
-
-      await program.methods
-        .deposit(new anchor.BN(LAMPORTS_PER_SOL))
-        .accounts({
-          escrow: escrowAccount.publicKey,
-          initializer: initializer.publicKey,
-          escrowVault: escrowVaultPda,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([initializer])
-        .rpc();
-
-      const finalVaultBalance = await anchor.getProvider().connection.getBalance(escrowVaultPda);
-      const finalInitializerBalance = await anchor.getProvider().connection.getBalance(initializer.publicKey);
-
-      console.log("Final vault balance:", finalVaultBalance);
-      console.log("Final initializer balance:", finalInitializerBalance);
-
-      // Check vault received the deposit
-      assert.equal(finalVaultBalance - initialVaultBalance, LAMPORTS_PER_SOL);
+      // Fetch the created game escrow account
+      const gameEscrow = await program.account.gameEscrow.fetch(gameEscrowPda);
       
-      // Check initializer lost approximately 1 SOL + transaction fees
-      const balanceDiff = initialInitializerBalance - finalInitializerBalance;
-      assert.isTrue(balanceDiff >= LAMPORTS_PER_SOL, "Initializer should have lost at least 1 SOL");
-      assert.isTrue(balanceDiff < LAMPORTS_PER_SOL + 0.01 * LAMPORTS_PER_SOL, "Should not lose more than 1.01 SOL (accounting for fees)");
+      assert.equal(gameEscrow.roomId, roomId);
+      assert.equal(gameEscrow.playerWhite.toString(), playerWhite.publicKey.toString());
+      assert.equal(gameEscrow.playerBlack.toString(), PublicKey.default.toString());
+      assert.equal(gameEscrow.stakeAmount.toString(), stakeAmount.toString());
+      assert.equal(gameEscrow.totalDeposited.toString(), "0");
+      assert.deepEqual(gameEscrow.gameState, { waitingForPlayers: {} });
+      assert.deepEqual(gameEscrow.winner, { none: {} });
+      assert.equal(gameEscrow.timeLimitSeconds.toString(), timeLimitSeconds.toString());
+      assert.equal(gameEscrow.feeCollector.toString(), feeCollector.publicKey.toString());
+      assert.equal(gameEscrow.whiteDeposited, false);
+      assert.equal(gameEscrow.blackDeposited, false);
+      assert.equal(gameEscrow.moveCount, 0);
+    });
+
+    it("should fail if room ID is too long", async () => {
+      const longRoomId = "a".repeat(33);
       
-      console.log("✅ Deposit successful");
-    } catch (error) {
-      console.error("Deposit error:", error);
-      throw error;
-    }
-  });
+      try {
+        // Try to derive PDA with long room ID - this will fail
+        const [longGameEscrowPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("game"), Buffer.from(longRoomId)],
+          program.programId
+        );
+        
+        // If we get here, try to initialize (though we shouldn't get here)
+        await program.methods
+          .initializeGame(longRoomId, stakeAmount, timeLimitSeconds)
+          .accounts({
+            gameEscrow: longGameEscrowPda,
+            player: playerWhite.publicKey,
+            feeCollector: feeCollector.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([playerWhite])
+          .rpc();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        // The error will be about max seed length exceeded, not RoomIdTooLong
+        // because the validation happens at PDA level
+        assert(error.toString().includes("Max seed length exceeded") || 
+               error.toString().includes("RoomIdTooLong"),
+               `Expected seed length or room ID error, got: ${error.toString()}`);
+      }
+    });
 
-  it("Releases the pot with fee", async () => {
-    try {
-      const initialFeeBalance = await anchor.getProvider().connection.getBalance(feeCollectorAddress);
-      const initialWinnerBalance = await anchor.getProvider().connection.getBalance(winner.publicKey);
-      const initialVaultBalance = await anchor.getProvider().connection.getBalance(escrowVaultPda);
-
-      console.log("Before release:");
-      console.log("- Vault balance:", initialVaultBalance);
-      console.log("- Fee collector balance:", initialFeeBalance);
-      console.log("- Winner balance:", initialWinnerBalance);
-
-      await program.methods
-        .release()
-        .accounts({
-          escrow: escrowAccount.publicKey,
-          escrowVault: escrowVaultPda,
-          winner: winner.publicKey,
-          feeCollector: feeCollectorAddress, // Using your specific wallet address
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([winner])
-        .rpc();
-
-      const finalFeeBalance = await anchor.getProvider().connection.getBalance(feeCollectorAddress);
-      const finalWinnerBalance = await anchor.getProvider().connection.getBalance(winner.publicKey);
-      const finalVaultBalance = await anchor.getProvider().connection.getBalance(escrowVaultPda);
-
-      console.log("After release:");
-      console.log("- Vault balance:", finalVaultBalance);
-      console.log("- Fee collector balance:", finalFeeBalance);
-      console.log("- Winner balance:", finalWinnerBalance);
-
-      const expectedFee = Math.floor(initialVaultBalance / 100);
-      const expectedWinnerAmount = initialVaultBalance - expectedFee;
-
-      console.log("Expected fee:", expectedFee);
-      console.log("Expected winner amount:", expectedWinnerAmount);
-      console.log("Actual fee collected:", finalFeeBalance - initialFeeBalance);
-
-      // Check fee collector received the fee
-      assert.equal(finalFeeBalance - initialFeeBalance, expectedFee, "Fee collector should receive 1% fee");
-      
-      // Check winner received the remaining amount (accounting for transaction fees)
-      const winnerAmountReceived = finalWinnerBalance - initialWinnerBalance;
-      // Winner pays tx fees, so they get slightly less than expected
-      assert.isTrue(winnerAmountReceived >= expectedWinnerAmount - 0.01 * LAMPORTS_PER_SOL, "Winner should receive approximately 99% minus tx fees");
-      
-      // Check vault is empty
-      assert.equal(finalVaultBalance, 0, "Vault should be empty after release");
-      
-      console.log("✅ Release with fee successful");
-    } catch (error) {
-      console.error("Release error:", error);
-      throw error;
-    }
-  });
-
-  it("Can cancel escrow and refund initializer", async () => {
-    try {
-      // Create a new escrow for cancellation test
-      const newEscrowAccount = Keypair.generate();
-      const [newVaultPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("vault"), newEscrowAccount.publicKey.toBuffer()],
+    it("should fail if stake amount is zero", async () => {
+      const zeroStake = new anchor.BN(0);
+      const newRoomId = "test-room-zero";
+      const [newGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(newRoomId)],
         program.programId
       );
-
-      // Initialize new escrow
-      await program.methods
-        .initialize(new anchor.BN(LAMPORTS_PER_SOL))
-        .accounts({
-          escrow: newEscrowAccount.publicKey,
-          initializer: initializer.publicKey,
-          feeCollector: feeCollectorAddress, // Using your specific wallet address
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([initializer, newEscrowAccount])
-        .rpc();
-
-      // Deposit to new escrow
-      await program.methods
-        .deposit(new anchor.BN(LAMPORTS_PER_SOL))
-        .accounts({
-          escrow: newEscrowAccount.publicKey,
-          initializer: initializer.publicKey,
-          escrowVault: newVaultPda,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([initializer])
-        .rpc();
-
-      const initialInitializerBalance = await anchor.getProvider().connection.getBalance(initializer.publicKey);
-      const initialVaultBalance = await anchor.getProvider().connection.getBalance(newVaultPda);
-
-      console.log("Before cancel:");
-      console.log("- Vault balance:", initialVaultBalance);
-      console.log("- Initializer balance:", initialInitializerBalance);
-
-      // Cancel the escrow
-      await program.methods
-        .cancel()
-        .accounts({
-          escrow: newEscrowAccount.publicKey,
-          initializer: initializer.publicKey,
-          escrowVault: newVaultPda,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([initializer])
-        .rpc();
-
-      const finalInitializerBalance = await anchor.getProvider().connection.getBalance(initializer.publicKey);
-      const finalVaultBalance = await anchor.getProvider().connection.getBalance(newVaultPda);
-
-      console.log("After cancel:");
-      console.log("- Vault balance:", finalVaultBalance);
-      console.log("- Initializer balance:", finalInitializerBalance);
-
-      // Check initializer got refund (minus transaction fees)
-      const refundReceived = finalInitializerBalance - initialInitializerBalance;
-      assert.isTrue(refundReceived >= initialVaultBalance - 0.01 * LAMPORTS_PER_SOL, "Initializer should receive refund minus tx fees");
       
-      // Check vault is empty
-      assert.equal(finalVaultBalance, 0, "Vault should be empty after cancel");
+      try {
+        await program.methods
+          .initializeGame(newRoomId, zeroStake, timeLimitSeconds)
+          .accounts({
+            gameEscrow: newGameEscrowPda,
+            player: playerWhite.publicKey,
+            feeCollector: feeCollector.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([playerWhite])
+          .rpc();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.include(error.toString(), "InvalidStakeAmount");
+      }
+    });
+  });
+
+  describe("join_game", () => {
+    it("should allow a second player to join", async () => {
+      const tx = await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: gameEscrowPda,
+          player: playerBlack.publicKey,
+        })
+        .signers([playerBlack])
+        .rpc();
       
-      console.log("✅ Cancel and refund successful");
-    } catch (error) {
-      console.error("Cancel error:", error);
-      throw error;
-    }
+      const gameEscrow = await program.account.gameEscrow.fetch(gameEscrowPda);
+      
+      assert.equal(gameEscrow.playerBlack.toString(), playerBlack.publicKey.toString());
+      assert.deepEqual(gameEscrow.gameState, { waitingForDeposits: {} });
+    });
+
+    it("should fail if player tries to play against themselves", async () => {
+      const selfPlayRoomId = "self-play-room";
+      const [selfPlayGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(selfPlayRoomId)],
+        program.programId
+      );
+      
+      // Initialize a new game
+      await program.methods
+        .initializeGame(selfPlayRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: selfPlayGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      // Try to join the same game
+      try {
+        await program.methods
+          .joinGame()
+          .accounts({
+            gameEscrow: selfPlayGameEscrowPda,
+            player: playerWhite.publicKey,
+          })
+          .signers([playerWhite])
+          .rpc();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.include(error.toString(), "CannotPlayAgainstSelf");
+      }
+    });
+  });
+
+  describe("deposit_stake", () => {
+    // Create a new game for deposit tests to avoid state conflicts
+    let depositRoomId: string;
+    let depositGameEscrowPda: PublicKey;
+    let depositGameVaultPda: PublicKey;
+    
+    beforeEach(async () => {
+      depositRoomId = `deposit-test-${Date.now()}`;
+      [depositGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(depositRoomId)],
+        program.programId
+      );
+      [depositGameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), depositGameEscrowPda.toBuffer()],
+        program.programId
+      );
+      
+      // Initialize a fresh game
+      await program.methods
+        .initializeGame(depositRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: depositGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+        
+      // Player black joins
+      await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: depositGameEscrowPda,
+          player: playerBlack.publicKey,
+        })
+        .signers([playerBlack])
+        .rpc();
+    });
+
+    it("should allow white player to deposit stake", async () => {
+      const vaultBalanceBefore = await provider.connection.getBalance(depositGameVaultPda);
+      
+      const tx = await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: depositGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: depositGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      const gameEscrow = await program.account.gameEscrow.fetch(depositGameEscrowPda);
+      const vaultBalanceAfter = await provider.connection.getBalance(depositGameVaultPda);
+      
+      assert.equal(gameEscrow.whiteDeposited, true);
+      assert.equal(gameEscrow.totalDeposited.toString(), stakeAmount.toString());
+      assert.equal(vaultBalanceAfter - vaultBalanceBefore, stakeAmount.toNumber());
+    });
+
+    it("should allow black player to deposit stake and start game", async () => {
+      // White deposits first
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: depositGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: depositGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+        
+      const tx = await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: depositGameEscrowPda,
+          player: playerBlack.publicKey,
+          gameVault: depositGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerBlack])
+        .rpc();
+      
+      const gameEscrow = await program.account.gameEscrow.fetch(depositGameEscrowPda);
+      
+      assert.equal(gameEscrow.blackDeposited, true);
+      assert.equal(gameEscrow.totalDeposited.toString(), (stakeAmount.toNumber() * 2).toString());
+      assert.deepEqual(gameEscrow.gameState, { inProgress: {} });
+      assert.notEqual(gameEscrow.startedAt.toString(), "0");
+      assert.notEqual(gameEscrow.lastMoveTime.toString(), "0");
+    });
+
+    it("should fail if player deposits twice", async () => {
+      // White deposits first
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: depositGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: depositGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+        
+      try {
+        await program.methods
+          .depositStake()
+          .accounts({
+            gameEscrow: depositGameEscrowPda,
+            player: playerWhite.publicKey,
+            gameVault: depositGameVaultPda,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([playerWhite])
+          .rpc();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.include(error.toString(), "AlreadyDeposited");
+      }
+    });
+
+    it("should fail if unauthorized player tries to deposit", async () => {
+      try {
+        await program.methods
+          .depositStake()
+          .accounts({
+            gameEscrow: depositGameEscrowPda,
+            player: unauthorizedPlayer.publicKey,
+            gameVault: depositGameVaultPda,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([unauthorizedPlayer])
+          .rpc();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.include(error.toString(), "UnauthorizedPlayer");
+      }
+    });
+  });
+
+  describe("record_move", () => {
+    const moveNotation = "e2e4";
+    const gamePositionHash = Array(32).fill(1);
+    let moveRoomId: string;
+    let moveGameEscrowPda: PublicKey;
+    let moveGameVaultPda: PublicKey;
+    
+    beforeEach(async () => {
+      // Create and start a fresh game for move tests
+      moveRoomId = `move-test-${Date.now()}`;
+      [moveGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(moveRoomId)],
+        program.programId
+      );
+      [moveGameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), moveGameEscrowPda.toBuffer()],
+        program.programId
+      );
+      
+      // Initialize and fully start the game
+      await program.methods
+        .initializeGame(moveRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: moveGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+        
+      await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: moveGameEscrowPda,
+          player: playerBlack.publicKey,
+        })
+        .signers([playerBlack])
+        .rpc();
+        
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: moveGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: moveGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+        
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: moveGameEscrowPda,
+          player: playerBlack.publicKey,
+          gameVault: moveGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerBlack])
+        .rpc();
+    });
+
+    it("should record a move", async () => {
+      const tx = await program.methods
+        .recordMove(moveNotation, gamePositionHash)
+        .accounts({
+          gameEscrow: moveGameEscrowPda,
+          player: playerWhite.publicKey,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      const gameEscrow = await program.account.gameEscrow.fetch(moveGameEscrowPda);
+      
+      assert.equal(gameEscrow.moveCount, 1);
+    });
+
+    it("should fail if game is not in progress", async () => {
+      // Create a new game that's not started
+      const notStartedRoomId = "not-started-room";
+      const [notStartedGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(notStartedRoomId)],
+        program.programId
+      );
+      
+      await program.methods
+        .initializeGame(notStartedRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: notStartedGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      try {
+        await program.methods
+          .recordMove(moveNotation, gamePositionHash)
+          .accounts({
+            gameEscrow: notStartedGameEscrowPda,
+            player: playerWhite.publicKey,
+          })
+          .signers([playerWhite])
+          .rpc();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.include(error.toString(), "GameNotInProgress");
+      }
+    });
+
+    it("should fail if unauthorized player tries to record move", async () => {
+      try {
+        await program.methods
+          .recordMove(moveNotation, gamePositionHash)
+          .accounts({
+            gameEscrow: moveGameEscrowPda,
+            player: unauthorizedPlayer.publicKey,
+          })
+          .signers([unauthorizedPlayer])
+          .rpc();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.include(error.toString(), "UnauthorizedPlayer");
+      }
+    });
+  });
+
+  describe("declare_result", () => {
+    let resultRoomId: string;
+    let resultGameEscrowPda: PublicKey;
+    let resultGameVaultPda: PublicKey;
+    
+    beforeEach(async () => {
+      // Create a fresh game for each result test
+      resultRoomId = `result-test-${Date.now()}`;
+      [resultGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(resultRoomId)],
+        program.programId
+      );
+      [resultGameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), resultGameEscrowPda.toBuffer()],
+        program.programId
+      );
+      
+      // Initialize and start game
+      await program.methods
+        .initializeGame(resultRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: resultGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+        
+      await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: resultGameEscrowPda,
+          player: playerBlack.publicKey,
+        })
+        .signers([playerBlack])
+        .rpc();
+        
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: resultGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: resultGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+        
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: resultGameEscrowPda,
+          player: playerBlack.publicKey,
+          gameVault: resultGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerBlack])
+        .rpc();
+    });
+    
+    it("should handle resignation by black player (white wins)", async () => {
+      const vaultBalanceBefore = await provider.connection.getBalance(resultGameVaultPda);
+      const whiteBalanceBefore = await provider.connection.getBalance(playerWhite.publicKey);
+      const feeCollectorBalanceBefore = await provider.connection.getBalance(feeCollector.publicKey);
+      
+      const tx = await program.methods
+        .declareResult(
+          { white: {} },  // GameWinner::White
+          { resignation: {} }  // GameEndReason::Resignation
+        )
+        .accounts({
+          gameEscrow: resultGameEscrowPda,
+          player: playerBlack.publicKey,
+          gameVault: resultGameVaultPda,
+          playerWhite: playerWhite.publicKey,
+          playerBlack: playerBlack.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerBlack])
+        .rpc();
+      
+      const gameEscrow = await program.account.gameEscrow.fetch(resultGameEscrowPda);
+      const vaultBalanceAfter = await provider.connection.getBalance(resultGameVaultPda);
+      const whiteBalanceAfter = await provider.connection.getBalance(playerWhite.publicKey);
+      const feeCollectorBalanceAfter = await provider.connection.getBalance(feeCollector.publicKey);
+      
+      assert.deepEqual(gameEscrow.winner, { white: {} });
+      assert.deepEqual(gameEscrow.gameState, { finished: {} });
+      assert.notEqual(gameEscrow.finishedAt.toString(), "0");
+      
+      // Check fund distribution (1% fee)
+      const totalStake = stakeAmount.toNumber() * 2;
+      const feeAmount = Math.floor(totalStake * 0.01);
+      const winnerAmount = totalStake - feeAmount;
+      
+      assert.equal(vaultBalanceAfter, 0);
+      assert.equal(whiteBalanceAfter - whiteBalanceBefore, winnerAmount);
+      assert.equal(feeCollectorBalanceAfter - feeCollectorBalanceBefore, feeAmount);
+    });
+  });
+
+  describe("handle_timeout", () => {
+    let timeoutRoomId: string;
+    let timeoutGameEscrowPda: PublicKey;
+    let timeoutGameVaultPda: PublicKey;
+
+    before(async () => {
+      // Create a new game with very short time limit for testing timeout
+      timeoutRoomId = "timeout-test-room";
+      const shortTimeLimit = new anchor.BN(1); // 1 second
+      
+      [timeoutGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(timeoutRoomId)],
+        program.programId
+      );
+      
+      [timeoutGameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), timeoutGameEscrowPda.toBuffer()],
+        program.programId
+      );
+      
+      // Initialize game
+      await program.methods
+        .initializeGame(timeoutRoomId, stakeAmount, shortTimeLimit)
+        .accounts({
+          gameEscrow: timeoutGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      // Player black joins
+      await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: timeoutGameEscrowPda,
+          player: playerBlack.publicKey,
+        })
+        .signers([playerBlack])
+        .rpc();
+      
+      // Both players deposit
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: timeoutGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: timeoutGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: timeoutGameEscrowPda,
+          player: playerBlack.publicKey,
+          gameVault: timeoutGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerBlack])
+        .rpc();
+      
+      // Wait for timeout (adding extra time to ensure it's exceeded)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    });
+
+    it("should handle timeout correctly", async () => {
+      const tx = await program.methods
+        .handleTimeout()
+        .accounts({
+          gameEscrow: timeoutGameEscrowPda,
+          gameVault: timeoutGameVaultPda,
+          playerWhite: playerWhite.publicKey,
+          playerBlack: playerBlack.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      const gameEscrow = await program.account.gameEscrow.fetch(timeoutGameEscrowPda);
+      
+      assert.deepEqual(gameEscrow.gameState, { finished: {} });
+      // Since move_count is 0 (even), it's white's turn, so black wins on timeout
+      assert.deepEqual(gameEscrow.winner, { black: {} });
+    });
+  });
+
+  describe("cancel_game", () => {
+    let cancelRoomId: string;
+    let cancelGameEscrowPda: PublicKey;
+    let cancelGameVaultPda: PublicKey;
+
+    before(async () => {
+      cancelRoomId = "cancel-test-room";
+      
+      [cancelGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(cancelRoomId)],
+        program.programId
+      );
+      
+      [cancelGameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), cancelGameEscrowPda.toBuffer()],
+        program.programId
+      );
+      
+      // Initialize game
+      await program.methods
+        .initializeGame(cancelRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: cancelGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      // White deposits
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: cancelGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: cancelGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+    });
+
+  describe("cancel_game", () => {
+    it("should allow cancelling game before it starts", async () => {
+      // Create a new room with a black player who joins but doesn't deposit
+      const cancelWithBlackRoomId = `cancel-black-${Date.now()}`;
+      const [cancelWithBlackGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(cancelWithBlackRoomId)],
+        program.programId
+      );
+      const [cancelWithBlackGameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), cancelWithBlackGameEscrowPda.toBuffer()],
+        program.programId
+      );
+      
+      // Initialize game
+      await program.methods
+        .initializeGame(cancelWithBlackRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: cancelWithBlackGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      // Black player joins
+      await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: cancelWithBlackGameEscrowPda,
+          player: playerBlack.publicKey,
+        })
+        .signers([playerBlack])
+        .rpc();
+      
+      // White deposits
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: cancelWithBlackGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: cancelWithBlackGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      const whiteBalanceBefore = await provider.connection.getBalance(playerWhite.publicKey);
+      
+      // Now cancel (game is in WaitingForDeposits state)
+      const tx = await program.methods
+        .cancelGame()
+        .accounts({
+          gameEscrow: cancelWithBlackGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: cancelWithBlackGameVaultPda,
+          playerWhite: playerWhite.publicKey,
+          playerBlack: playerBlack.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      const gameEscrowAfter = await program.account.gameEscrow.fetch(cancelWithBlackGameEscrowPda);
+      const whiteBalanceAfter = await provider.connection.getBalance(playerWhite.publicKey);
+      
+      assert.deepEqual(gameEscrowAfter.gameState, { cancelled: {} });
+      // Check refund (minus transaction fees)
+      assert.approximately(
+        whiteBalanceAfter - whiteBalanceBefore,
+        stakeAmount.toNumber(),
+        10000000 // Allow for transaction fees
+      );
+    });
+
+    it("should fail to cancel a game in progress", async () => {
+      // Create and start a new game
+      const inProgressRoomId = `in-progress-${Date.now()}`;
+      const [inProgressGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(inProgressRoomId)],
+        program.programId
+      );
+      const [inProgressGameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), inProgressGameEscrowPda.toBuffer()],
+        program.programId
+      );
+      
+      // Initialize and start the game
+      await program.methods
+        .initializeGame(inProgressRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: inProgressGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+        
+      await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: inProgressGameEscrowPda,
+          player: playerBlack.publicKey,
+        })
+        .signers([playerBlack])
+        .rpc();
+        
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: inProgressGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: inProgressGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+        
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: inProgressGameEscrowPda,
+          player: playerBlack.publicKey,
+          gameVault: inProgressGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerBlack])
+        .rpc();
+      
+      // Now try to cancel the in-progress game
+      try {
+        await program.methods
+          .cancelGame()
+          .accounts({
+            gameEscrow: inProgressGameEscrowPda,
+            player: playerWhite.publicKey,
+            gameVault: inProgressGameVaultPda,
+            playerWhite: playerWhite.publicKey,
+            playerBlack: playerBlack.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([playerWhite])
+          .rpc();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.include(error.toString(), "CannotCancelStartedGame");
+      }
+    });
+  });
+  });
+
+  describe("edge cases and security", () => {
+    it("should validate move notation length", async () => {
+      const longMoveNotation = "a".repeat(11);
+      const gamePositionHash = Array(32).fill(1);
+      
+      // Create a new game for this test
+      const edgeRoomId = "edge-case-room";
+      const [edgeGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(edgeRoomId)],
+        program.programId
+      );
+      const [edgeGameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), edgeGameEscrowPda.toBuffer()],
+        program.programId
+      );
+      
+      // Set up the game
+      await program.methods
+        .initializeGame(edgeRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: edgeGameEscrowPda,
+          player: playerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: edgeGameEscrowPda,
+          player: playerBlack.publicKey,
+        })
+        .signers([playerBlack])
+        .rpc();
+      
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: edgeGameEscrowPda,
+          player: playerWhite.publicKey,
+          gameVault: edgeGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerWhite])
+        .rpc();
+      
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: edgeGameEscrowPda,
+          player: playerBlack.publicKey,
+          gameVault: edgeGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([playerBlack])
+        .rpc();
+      
+      try {
+        await program.methods
+          .recordMove(longMoveNotation, gamePositionHash)
+          .accounts({
+            gameEscrow: edgeGameEscrowPda,
+            player: playerWhite.publicKey,
+          })
+          .signers([playerWhite])
+          .rpc();
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.include(error.toString(), "MoveNotationTooLong");
+      }
+    });
+
+    it("should handle draw by agreement", async () => {
+      // Create a new game for draw test
+      const drawRoomId = "draw-test-room";
+      const [drawGameEscrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game"), Buffer.from(drawRoomId)],
+        program.programId
+      );
+      const [drawGameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), drawGameEscrowPda.toBuffer()],
+        program.programId
+      );
+      
+      // Create fresh keypairs with sufficient balance for this test
+      const drawPlayerWhite = Keypair.generate();
+      const drawPlayerBlack = Keypair.generate();
+      
+      // Airdrop SOL to the draw test players
+      await provider.connection.requestAirdrop(drawPlayerWhite.publicKey, 10 * LAMPORTS_PER_SOL);
+      await provider.connection.requestAirdrop(drawPlayerBlack.publicKey, 10 * LAMPORTS_PER_SOL);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Set up the game
+      await program.methods
+        .initializeGame(drawRoomId, stakeAmount, timeLimitSeconds)
+        .accounts({
+          gameEscrow: drawGameEscrowPda,
+          player: drawPlayerWhite.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([drawPlayerWhite])
+        .rpc();
+      
+      await program.methods
+        .joinGame()
+        .accounts({
+          gameEscrow: drawGameEscrowPda,
+          player: drawPlayerBlack.publicKey,
+        })
+        .signers([drawPlayerBlack])
+        .rpc();
+      
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: drawGameEscrowPda,
+          player: drawPlayerWhite.publicKey,
+          gameVault: drawGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([drawPlayerWhite])
+        .rpc();
+      
+      await program.methods
+        .depositStake()
+        .accounts({
+          gameEscrow: drawGameEscrowPda,
+          player: drawPlayerBlack.publicKey,
+          gameVault: drawGameVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([drawPlayerBlack])
+        .rpc();
+      
+      const whiteBalanceBefore = await provider.connection.getBalance(drawPlayerWhite.publicKey);
+      const blackBalanceBefore = await provider.connection.getBalance(drawPlayerBlack.publicKey);
+      
+      // Declare draw
+      await program.methods
+        .declareResult(
+          { draw: {} },  // GameWinner::Draw
+          { agreement: {} }  // GameEndReason::Agreement
+        )
+        .accounts({
+          gameEscrow: drawGameEscrowPda,
+          player: drawPlayerWhite.publicKey,
+          gameVault: drawGameVaultPda,
+          playerWhite: drawPlayerWhite.publicKey,
+          playerBlack: drawPlayerBlack.publicKey,
+          feeCollector: feeCollector.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([drawPlayerWhite])
+        .rpc();
+      
+      const gameEscrow = await program.account.gameEscrow.fetch(drawGameEscrowPda);
+      const whiteBalanceAfter = await provider.connection.getBalance(drawPlayerWhite.publicKey);
+      const blackBalanceAfter = await provider.connection.getBalance(drawPlayerBlack.publicKey);
+      
+      assert.deepEqual(gameEscrow.winner, { draw: {} });
+      
+      // Check that both players received approximately half of the pot (minus fees)
+      const totalStake = stakeAmount.toNumber() * 2;
+      const feeAmount = Math.floor(totalStake * 0.01);
+      const remainingAmount = totalStake - feeAmount;
+      const halfAmount = Math.floor(remainingAmount / 2);
+      
+      assert.approximately(
+        whiteBalanceAfter - whiteBalanceBefore,
+        halfAmount,
+        5000000 // Allow for transaction fees
+      );
+      assert.approximately(
+        blackBalanceAfter - blackBalanceBefore,
+        halfAmount,
+        5000000 // Allow for transaction fees
+      );
+    });
   });
 });
