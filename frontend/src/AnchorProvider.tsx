@@ -4,7 +4,8 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { clusterApiUrl } from '@solana/web3.js';
 
-const network = import.meta.env.MODE === 'production' ? 'mainnet-beta' : 'devnet';
+// Temporarily use devnet for testing
+const network = 'devnet';
 const endpoint = clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter()];
 
