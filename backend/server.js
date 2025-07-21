@@ -21,6 +21,10 @@ const io = new Server(server, {
   }
 });
 
+console.log('🚀 Socket.io server initialized with CORS origins:', process.env.NODE_ENV === 'production' 
+  ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app']
+  : '*');
+
 app.use(cors());
 app.use(express.json()); // Parse JSON bodies
 
@@ -46,14 +50,16 @@ const gameRooms = new Map(); // Store game rooms
 
 // Handle Socket.io connections
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+  console.log('🔌 A user connected:', socket.id);
 
   // Create a new room
   socket.on('createRoom', async (data, callback) => {
+    console.log('📨 Received createRoom event:', data);
     try {
       const { roomId, playerWallet } = data;
       
       if (gameRooms.has(roomId)) {
+        console.log('❌ Room already exists:', roomId);
         callback({ success: false, error: 'Room already exists' });
         return;
       }
@@ -79,7 +85,7 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('roomUpdated', { roomId, room });
       
     } catch (error) {
-      console.error('Error creating room:', error);
+      console.error('❌ Error creating room:', error);
       callback({ success: false, error: 'Failed to create room' });
     }
   });
