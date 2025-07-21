@@ -10,8 +10,9 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 
 // Import our custom modules
 import { MenuView, LobbyView, GameView } from './components';
-import { SOLANA_NETWORK, SOLANA_RPC_ENDPOINT } from './config';
+import { SOLANA_RPC_ENDPOINT } from './config';
 import { useSolanaWallet } from './hooks/useSolanaWallet';
+import { useWebSocket } from './hooks/useWebSocket';
 import multiplayerState from './services/multiplayerState';
 import type { ChatMessage } from './components/ChatBox';
 
@@ -26,10 +27,7 @@ function ChessApp() {
     connected, 
     balance, 
     checkBalance, 
-    createEscrow, 
-    claimWinnings, 
-    isLoading, 
-    error 
+    isLoading 
   } = useSolanaWallet();
 
   // App state
@@ -74,6 +72,104 @@ function ChessApp() {
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Helper functions for WebSocket integration
+  const handleOpponentMove = (moveData: any) => {
+    console.log('Handling opponent move:', moveData);
+    // Apply the opponent's move to the local game state
+    const { from, to, piece } = moveData.move;
+    
+    setGameState((prev: any) => {
+      const newPosition = { ...prev.position };
+      newPosition[to as keyof typeof newPosition] = newPosition[from as keyof typeof newPosition];
+      newPosition[from as keyof typeof newPosition] = '';
+      
+      return {
+        ...prev,
+        position: newPosition,
+        currentPlayer: prev.currentPlayer === 'white' ? 'black' : 'white',
+        lastMove: { from, to, piece },
+        lastUpdated: Date.now()
+      };
+    });
+  };
+
+  const applyMovesToGameState = (moves: any[]) => {
+    console.log('Applying moves to game state:', moves);
+    // Reset to initial position
+    const initialPosition = {
+      a1: '♖', b1: '♘', c1: '♗', d1: '♕', e1: '♔', f1: '♗', g1: '♘', h1: '♖',
+      a2: '♙', b2: '♙', c2: '♙', d2: '♙', e2: '♙', f2: '♙', g2: '♙', h2: '♙',
+      a3: '', b3: '', c3: '', d3: '', e3: '', f3: '', g3: '', h3: '',
+      a4: '', b4: '', c4: '', d4: '', e4: '', f4: '', g4: '', h4: '',
+      a5: '', b5: '', c5: '', d5: '', e5: '', f5: '', g5: '', h5: '',
+      a6: '', b6: '', c6: '', d6: '', e6: '', f6: '', g6: '', h6: '',
+      a7: '♟', b7: '♟', c7: '♟', d7: '♟', e7: '♟', f7: '♟', g7: '♟', h7: '♟',
+      a8: '♜', b8: '♞', c8: '♝', d8: '♛', e8: '♚', f8: '♝', g8: '♞', h8: '♜'
+    };
+    
+    let currentPosition = { ...initialPosition };
+    let currentPlayer = 'white';
+    
+    moves.forEach((move: any) => {
+      currentPosition[move.to as keyof typeof currentPosition] = currentPosition[move.from as keyof typeof currentPosition];
+      currentPosition[move.from as keyof typeof currentPosition] = '';
+      currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
+    });
+    
+    setGameState((prev: any) => ({
+      ...prev,
+      position: currentPosition,
+      currentPlayer,
+      moveHistory: moves,
+      lastUpdated: Date.now()
+    }));
+  };
+
+  // WebSocket hook for real-time game communication
+  const {
+    sendMove,
+    sendChatMessage: wsSendChatMessage
+  } = useWebSocket({
+    gameId: roomId,
+    playerId: publicKey?.toString(),
+    playerName: publicKey?.toString().slice(0, 6) + '...' + publicKey?.toString().slice(-4),
+    onMoveReceived: (moveData) => {
+      console.log('Move received via WebSocket:', moveData);
+      // Handle move received from opponent
+      handleOpponentMove(moveData);
+    },
+    onChatMessageReceived: (message) => {
+      console.log('Chat message received via WebSocket:', message);
+      setChatMessages(prev => [...prev, {
+        id: message.id,
+        player: message.playerName,
+        message: message.message,
+        timestamp: new Date(message.timestamp)
+      }]);
+    },
+    onGameStateUpdate: (gameState) => {
+      console.log('Game state updated via WebSocket:', gameState);
+      // Update local game state with server state
+      if (gameState.moves && gameState.moves.length > 0) {
+        // Apply moves to local game state
+        applyMovesToGameState(gameState.moves);
+      }
+    },
+    onPlayerJoined: (player) => {
+      console.log('Player joined via WebSocket:', player);
+      setGameStatus(`Opponent joined! Game starting...`);
+    },
+    onGameStarted: (gameData) => {
+      console.log('Game started via WebSocket:', gameData);
+      setGameMode('game');
+      setGameStatus('Game started!');
+    },
+    onPlayerDisconnected: (player) => {
+      console.log('Player disconnected via WebSocket:', player);
+      setGameStatus('Opponent disconnected');
+    }
+  });
 
   // Update game status when wallet connects/disconnects
   useEffect(() => {

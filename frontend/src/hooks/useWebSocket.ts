@@ -1,270 +1,253 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import websocketService from '../services/websocketService';
-import type { 
-  ChatMessage, 
-  GameMove, 
-  GameState, 
-  PlayerInfo,
-  WebSocketEvents 
-} from '../services/websocketService';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
 
-interface UseWebSocketOptions {
-  gameId?: string;
-  playerId?: string;
-  playerName?: string;
-  onConnect?: () => void;
-  onDisconnect?: () => void;
-  onMoveReceived?: (move: GameMove) => void;
-  onChatMessage?: (message: ChatMessage) => void;
-  onGameStateUpdate?: (state: GameState) => void;
-  onPlayerJoined?: (player: PlayerInfo) => void;
-  onPlayerDisconnected?: (player: PlayerInfo) => void;
-  onGameStarted?: (data: { whitePlayer: string; blackPlayer: string }) => void;
-  onGameResigned?: (data: { playerId: string; color: 'white' | 'black'; winner: 'white' | 'black' }) => void;
-  onDrawOffered?: (player: PlayerInfo) => void;
-  onDrawResponse?: (accepted: boolean) => void;
+interface WebSocketMessage {
+  type: 'move' | 'chat' | 'gameState' | 'playerJoined' | 'gameStarted' | 'playerDisconnected';
+  data: any;
 }
 
-export const useWebSocket = (options: UseWebSocketOptions = {}) => {
+interface UseWebSocketProps {
+  gameId: string;
+  playerId?: string;
+  playerName?: string;
+  onMoveReceived?: (move: any) => void;
+  onChatMessageReceived?: (message: any) => void;
+  onGameStateUpdate?: (gameState: any) => void;
+  onPlayerJoined?: (player: any) => void;
+  onGameStarted?: (gameData: any) => void;
+  onPlayerDisconnected?: (player: any) => void;
+}
+
+export const useWebSocket = ({
+  gameId,
+  playerId,
+  playerName,
+  onMoveReceived,
+  onChatMessageReceived,
+  onGameStateUpdate,
+  onPlayerJoined,
+  onGameStarted,
+  onPlayerDisconnected
+}: UseWebSocketProps) => {
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [gameState, setGameState] = useState<GameState>({ moves: [], currentTurn: 'white' });
-  const [assignedColor, setAssignedColor] = useState<'white' | 'black' | null>(null);
+  const [assignedColor, setAssignedColor] = useState<string | null>(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const optionsRef = useRef(options);
-  optionsRef.current = options;
 
-  // Connection handlers
-  const handleConnect = useCallback(() => {
-    setIsConnected(true);
-    setError(null);
-    optionsRef.current.onConnect?.();
-  }, []);
+  const socketRef = useRef<Socket | null>(null);
 
-  const handleDisconnect = useCallback(() => {
-    setIsConnected(false);
-    optionsRef.current.onDisconnect?.();
-  }, []);
-
-  // Game event handlers
-  const handleAssignedColor = useCallback((data: { color: 'white' | 'black'; isTurn: boolean }) => {
-    setAssignedColor(data.color);
-    setIsMyTurn(data.isTurn);
-  }, []);
-
-  const handlePlayerJoined = useCallback((data: PlayerInfo) => {
-    optionsRef.current.onPlayerJoined?.(data);
-  }, []);
-
-  const handleGameStarted = useCallback((data: { whitePlayer: string; blackPlayer: string }) => {
-    optionsRef.current.onGameStarted?.(data);
-  }, []);
-
-  const handlePlayerDisconnected = useCallback((data: PlayerInfo) => {
-    optionsRef.current.onPlayerDisconnected?.(data);
-  }, []);
-
-  // Move handlers
-  const handleMoveMade = useCallback((data: GameMove) => {
-    setGameState(prev => ({
-      ...prev,
-      moves: [...prev.moves, data],
-      currentTurn: data.nextTurn
-    }));
-    
-    // Update turn status if this move was made by the other player
-    if (assignedColor && data.color !== assignedColor) {
-      setIsMyTurn(true);
-    } else if (assignedColor && data.color === assignedColor) {
-      setIsMyTurn(false);
-    }
-    
-    optionsRef.current.onMoveReceived?.(data);
-  }, [assignedColor]);
-
-  const handleMoveConfirmed = useCallback((data: { move: GameMove; nextTurn: 'white' | 'black' }) => {
-    setGameState(prev => ({
-      ...prev,
-      currentTurn: data.nextTurn
-    }));
-    
-    setIsMyTurn(data.nextTurn === assignedColor);
-  }, [assignedColor]);
-
-  const handleMoveError = useCallback((data: { error: string }) => {
-    setError(data.error);
-  }, []);
-
-  // Chat handlers
-  const handleNewMessage = useCallback((message: ChatMessage) => {
-    setMessages(prev => [...prev, message]);
-    optionsRef.current.onChatMessage?.(message);
-  }, []);
-
-  const handleChatHistory = useCallback((messages: ChatMessage[]) => {
-    setMessages(messages);
-  }, []);
-
-  const handleChatError = useCallback((data: { error: string }) => {
-    setError(data.error);
-  }, []);
-
-  // Game state handlers
-  const handleGameState = useCallback((state: GameState) => {
-    setGameState(state);
-    optionsRef.current.onGameStateUpdate?.(state);
-  }, []);
-
-  const handleGameResigned = useCallback((data: { playerId: string; color: 'white' | 'black'; winner: 'white' | 'black' }) => {
-    optionsRef.current.onGameResigned?.(data);
-  }, []);
-
-  const handleDrawOffered = useCallback((data: PlayerInfo) => {
-    optionsRef.current.onDrawOffered?.(data);
-  }, []);
-
-  const handleDrawResponse = useCallback((data: { accepted: boolean }) => {
-    optionsRef.current.onDrawResponse?.(data.accepted);
-  }, []);
-
-  // Setup event listeners
+  // Initialize WebSocket connection
   useEffect(() => {
-    websocketService.on('onConnect', handleConnect);
-    websocketService.on('onDisconnect', handleDisconnect);
-    websocketService.on('onAssignedColor', handleAssignedColor);
-    websocketService.on('onPlayerJoined', handlePlayerJoined);
-    websocketService.on('onGameStarted', handleGameStarted);
-    websocketService.on('onPlayerDisconnected', handlePlayerDisconnected);
-    websocketService.on('onMoveMade', handleMoveMade);
-    websocketService.on('onMoveConfirmed', handleMoveConfirmed);
-    websocketService.on('onMoveError', handleMoveError);
-    websocketService.on('onNewMessage', handleNewMessage);
-    websocketService.on('onChatHistory', handleChatHistory);
-    websocketService.on('onChatError', handleChatError);
-    websocketService.on('onGameState', handleGameState);
-    websocketService.on('onGameResigned', handleGameResigned);
-    websocketService.on('onDrawOffered', handleDrawOffered);
-    websocketService.on('onDrawResponse', handleDrawResponse);
+    if (!gameId) return;
 
-    // Set initial connection status
-    setIsConnected(websocketService.isConnected());
+    const newSocket = io(process.env.REACT_APP_BACKEND_URL || 'https://knightsbridgeapp-production.up.railway.app', {
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      reconnection: true,
+      reconnectionAttempts: 5
+    });
+
+    socketRef.current = newSocket;
+    setSocket(newSocket);
+
+    // Connection events
+    newSocket.on('connect', () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+      setError(null);
+      
+      // Join the game room
+      newSocket.emit('joinGame', gameId, {
+        playerId,
+        playerName
+      });
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error);
+      setError('Failed to connect to game server');
+    });
+
+    // Game events
+    newSocket.on('assignedColor', ({ color, isTurn }) => {
+      console.log('Assigned color:', color, 'isTurn:', isTurn);
+      setAssignedColor(color);
+      setIsMyTurn(isTurn);
+    });
+
+    newSocket.on('playerJoined', (player) => {
+      console.log('Player joined:', player);
+      onPlayerJoined?.(player);
+    });
+
+    newSocket.on('gameStarted', (gameData) => {
+      console.log('Game started:', gameData);
+      onGameStarted?.(gameData);
+    });
+
+    newSocket.on('moveMade', (moveData) => {
+      console.log('Move received:', moveData);
+      onMoveReceived?.(moveData);
+      setIsMyTurn(moveData.nextTurn === assignedColor);
+    });
+
+    newSocket.on('moveConfirmed', (moveData) => {
+      console.log('Move confirmed:', moveData);
+      setIsMyTurn(moveData.nextTurn === assignedColor);
+    });
+
+    newSocket.on('moveError', (error) => {
+      console.error('Move error:', error);
+      setError(error.error);
+    });
+
+    // Chat events
+    newSocket.on('newMessage', (message) => {
+      console.log('Chat message received:', message);
+      onChatMessageReceived?.(message);
+    });
+
+    newSocket.on('chatHistory', (messages) => {
+      console.log('Chat history received:', messages);
+      // Handle chat history
+    });
+
+    newSocket.on('chatError', (error) => {
+      console.error('Chat error:', error);
+      setError(error.error);
+    });
+
+    // Game state events
+    newSocket.on('gameState', (gameState) => {
+      console.log('Game state received:', gameState);
+      onGameStateUpdate?.(gameState);
+    });
+
+    newSocket.on('playerDisconnected', (player) => {
+      console.log('Player disconnected:', player);
+      onPlayerDisconnected?.(player);
+    });
+
+    newSocket.on('gameResigned', (data) => {
+      console.log('Game resigned:', data);
+      // Handle game resignation
+    });
+
+    newSocket.on('drawOffered', (data) => {
+      console.log('Draw offered:', data);
+      // Handle draw offer
+    });
+
+    newSocket.on('drawResponse', (data) => {
+      console.log('Draw response:', data);
+      // Handle draw response
+    });
 
     return () => {
-      websocketService.off('onConnect');
-      websocketService.off('onDisconnect');
-      websocketService.off('onAssignedColor');
-      websocketService.off('onPlayerJoined');
-      websocketService.off('onGameStarted');
-      websocketService.off('onPlayerDisconnected');
-      websocketService.off('onMoveMade');
-      websocketService.off('onMoveConfirmed');
-      websocketService.off('onMoveError');
-      websocketService.off('onNewMessage');
-      websocketService.off('onChatHistory');
-      websocketService.off('onChatError');
-      websocketService.off('onGameState');
-      websocketService.off('onGameResigned');
-      websocketService.off('onDrawOffered');
-      websocketService.off('onDrawResponse');
+      newSocket.close();
     };
-  }, [handleConnect, handleDisconnect, handleAssignedColor, handlePlayerJoined, handleGameStarted, handlePlayerDisconnected, handleMoveMade, handleMoveConfirmed, handleMoveError, handleNewMessage, handleChatHistory, handleChatError, handleGameState, handleGameResigned, handleDrawOffered, handleDrawResponse]);
+  }, [gameId, playerId, playerName]);
 
-  // Join game when gameId is provided
-  useEffect(() => {
-    if (options.gameId && isConnected) {
-      websocketService.joinGame(options.gameId, {
-        playerId: options.playerId || '',
-        playerName: options.playerName
+  // Send move
+  const sendMove = useCallback((move: any) => {
+    if (socket && isConnected) {
+      socket.emit('makeMove', {
+        gameId,
+        move,
+        playerId,
+        color: assignedColor
       });
     }
-  }, [options.gameId, options.playerId, options.playerName, isConnected]);
+  }, [socket, isConnected, gameId, playerId, assignedColor]);
 
-  // Public methods
-  const joinGame = useCallback((gameId: string, playerInfo?: { playerId: string; playerName?: string }) => {
-    websocketService.joinGame(gameId, playerInfo);
-  }, []);
-
-  const makeMove = useCallback((move: { from: string; to: string; piece: string }) => {
-    if (!options.gameId || !options.playerId || !assignedColor) {
-      setError('Cannot make move: missing game info or color assignment');
-      return;
+  // Send chat message
+  const sendChatMessage = useCallback((message: string) => {
+    if (socket && isConnected) {
+      socket.emit('sendMessage', {
+        gameId,
+        message,
+        playerId,
+        playerName
+      });
     }
-    
-    websocketService.makeMove(options.gameId, move, options.playerId, assignedColor);
-  }, [options.gameId, options.playerId, assignedColor]);
+  }, [socket, isConnected, gameId, playerId, playerName]);
 
-  const sendMessage = useCallback((message: string) => {
-    if (!options.gameId || !options.playerId || !options.playerName) {
-      setError('Cannot send message: missing game info or player name');
-      return;
-    }
-    
-    websocketService.sendMessage(options.gameId, message, options.playerId, options.playerName);
-  }, [options.gameId, options.playerId, options.playerName]);
-
+  // Get game state
   const getGameState = useCallback(() => {
-    if (!options.gameId) return;
-    websocketService.getGameState(options.gameId);
-  }, [options.gameId]);
+    if (socket && isConnected) {
+      socket.emit('getGameState', gameId);
+    }
+  }, [socket, isConnected, gameId]);
 
+  // Get chat history
   const getChatHistory = useCallback(() => {
-    if (!options.gameId) return;
-    websocketService.getChatHistory(options.gameId);
-  }, [options.gameId]);
+    if (socket && isConnected) {
+      socket.emit('getChatHistory', gameId);
+    }
+  }, [socket, isConnected, gameId]);
 
-  const playerReady = useCallback(() => {
-    if (!options.gameId || !options.playerId || !assignedColor) return;
-    websocketService.playerReady(options.gameId, options.playerId, assignedColor);
-  }, [options.gameId, options.playerId, assignedColor]);
+  // Player ready
+  const setPlayerReady = useCallback(() => {
+    if (socket && isConnected) {
+      socket.emit('playerReady', {
+        gameId,
+        playerId,
+        color: assignedColor
+      });
+    }
+  }, [socket, isConnected, gameId, playerId, assignedColor]);
 
+  // Resign game
   const resignGame = useCallback(() => {
-    if (!options.gameId || !options.playerId || !assignedColor) return;
-    websocketService.resignGame(options.gameId, options.playerId, assignedColor);
-  }, [options.gameId, options.playerId, assignedColor]);
+    if (socket && isConnected) {
+      socket.emit('resignGame', {
+        gameId,
+        playerId,
+        color: assignedColor
+      });
+    }
+  }, [socket, isConnected, gameId, playerId, assignedColor]);
 
+  // Offer draw
   const offerDraw = useCallback(() => {
-    if (!options.gameId || !options.playerId || !assignedColor) return;
-    websocketService.offerDraw(options.gameId, options.playerId, assignedColor);
-  }, [options.gameId, options.playerId, assignedColor]);
+    if (socket && isConnected) {
+      socket.emit('offerDraw', {
+        gameId,
+        playerId,
+        color: assignedColor
+      });
+    }
+  }, [socket, isConnected, gameId, playerId, assignedColor]);
 
+  // Respond to draw
   const respondToDraw = useCallback((accepted: boolean) => {
-    if (!options.gameId) return;
-    websocketService.respondToDraw(options.gameId, accepted);
-  }, [options.gameId]);
-
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-  }, []);
+    if (socket && isConnected) {
+      socket.emit('respondToDraw', {
+        gameId,
+        accepted
+      });
+    }
+  }, [socket, isConnected, gameId]);
 
   return {
-    // State
+    socket,
     isConnected,
-    messages,
-    gameState,
     assignedColor,
     isMyTurn,
     error,
-    
-    // Methods
-    joinGame,
-    makeMove,
-    sendMessage,
+    sendMove,
+    sendChatMessage,
     getGameState,
     getChatHistory,
-    playerReady,
+    setPlayerReady,
     resignGame,
     offerDraw,
-    respondToDraw,
-    clearError,
-    clearMessages,
-    
-    // Direct service access
-    websocketService
+    respondToDraw
   };
 }; 

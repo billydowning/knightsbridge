@@ -270,7 +270,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 3001; // Backend port
+const PORT = process.env.PORT || 3001; // Use Railway's PORT or default to 3001
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

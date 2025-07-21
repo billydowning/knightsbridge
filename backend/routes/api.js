@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { dbService } = require('../database');
 
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'knightsbridge-chess-backend'
+  });
+});
+
 // ========================================
 // USER MANAGEMENT
 // ========================================
