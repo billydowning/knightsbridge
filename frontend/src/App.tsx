@@ -13,7 +13,7 @@ import { MenuView, LobbyView, GameView } from './components';
 import { SOLANA_RPC_ENDPOINT } from './config';
 import { useSolanaWallet } from './hooks/useSolanaWallet';
 import { useWebSocket } from './hooks/useWebSocket';
-import multiplayerState from './services/multiplayerState';
+import databaseMultiplayerState from './services/databaseMultiplayerState';
 import type { ChatMessage } from './components/ChatBox';
 import { ENV_CONFIG } from './config/appConfig';
 
@@ -67,10 +67,10 @@ function ChessApp() {
   } = useSolanaWallet();
 
   // App state
-  const [gameMode, setGameMode] = useState<AppGameMode>('menu');
+  const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
   const [roomId, setRoomId] = useState<string>('');
   const [betAmount, setBetAmount] = useState<number>(0.1);
-  const [playerRole, setPlayerRole] = useState<string>('white');
+  const [playerRole, setPlayerRole] = useState<'white' | 'black' | null>(null);
   const [escrowCreated, setEscrowCreated] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
   const [winningsClaimed, setWinningsClaimed] = useState<boolean>(false);
@@ -228,7 +228,7 @@ function ChessApp() {
   useEffect(() => {
     if (bothEscrowsReady && gameMode === 'lobby') {
       console.log('🎮 Both escrows ready, starting game automatically...');
-      console.log('🔍 Debug - Room status:', multiplayerState.getRoomStatus(roomId));
+      console.log('🔍 Debug - Room status:', databaseMultiplayerState.getRoomStatus(roomId));
       console.log('🔍 Debug - Both escrows ready:', bothEscrowsReady);
       console.log('🔍 Debug - Game mode:', gameMode);
       console.log('🔍 Debug - Player role:', playerRole);
@@ -240,83 +240,90 @@ function ChessApp() {
     }
   }, [bothEscrowsReady, gameMode, playerRole, roomId]);
 
-  // Multiplayer state synchronization
+  // Set up multiplayer sync when room ID or game mode changes
   useEffect(() => {
-    if (roomId && (gameMode === 'game' || gameMode === 'lobby')) {
+    if (roomId && (gameMode === 'lobby' || gameMode === 'game')) {
       console.log('🔄 Setting up multiplayer sync for room:', roomId, 'mode:', gameMode);
       
-      const cleanup = multiplayerState.setupStorageSync(() => {
+      const cleanup = databaseMultiplayerState.setupStorageSync(() => {
         console.log('📡 Multiplayer sync triggered');
         
-        // Sync game state from localStorage (only in game mode)
+        // Sync game state from database (only in game mode)
         if (gameMode === 'game') {
-          const savedGameState = multiplayerState.getGameState(roomId);
-          if (savedGameState) {
-            console.log('📥 Loading game state from storage:', savedGameState);
-            
-            // Preserve winner if it exists in current state but not in saved state
-            setGameState((currentState: any) => {
-              const newState = { ...savedGameState };
-              
-              // If current state has a winner but saved state doesn't, preserve the winner
-              if (currentState.winner && !savedGameState.winner) {
-                console.log('🏆 Preserving winner from current state:', currentState.winner);
-                newState.winner = currentState.winner;
-                newState.gameActive = false;
-              }
-              
-              return newState;
-            });
-          }
+          databaseMultiplayerState.getGameState(roomId).then((savedGameState) => {
+            if (savedGameState) {
+              console.log('📥 Loading game state from database:', savedGameState);
+              setGameState(savedGameState);
+            }
+          }).catch(error => {
+            console.error('Error loading game state:', error);
+          });
         }
         
         // Check room status for escrow updates (works in both lobby and game modes)
-        const roomStatus = multiplayerState.getRoomStatus(roomId);
-        if (roomStatus) {
-          console.log('📊 Room status updated:', roomStatus);
-          const escrowCount = Object.keys(roomStatus.escrows).length;
-          console.log('💰 Escrow count:', escrowCount);
-          
-          // Update escrow status
-          setOpponentEscrowCreated(escrowCount >= 2);
-          setBothEscrowsReady(escrowCount >= 2);
-          
-          // If both escrows are ready and we're in lobby, auto-start game
-          if (escrowCount >= 2 && gameMode === 'lobby' && !bothEscrowsReady) {
-            console.log('🎮 Both escrows ready, auto-starting game...');
-            setBothEscrowsReady(true);
+        databaseMultiplayerState.getRoomStatus(roomId).then((roomStatus) => {
+          if (roomStatus) {
+            console.log('📊 Room status updated:', roomStatus);
+            const escrowCount = Object.keys(roomStatus.escrows).length;
+            
+            // Update escrow status
+            setOpponentEscrowCreated(escrowCount >= 1);
+            setBothEscrowsReady(escrowCount >= 2);
+            
+            // Auto-start game if both escrows are ready
+            if (escrowCount >= 2 && gameMode === 'lobby') {
+              console.log('🎮 Both escrows ready, starting game automatically...');
+              setGameMode('game');
+              setGameStatus('Game started! Both escrows are ready.');
+            }
           }
-        }
+        }).catch(error => {
+          console.error('Error getting room status:', error);
+        });
       });
       
       return cleanup;
     }
-  }, [roomId, gameMode, bothEscrowsReady]);
+  }, [roomId, gameMode]);
 
-  // Periodic escrow status check (fallback for sync issues)
+  // Poll for room status updates (fallback for real-time sync)
   useEffect(() => {
-    if (roomId && gameMode === 'lobby' && !bothEscrowsReady) {
-      console.log('⏰ Setting up periodic escrow check...');
-      
-      const interval = setInterval(() => {
-        const roomStatus = multiplayerState.getRoomStatus(roomId);
-        if (roomStatus) {
-          const escrowCount = Object.keys(roomStatus.escrows).length;
-          console.log('⏰ Periodic check - escrow count:', escrowCount);
-          console.log('⏰ Periodic check - room status:', roomStatus);
-          console.log('⏰ Periodic check - both escrows ready:', bothEscrowsReady);
-          
-          if (escrowCount >= 2 && !bothEscrowsReady) {
-            console.log('💰 Both escrows detected via periodic check!');
-            setOpponentEscrowCreated(true);
-            setBothEscrowsReady(true);
+    if (roomId && gameMode === 'lobby') {
+      const interval = setInterval(async () => {
+        try {
+          const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+          if (roomStatus) {
+            const escrowCount = Object.keys(roomStatus.escrows).length;
+            
+            // Update escrow status
+            setOpponentEscrowCreated(escrowCount >= 1);
+            setBothEscrowsReady(escrowCount >= 2);
+            
+            // Auto-start game if both escrows are ready
+            if (escrowCount >= 2) {
+              console.log('🎮 Both escrows ready, starting game automatically...');
+              setGameMode('game');
+              setGameStatus('Game started! Both escrows are ready.');
+            }
           }
+        } catch (error) {
+          console.error('Error polling room status:', error);
         }
-      }, 2000); // Check every 2 seconds
+      }, 2000); // Poll every 2 seconds
       
       return () => clearInterval(interval);
     }
-  }, [roomId, gameMode, bothEscrowsReady]);
+  }, [roomId, gameMode]);
+
+  // Save game state to database when it changes
+  useEffect(() => {
+    if (roomId && gameMode === 'game') {
+      console.log('💾 Saving game state to database for sync');
+      databaseMultiplayerState.saveGameState(roomId, gameState).catch(error => {
+        console.error('Error saving game state:', error);
+      });
+    }
+  }, [gameState, roomId, gameMode]);
 
   // Reset game state when game starts
   useEffect(() => {
@@ -358,7 +365,36 @@ function ChessApp() {
     }
   }, [gameMode, playerRole]);
 
-
+  const handleCreateEscrow = async () => {
+    if (!connected || !publicKey) {
+      setGameStatus('Please connect your wallet first');
+      return;
+    }
+    
+    if (!roomId) {
+      setGameStatus('No room ID available');
+      return;
+    }
+    
+    try {
+      const playerWallet = publicKey.toString();
+      await databaseMultiplayerState.addEscrow(roomId, playerWallet, betAmount);
+      
+      setGameStatus(`Escrow created! Bet: ${betAmount} SOL. Waiting for opponent...`);
+      console.log('✅ Escrow created successfully');
+      
+      // Check if both players have created escrows
+      const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+      if (roomStatus && roomStatus.escrowCount >= 2) {
+        setBothEscrowsReady(true);
+        console.log('💰 Both escrows ready!');
+      }
+      
+    } catch (error) {
+      console.error('Error creating escrow:', error);
+      setGameStatus(`Error creating escrow: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
 
   const handleSquareClick = (square: string) => {
     console.log('Square clicked:', square);
@@ -485,10 +521,12 @@ function ChessApp() {
         console.log('To test the other player, open a new browser tab and join as the opposite color');
       }
       
-      // Save game state to localStorage for multiplayer sync
+      // Save game state to database for multiplayer sync
       if (roomId) {
-        console.log('💾 Saving game state to localStorage for sync');
-        multiplayerState.saveGameState(roomId, updatedGameState);
+        console.log('💾 Saving game state to database for sync');
+        databaseMultiplayerState.saveGameState(roomId, updatedGameState).catch(error => {
+          console.error('Error saving game state:', error);
+        });
       }
       
       // Debug: Log the final board state
@@ -512,54 +550,6 @@ function ChessApp() {
     }
   };
 
-  const handleCreateEscrow = async () => {
-    console.log('🔧 handleCreateEscrow called');
-    console.log('Connected:', connected);
-    console.log('Room ID:', roomId);
-    console.log('Bet Amount:', betAmount);
-    
-    if (!connected) {
-      setGameStatus('Please connect your wallet first');
-      return;
-    }
-    
-    if (!roomId) {
-      setGameStatus('No room ID found. Please go back to menu and create a room.');
-      return;
-    }
-    
-    console.log('Creating escrow for room:', roomId, 'amount:', betAmount);
-    
-    try {
-      // For now, simulate escrow creation without blockchain
-      // In production, this would call the actual Solana program
-      setEscrowCreated(true);
-      
-      // Add escrow to multiplayer state
-      if (!publicKey) {
-        setGameStatus('Wallet not connected');
-        return;
-      }
-      const playerWallet = publicKey.toString();
-      multiplayerState.addEscrow(roomId, playerWallet, betAmount);
-      
-      setGameStatus(`Escrow created! Bet: ${betAmount} SOL. Waiting for opponent...`);
-      console.log('✅ Escrow created successfully');
-      
-      // Check if both players have created escrows
-      const roomStatus = multiplayerState.getRoomStatus(roomId);
-      if (roomStatus && roomStatus.escrowCount >= 2) {
-        setBothEscrowsReady(true);
-        setOpponentEscrowCreated(true);
-        setGameStatus('Both escrows created! Game will start automatically...');
-      }
-      
-    } catch (err) {
-      console.error('❌ Escrow creation failed:', err);
-      setGameStatus('Escrow creation failed. Please try again.');
-    }
-  };
-
   const handleClaimWinnings = async () => {
     console.log('Claiming winnings...');
     
@@ -576,7 +566,7 @@ function ChessApp() {
     }
   };
 
-  const handleJoinRoom = () => {
+  const handleJoinRoom = async () => {
     if (!connected || !publicKey) {
       setGameStatus('Please connect your wallet first');
       return;
@@ -584,63 +574,74 @@ function ChessApp() {
     
     const playerWallet = publicKey.toString();
     
-    // If no room ID provided, create a new room
-    if (!roomId.trim()) {
-      const newRoomId = `ROOM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-      setRoomId(newRoomId);
-      
-      // Create room using multiplayer state
-      const role = multiplayerState.createRoom(newRoomId, playerWallet);
-      if (role) {
-        setPlayerRole(role);
-        setGameStatus(`Room created: ${newRoomId} - You are ${role}. Share this ID with your opponent!`);
-      } else {
-        setGameStatus('Failed to create room');
-        return;
-      }
-    } else {
-      // Joining existing room
-      const role = multiplayerState.joinRoom(roomId, playerWallet);
-      if (role) {
-        setPlayerRole(role);
-        setGameStatus(`Joined room: ${roomId} - You are ${role}. Waiting for opponent...`);
+    try {
+      // If no room ID provided, create a new room
+      if (!roomId.trim()) {
+        const newRoomId = `ROOM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        setRoomId(newRoomId);
         
-        // Check if game has already started or both escrows are ready
-        const roomStatus = multiplayerState.getRoomStatus(roomId);
-        if (roomStatus) {
-          const escrowCount = Object.keys(roomStatus.escrows).length;
-          console.log('💰 Room escrow count:', escrowCount);
-          
-          // Update escrow status immediately
-          setOpponentEscrowCreated(escrowCount >= 2);
-          setBothEscrowsReady(escrowCount >= 2);
-          
-          if (roomStatus.gameStarted) {
-            console.log('🎮 Game already started, loading game state...');
-            
-            // Load existing game state if available
-            const savedGameState = multiplayerState.getGameState(roomId);
-            if (savedGameState) {
-              console.log('📥 Loading existing game state:', savedGameState);
-              setGameState(savedGameState);
-            }
-            
-            setTimeout(() => {
-              setGameMode('game');
-              setGameStatus(`Game in progress! You are ${role}.`);
-            }, 1000);
-          } else if (escrowCount >= 2) {
-            console.log('💰 Both escrows ready, game will start automatically...');
-            setGameStatus(`Both escrows ready! Game will start automatically...`);
-          }
+        // Create room using database multiplayer state
+        const role = await databaseMultiplayerState.createRoom(newRoomId, playerWallet);
+        if (role) {
+          setPlayerRole(role);
+          setGameStatus(`Room created: ${newRoomId} - You are ${role}. Share this ID with your opponent!`);
+        } else {
+          setGameStatus('Failed to create room');
+          return;
         }
       } else {
-        setGameStatus('Failed to join room. Room may not exist or be full.');
-        return;
+        // Joining existing room
+        const role = await databaseMultiplayerState.joinRoom(roomId, playerWallet);
+        if (role) {
+          setPlayerRole(role);
+          setGameStatus(`Joined room: ${roomId} - You are ${role}. Waiting for opponent...`);
+          
+          // Check if game has already started or both escrows are ready
+          const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+          if (roomStatus) {
+            const escrowCount = Object.keys(roomStatus.escrows).length;
+            console.log('💰 Room escrow count:', escrowCount);
+            
+            // Only set escrow status if the current player has created their escrow
+            // Don't auto-start game until both players have actually created escrows
+            if (escrowCount >= 1) {
+              setOpponentEscrowCreated(true);
+            }
+            
+            // Only set both escrows ready if we have 2 escrows AND the game hasn't started yet
+            if (escrowCount >= 2 && !roomStatus.gameStarted) {
+              setBothEscrowsReady(true);
+              console.log('💰 Both escrows ready, game will start automatically...');
+              setGameStatus(`Both escrows ready! Game will start automatically...`);
+            }
+            
+            if (roomStatus.gameStarted) {
+              console.log('🎮 Game already started, loading game state...');
+              
+              // Load existing game state if available
+              const savedGameState = await databaseMultiplayerState.getGameState(roomId);
+              if (savedGameState) {
+                console.log('📥 Loading existing game state:', savedGameState);
+                setGameState(savedGameState);
+              }
+              
+              setTimeout(() => {
+                setGameMode('game');
+                setGameStatus(`Game in progress! You are ${role}.`);
+              }, 1000);
+            }
+          }
+        } else {
+          setGameStatus('Failed to join room. Room may not exist or be full.');
+          return;
+        }
       }
+      
+      setGameMode('lobby');
+    } catch (error) {
+      console.error('Error joining room:', error);
+      setGameStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    setGameMode('lobby');
   };
 
   const handleStartGame = () => {
@@ -1188,7 +1189,7 @@ function ChessApp() {
     // Save game state to localStorage for multiplayer sync
     if (roomId) {
       console.log('💾 Saving winner declaration to localStorage');
-      multiplayerState.saveGameState(roomId, updatedGameState);
+      databaseMultiplayerState.saveGameState(roomId, updatedGameState);
     }
   };
   

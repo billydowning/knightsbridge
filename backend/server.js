@@ -39,58 +39,240 @@ app.use('/api', apiRoutes);
 // Game state management
 const gameStates = new Map(); // Store game states in memory
 const playerSessions = new Map(); // Track player sessions
+const gameRooms = new Map(); // Store game rooms
 
 // Handle Socket.io connections
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
-  // Join a game room
-  socket.on('joinGame', async (gameId, playerInfo) => {
-    socket.join(gameId);
-    console.log(`User ${socket.id} joined game ${gameId}`);
-    
-    // Store player session
-    playerSessions.set(socket.id, {
-      gameId,
-      playerId: playerInfo?.playerId,
-      color: null,
-      isReady: false
-    });
+  // Create a new room
+  socket.on('createRoom', async (data, callback) => {
+    try {
+      const { roomId, playerWallet } = data;
+      
+      if (gameRooms.has(roomId)) {
+        callback({ success: false, error: 'Room already exists' });
+        return;
+      }
 
-    // Get number of players in room
-    const socketsInRoom = await io.in(gameId).fetchSockets();
-    const playerCount = socketsInRoom.length;
+      const room = {
+        roomId,
+        players: [{ wallet: playerWallet, role: 'white', isReady: true }],
+        escrows: {},
+        gameStarted: false,
+        created: Date.now(),
+        lastUpdated: Date.now()
+      };
 
-    // Assign color based on count (first is white, second is black)
-    let color = 'white';
-    let isTurn = true; // White starts
-    if (playerCount === 2) {
-      color = 'black';
-      isTurn = false;
+      gameRooms.set(roomId, room);
+      
+      // Join the room
+      socket.join(roomId);
+      
+      console.log('✅ Room created:', roomId, 'for player:', playerWallet);
+      callback({ success: true, role: 'white' });
+      
+      // Broadcast room update
+      io.to(roomId).emit('roomUpdated', { roomId, room });
+      
+    } catch (error) {
+      console.error('Error creating room:', error);
+      callback({ success: false, error: 'Failed to create room' });
     }
+  });
 
-    // Update player session
-    const session = playerSessions.get(socket.id);
-    if (session) {
-      session.color = color;
-      session.isReady = true;
+  // Join an existing room
+  socket.on('joinRoom', async (data, callback) => {
+    try {
+      const { roomId, playerWallet } = data;
+      
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        callback({ success: false, error: 'Room does not exist' });
+        return;
+      }
+
+      // Check if player is already in the room
+      const existingPlayer = room.players.find(p => p.wallet === playerWallet);
+      if (existingPlayer) {
+        socket.join(roomId);
+        callback({ success: true, role: existingPlayer.role });
+        return;
+      }
+
+      // Add new player if room has space
+      if (room.players.length < 2) {
+        const newRole = room.players.length === 0 ? 'white' : 'black';
+        room.players.push({ wallet: playerWallet, role: newRole, isReady: true });
+        room.lastUpdated = Date.now();
+        
+        // Join the room
+        socket.join(roomId);
+        
+        console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', newRole);
+        callback({ success: true, role: newRole });
+        
+        // Broadcast room update
+        io.to(roomId).emit('roomUpdated', { roomId, room });
+        
+        // If both players are present, notify about game ready
+        if (room.players.length === 2) {
+          io.to(roomId).emit('gameReady', { roomId, players: room.players });
+        }
+      } else {
+        callback({ success: false, error: 'Room is full' });
+      }
+      
+    } catch (error) {
+      console.error('Error joining room:', error);
+      callback({ success: false, error: 'Failed to join room' });
     }
+  });
 
-    // Send assigned color and turn to the joining player
-    socket.emit('assignedColor', { color, isTurn });
+  // Get room status
+  socket.on('getRoomStatus', async (data, callback) => {
+    try {
+      const { roomId } = data;
+      
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        callback({ success: false, error: 'Room does not exist' });
+        return;
+      }
 
-    // Notify other players about new player joining
-    socket.to(gameId).emit('playerJoined', { 
-      playerId: playerInfo?.playerId,
-      color: color === 'white' ? 'black' : 'white' // Opposite color
-    });
+      const roomStatus = {
+        playerCount: room.players.length,
+        players: room.players,
+        escrowCount: Object.keys(room.escrows).length,
+        escrows: room.escrows,
+        gameStarted: room.gameStarted
+      };
 
-    // If this is the second player, start the game
-    if (playerCount === 2) {
-      io.to(gameId).emit('gameStarted', { 
-        whitePlayer: playerCount === 1 ? playerInfo?.playerId : null,
-        blackPlayer: playerCount === 2 ? playerInfo?.playerId : null
+      callback({ success: true, roomStatus });
+      
+    } catch (error) {
+      console.error('Error getting room status:', error);
+      callback({ success: false, error: 'Failed to get room status' });
+    }
+  });
+
+  // Add escrow for a player
+  socket.on('addEscrow', async (data, callback) => {
+    try {
+      const { roomId, playerWallet, amount } = data;
+      
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        callback({ success: false, error: 'Room does not exist' });
+        return;
+      }
+
+      // Add escrow
+      room.escrows[playerWallet] = amount;
+      room.lastUpdated = Date.now();
+      
+      console.log('✅ Escrow added:', roomId, playerWallet, amount);
+      callback({ success: true });
+      
+      // Broadcast escrow update
+      io.to(roomId).emit('escrowUpdated', { roomId, escrows: room.escrows });
+      
+      // Auto-start game if both escrows are created and both players are present
+      if (Object.keys(room.escrows).length === 2 && room.players.length === 2 && !room.gameStarted) {
+        room.gameStarted = true;
+        room.lastUpdated = Date.now();
+        
+        console.log('🎮 Auto-starting game in room:', roomId);
+        io.to(roomId).emit('gameStarted', { roomId, players: room.players });
+        io.to(roomId).emit('roomUpdated', { roomId, room });
+      }
+      
+    } catch (error) {
+      console.error('Error adding escrow:', error);
+      callback({ success: false, error: 'Failed to add escrow' });
+    }
+  });
+
+  // Clear escrows for a room
+  socket.on('clearEscrows', async (data, callback) => {
+    try {
+      const { roomId } = data;
+      
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        callback({ success: false, error: 'Room does not exist' });
+        return;
+      }
+
+      room.escrows = {};
+      room.gameStarted = false;
+      room.lastUpdated = Date.now();
+      
+      console.log('🔄 Cleared escrows for room:', roomId);
+      callback({ success: true });
+      
+      // Broadcast room update
+      io.to(roomId).emit('roomUpdated', { roomId, room });
+      
+    } catch (error) {
+      console.error('Error clearing escrows:', error);
+      callback({ success: false, error: 'Failed to clear escrows' });
+    }
+  });
+
+  // Save game state
+  socket.on('saveGameState', async (data, callback) => {
+    try {
+      const { roomId, gameState } = data;
+      
+      gameStates.set(roomId, {
+        ...gameState,
+        lastUpdated: Date.now()
       });
+      
+      console.log('✅ Game state saved:', roomId);
+      callback({ success: true });
+      
+      // Broadcast game state update
+      io.to(roomId).emit('gameStateUpdated', { roomId, gameState });
+      
+    } catch (error) {
+      console.error('Error saving game state:', error);
+      callback({ success: false, error: 'Failed to save game state' });
+    }
+  });
+
+  // Get game state
+  socket.on('getGameState', async (data, callback) => {
+    try {
+      const { roomId } = data;
+      
+      const gameState = gameStates.get(roomId);
+      if (gameState) {
+        callback({ success: true, gameState });
+      } else {
+        callback({ success: false, error: 'Game state not found' });
+      }
+      
+    } catch (error) {
+      console.error('Error getting game state:', error);
+      callback({ success: false, error: 'Failed to get game state' });
+    }
+  });
+
+  // Clear all rooms (for testing/debugging)
+  socket.on('clearAllRooms', async (data, callback) => {
+    try {
+      gameRooms.clear();
+      gameStates.clear();
+      playerSessions.clear();
+      
+      console.log('🧹 All rooms cleared');
+      callback({ success: true });
+      
+    } catch (error) {
+      console.error('Error clearing rooms:', error);
+      callback({ success: false, error: 'Failed to clear rooms' });
     }
   });
 

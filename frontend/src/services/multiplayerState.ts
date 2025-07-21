@@ -41,9 +41,16 @@ class MultiplayerStateManager {
     
     window.addEventListener('gameStateChanged', handleManualSync);
     
+    // Add polling for cross-browser sync (every 2 seconds)
+    const pollInterval = setInterval(() => {
+      console.log('🔄 Polling for updates...');
+      callback();
+    }, 2000);
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('gameStateChanged', handleManualSync);
+      clearInterval(pollInterval);
     };
   }
 
@@ -157,6 +164,8 @@ class MultiplayerStateManager {
     console.log('🔍 Attempting to join room:', roomId);
     console.log('🔍 Available rooms:', Object.keys(rooms));
     console.log('🔍 Room data:', room);
+    console.log('🔍 Current player count:', room?.players?.length || 0);
+    console.log('🔍 Current players:', room?.players || []);
     
     if (room) {
       // Check if player is already in the room
@@ -168,10 +177,16 @@ class MultiplayerStateManager {
       
       // Add new player if room has space
       if (room.players.length < 2) {
+        // Fix: Second player should be 'black', not 'white'
         const newRole: 'white' | 'black' = room.players.length === 0 ? 'white' : 'black';
+        console.log('🎯 Assigning role:', newRole, 'to player:', playerWallet);
+        console.log('🎯 Current players before:', room.players);
+        
         room.players.push({ wallet: playerWallet, role: newRole });
         this.saveRooms(rooms);
+        
         console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', newRole);
+        console.log('✅ Updated players:', room.players);
         return newRole;
       } else {
         console.log('❌ Room is full:', roomId);
@@ -221,8 +236,14 @@ class MultiplayerStateManager {
     if (room) {
       room.escrows[playerWallet] = amount;
       
-      // Auto-start game if both escrows are created
-      if (Object.keys(room.escrows).length === 2 && !room.gameStarted) {
+      // Auto-start game if both escrows are created AND both players are present
+      const escrowCount = Object.keys(room.escrows).length;
+      const playerCount = room.players.length;
+      
+      console.log('💰 Escrow added:', roomId, playerWallet, amount);
+      console.log('💰 Escrow count:', escrowCount, 'Player count:', playerCount);
+      
+      if (escrowCount >= 2 && playerCount >= 2 && !room.gameStarted) {
         room.gameStarted = true;
         console.log('🎮 Auto-starting game in room:', roomId);
       }
