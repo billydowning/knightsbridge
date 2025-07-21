@@ -158,14 +158,21 @@ class DatabaseMultiplayerStateManager {
         return;
       }
 
+      // Add timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        console.error('❌ createRoom timeout - no response from server');
+        reject(new Error('Request timeout - server not responding'));
+      }, 10000); // 10 second timeout
+
       this.socket.emit('createRoom', { roomId, playerWallet }, (response: any) => {
+        clearTimeout(timeout);
         console.log('📨 Received createRoom response:', response);
-        if (response.success) {
+        if (response && response.success) {
           console.log('✅ Room created:', roomId, 'for player:', playerWallet);
           resolve('white');
         } else {
-          console.error('❌ Failed to create room:', response.error);
-          reject(new Error(response.error));
+          console.error('❌ Failed to create room:', response?.error || 'No response');
+          reject(new Error(response?.error || 'Failed to create room'));
         }
       });
     });
