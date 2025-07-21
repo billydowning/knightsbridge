@@ -16,6 +16,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import databaseMultiplayerState from './services/databaseMultiplayerState';
 import type { ChatMessage } from './components/ChatBox';
 import { ENV_CONFIG } from './config/appConfig';
+import { ChessEngine } from './engine/chessEngine';
 
 // Types
 type AppGameMode = 'menu' | 'lobby' | 'game';
@@ -105,6 +106,9 @@ function ChessApp() {
     inCheck: false,
     lastMove: null
   });
+
+  // Selection state
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -253,7 +257,15 @@ function ChessApp() {
           databaseMultiplayerState.getGameState(roomId).then((savedGameState) => {
             if (savedGameState) {
               console.log('📥 Loading game state from database:', savedGameState);
-              setGameState(savedGameState);
+              
+              // Only update if the saved state is newer than our current state
+              // This prevents overriding with stale data
+              if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated) {
+                console.log('✅ Updating game state with newer database state');
+                setGameState(savedGameState);
+              } else {
+                console.log('⏭️ Skipping update - local state is newer than database state');
+              }
             }
           }).catch(error => {
             console.error('Error loading game state:', error);
@@ -414,155 +426,70 @@ function ChessApp() {
   };
 
   const handleSquareClick = (square: string) => {
-    console.log('Square clicked:', square);
+    if (!roomId || gameMode !== 'game') return;
     
-    if (!gameState.gameActive) {
-      console.log('Game is not active');
-      return;
-    }
-    
-    const isMyTurn = gameState.currentPlayer === playerRole;
-    console.log('Turn check:', { currentPlayer: gameState.currentPlayer, playerRole, isMyTurn });
-    if (!isMyTurn) {
-      console.log('Not your turn');
-      return;
-    }
-    
-    // Get the piece at the clicked square
-    const piece = (gameState.position as any)[square];
-    // White pieces: ♔♕♖♗♘♙, Black pieces: ♚♛♜♝♞♟
-    const whitePieces = ['♔', '♕', '♖', '♗', '♘', '♙'];
-    const pieceColor = piece ? (whitePieces.includes(piece) ? 'white' : 'black') : null;
-    
-    // If a square is already selected
-    if (gameState.selectedSquare) {
-      // Try to make a move from selected square to clicked square
-      const fromSquare = gameState.selectedSquare;
-      const toSquare = square;
-      
-      console.log(`Attempting move from ${fromSquare} to ${toSquare}`);
-      
-      // Validate the move
-      const isValidMove = validateMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer);
-      
-      console.log('🔍 Move validation:', {
-        fromSquare,
-        toSquare,
-        piece: gameState.position[fromSquare],
-        currentPlayer: gameState.currentPlayer,
-        isValidMove
-      });
-      
-      if (!isValidMove) {
-        console.log('❌ Invalid move!');
-        setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
-        return;
+    // If no square is selected, select this square if it has a piece
+    if (!selectedSquare) {
+      const piece = gameState.position[square];
+      if (piece) {
+        const pieceColor = ChessEngine.getPieceColor(piece);
+        if (pieceColor === gameState.currentPlayer) {
+          setSelectedSquare(square);
+          return;
+        }
       }
-      
-      // Make the move
+      return;
+    }
+    
+    // If a square is selected, try to move
+    const fromSquare = selectedSquare;
+    const toSquare = square;
+    
+    // Validate move using existing function
+    if (validateMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer)) {
+      // Create new position by making the move
       const newPosition = { ...gameState.position };
-      (newPosition as any)[toSquare] = (newPosition as any)[fromSquare];
-      (newPosition as any)[fromSquare] = '';
+      newPosition[toSquare] = newPosition[fromSquare];
+      newPosition[fromSquare] = '';
       
-      // Check if this move puts the current player's king in check
-      const putsOwnKingInCheck = isKingInCheck(newPosition, gameState.currentPlayer);
-      console.log('🔍 Check detection:', {
-        putsOwnKingInCheck,
-        currentPlayer: gameState.currentPlayer
-      });
-      
-      if (putsOwnKingInCheck) {
-        console.log('❌ Move would put own king in check!');
-        setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
-        return;
-      }
-      
-      // Check if a king was captured during this move
-      const capturedPiece = (gameState.position as any)[toSquare];
-      const isKingCapture = capturedPiece === '♔' || capturedPiece === '♚';
-      
-      console.log('🎯 Move analysis:', {
-        fromSquare,
-        toSquare,
-        capturedPiece,
-        isKingCapture,
-        currentPlayer: gameState.currentPlayer
-      });
-      
-      // Check for checkmate after the move
       const nextPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
-      const isCheckmate = isKingCapture || detectCheckmate(newPosition, nextPlayer);
+      const nextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
       
-      console.log('🔍 Checkmate check:', {
-        nextPlayer,
-        isKingCapture,
-        isCheckmate,
-        currentPlayer: gameState.currentPlayer,
-        winner: isCheckmate ? gameState.currentPlayer : null
-      });
-      
-      // Check if the next player is in check
-      const isNextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
-      console.log('🔍 Next player check status:', {
-        nextPlayer,
-        isNextPlayerInCheck
-      });
-      
-      // Update the game state
+      // Create updated game state
       const updatedGameState = {
         ...gameState,
         position: newPosition,
-        selectedSquare: null,
         currentPlayer: nextPlayer,
-        moveHistory: [...gameState.moveHistory, { from: fromSquare, to: toSquare }],
+        selectedSquare: null,
         lastMove: { from: fromSquare, to: toSquare },
-        lastUpdated: Date.now(),
-        gameActive: !isCheckmate,
-        winner: isCheckmate ? gameState.currentPlayer : null,
-        inCheck: isNextPlayerInCheck
+        inCheck: nextPlayerInCheck,
+        lastUpdated: Date.now()
       };
       
-      // Update the game state using setState
-      setGameState(updatedGameState);
-      
-      console.log('Move completed:', updatedGameState);
-      console.log('Turn changed from', gameState.currentPlayer, 'to', updatedGameState.currentPlayer);
-      
-      if (isCheckmate) {
-        console.log('🏆 CHECKMATE! Winner:', gameState.currentPlayer);
-        setGameStatus(`🏆 ${gameState.currentPlayer} wins by checkmate!`);
-      } else {
-        // Manual testing mode - no automatic opponent moves
-        // You can test both players by switching between screens
-        console.log('Turn switched to:', updatedGameState.currentPlayer);
-        console.log('To test the other player, open a new browser tab and join as the opposite color');
-      }
-      
-      // Save game state to database for multiplayer sync
-      if (roomId) {
-        console.log('💾 Saving game state to database for sync');
-        databaseMultiplayerState.saveGameState(roomId, updatedGameState).catch(error => {
-          console.error('Error saving game state:', error);
+      // Save to database FIRST (single source of truth)
+      databaseMultiplayerState.saveGameState(roomId, updatedGameState)
+        .then(() => {
+          console.log('✅ Game state saved to database');
+          // Only update local state AFTER successful database save
+          setGameState(updatedGameState);
+          setSelectedSquare(null);
+        })
+        .catch(error => {
+          console.error('❌ Failed to save game state:', error);
+          setGameStatus('Error saving move. Please try again.');
         });
-      }
-      
-      // Debug: Log the final board state
-      console.log('📊 Final board state after move:', newPosition);
-      console.log('🎯 Game state after move:', {
-        gameActive: updatedGameState.gameActive,
-        winner: updatedGameState.winner,
-        currentPlayer: updatedGameState.currentPlayer
-      });
-      
     } else {
-      // Select a piece if it belongs to the current player
-      if (piece && pieceColor === playerRole) {
-        console.log(`Selected piece ${piece} at ${square}`);
-        setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
-      } else if (piece) {
-        console.log('You can only select your own pieces');
+      // Invalid move - just update selection
+      const piece = gameState.position[square];
+      if (piece) {
+        const pieceColor = ChessEngine.getPieceColor(piece);
+        if (pieceColor === gameState.currentPlayer) {
+          setSelectedSquare(square);
+        } else {
+          setSelectedSquare(null);
+        }
       } else {
-        console.log('No piece at this square');
+        setSelectedSquare(null);
       }
     }
   };
