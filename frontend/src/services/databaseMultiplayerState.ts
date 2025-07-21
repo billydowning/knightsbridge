@@ -59,7 +59,7 @@ class DatabaseMultiplayerStateManager {
   private serverUrl: string;
 
   constructor() {
-    this.serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridgeapp-production.up.railway.app';
+    this.serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridge-production.up.railway.app';
   }
 
   /**
