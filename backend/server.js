@@ -52,6 +52,19 @@ const gameRooms = new Map(); // Store game rooms
 io.on('connection', (socket) => {
   console.log('🔌 A user connected:', socket.id);
 
+  // Debug: Log when event handler is registered
+  console.log('✅ createRoom event handler registered for socket:', socket.id);
+
+  // Debug: Add error handler to see if there are any Socket.io errors
+  socket.on('error', (error) => {
+    console.error('❌ Socket error:', error);
+  });
+
+  // Debug: Add disconnect handler
+  socket.on('disconnect', (reason) => {
+    console.log('🔌 User disconnected:', socket.id, 'reason:', reason);
+  });
+
   // Create a new room
   socket.on('createRoom', async (data, callback) => {
     console.log('📨 Received createRoom event:', data);
@@ -88,6 +101,19 @@ io.on('connection', (socket) => {
       console.error('❌ Error creating room:', error);
       callback({ success: false, error: 'Failed to create room' });
     }
+  });
+
+  // Debug: Log when event handler is registered
+  console.log('✅ createRoom event handler registered for socket:', socket.id);
+
+  // Debug: Add error handler to see if there are any Socket.io errors
+  socket.on('error', (error) => {
+    console.error('❌ Socket error:', error);
+  });
+
+  // Debug: Add disconnect handler
+  socket.on('disconnect', (reason) => {
+    console.log('🔌 User disconnected:', socket.id, 'reason:', reason);
   });
 
   // Join an existing room
