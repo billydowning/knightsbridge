@@ -26,9 +26,10 @@ export const MenuView: React.FC<MenuViewProps> = ({
   isLoading,
   onJoinRoom
 }) => {
-  const isJoining = roomId.trim() !== '';
-  const hasInsufficientBalance = balance < betAmount;
-  const isButtonDisabled = !connected || hasInsufficientBalance || isLoading;
+  // Check if user manually entered a room ID (joining) vs auto-generated (creating)
+  const isJoining = roomId.trim() !== '' && !roomId.startsWith('ROOM-');
+  const isButtonDisabled = !connected || isLoading || (connected && balance < betAmount);
+  const hasInsufficientBalance = connected && balance < betAmount;
 
   return (
     <div style={{ textAlign: 'center' }}>

@@ -578,13 +578,14 @@ function ChessApp() {
       // If no room ID provided, create a new room
       if (!roomId.trim()) {
         const newRoomId = `ROOM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-        setRoomId(newRoomId);
         
         // Create room using database multiplayer state
         const role = await databaseMultiplayerState.createRoom(newRoomId, playerWallet);
         if (role) {
           setPlayerRole(role);
+          setRoomId(newRoomId); // Set room ID after successful creation
           setGameStatus(`Room created: ${newRoomId} - You are ${role}. Share this ID with your opponent!`);
+          setGameMode('lobby'); // Proceed directly to lobby
         } else {
           setGameStatus('Failed to create room');
           return;
@@ -631,13 +632,13 @@ function ChessApp() {
               }, 1000);
             }
           }
+          
+          setGameMode('lobby');
         } else {
           setGameStatus('Failed to join room. Room may not exist or be full.');
           return;
         }
       }
-      
-      setGameMode('lobby');
     } catch (error) {
       console.error('Error joining room:', error);
       setGameStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -658,7 +659,7 @@ function ChessApp() {
   const handleBackToMenu = () => {
     setGameMode('menu');
     setRoomId('');
-    setPlayerRole('');
+    setPlayerRole(null);
     setEscrowCreated(false);
     setWinningsClaimed(false);
     setOpponentEscrowCreated(false);
