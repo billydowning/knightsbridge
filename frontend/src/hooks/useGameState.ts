@@ -119,7 +119,7 @@ export const useGameState = (): GameStateHook => {
         enPassantTarget: result.gameState.enPassantTarget || null,
         halfmoveClock: result.gameState.halfmoveClock || 0,
         fullmoveNumber: result.gameState.fullmoveNumber || 1,
-        inCheck,
+        inCheck: isCheck,
         lastMove: { from, to }
       };
 

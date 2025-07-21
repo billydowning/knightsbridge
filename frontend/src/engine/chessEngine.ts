@@ -478,7 +478,7 @@ export const ChessEngine = {
       halfmoveClock: (gameState.halfmoveClock || 0) + 1,
       fullmoveNumber: (gameState.fullmoveNumber || 1) + (color === 'black' ? 1 : 0),
       enPassantTarget: null,
-      lastMove: { from, to, piece }
+      lastMove: { from, to }
     };
     
     // Reset halfmove clock on capture or pawn move (FIDE Article 5.2.1)
@@ -595,6 +595,7 @@ export const ChessEngine = {
 
   // Get initial game state
   getInitialGameState: (): GameState => ({
+    position: ChessEngine.getInitialPosition(),
     currentPlayer: 'white' as const,
     selectedSquare: null,
     gameActive: false,

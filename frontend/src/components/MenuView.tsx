@@ -52,8 +52,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
           }}
         />
         <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
-          <strong>Leave empty:</strong> Create new room (you'll be WHITE)<br/>
-          <strong>Enter room ID:</strong> Join existing room (you'll be BLACK)
+          <strong>Leave empty:</strong> Create new room (you'll be WHITE) - Room ID will be generated<br/>
+          <strong>Enter room ID:</strong> Join existing room (you'll be BLACK) - Get ID from White player
         </div>
       </div>
 

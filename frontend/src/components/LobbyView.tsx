@@ -13,6 +13,8 @@ export interface LobbyViewProps {
   betAmount: number;
   roomStatus: RoomStatus | null;
   escrowCreated: boolean;
+  opponentEscrowCreated?: boolean;
+  bothEscrowsReady?: boolean;
   connected: boolean;
   isLoading: boolean;
   onCreateEscrow: () => void;
@@ -27,22 +29,92 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   betAmount,
   roomStatus,
   escrowCreated,
+  opponentEscrowCreated = false,
+  bothEscrowsReady = false,
   connected,
   isLoading,
   onCreateEscrow,
   onStartGame,
   onBackToMenu
 }) => {
+  const [copied, setCopied] = React.useState(false);
+  
   const playerCount = roomStatus?.playerCount || 0;
   const escrowCount = roomStatus?.escrowCount || 0;
   const gameStarted = roomStatus?.gameStarted || false;
   const bothPlayersPresent = playerCount === 2;
-  const bothEscrowsCreated = escrowCount === 2;
+  const bothEscrowsCreated = escrowCount === 2 || (escrowCreated && opponentEscrowCreated);
   const readyToStart = bothPlayersPresent && bothEscrowsCreated;
 
   return (
     <div style={{ textAlign: 'center' }}>
       <h2>🏠 Room: {roomId}</h2>
+      
+      {/* Room ID Share Section */}
+      <div style={{ 
+        margin: '20px 0',
+        padding: '20px',
+        backgroundColor: '#e8f5e8',
+        borderRadius: '10px',
+        border: '2px solid #4CAF50'
+      }}>
+        <h3 style={{ margin: '0 0 15px 0', color: '#2e7d32' }}>📋 Share Room ID</h3>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: '10px',
+          flexWrap: 'wrap'
+        }}>
+          <input
+            type="text"
+            value={roomId}
+            readOnly
+            style={{
+              padding: '12px 16px',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              border: '2px solid #4CAF50',
+              borderRadius: '8px',
+              backgroundColor: '#ffffff',
+              color: '#2e7d32',
+              minWidth: '200px',
+              textAlign: 'center'
+            }}
+          />
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(roomId);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            style={{
+              padding: '12px 20px',
+              backgroundColor: copied ? '#45a049' : '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              transition: 'background-color 0.3s ease'
+            }}
+          >
+            {copied ? '✅ Copied!' : '📋 Copy'}
+          </button>
+        </div>
+        <p style={{ 
+          margin: '10px 0 0 0', 
+          fontSize: '14px', 
+          color: '#2e7d32',
+          fontStyle: 'italic'
+        }}>
+          {playerRole === 'white' 
+            ? 'Share this Room ID with your opponent (Black player)'
+            : 'You joined this room as Black player'
+          }
+        </p>
+      </div>
       
       {/* Player Info */}
       <div style={{ 
@@ -87,16 +159,33 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             <strong>Players:</strong> {playerCount}/2
           </p>
           <p style={{ margin: '5px 0' }}>
-            <strong>Escrows:</strong> {escrowCount}/2
-          </p>
-          <p style={{ margin: '5px 0' }}>
-            <strong>Status:</strong> 
+            <strong>Your Escrow:</strong> 
             <span style={{ 
-              color: gameStarted ? '#4CAF50' : '#ff9800',
+              color: escrowCreated ? '#4CAF50' : '#ff9800',
               fontWeight: 'bold',
               marginLeft: '5px'
             }}>
-              {gameStarted ? 'Started' : 'Waiting'}
+              {escrowCreated ? '✅ Created' : '❌ Not Created'}
+            </span>
+          </p>
+          <p style={{ margin: '5px 0' }}>
+            <strong>Opponent Escrow:</strong> 
+            <span style={{ 
+              color: opponentEscrowCreated ? '#4CAF50' : '#ff9800',
+              fontWeight: 'bold',
+              marginLeft: '5px'
+            }}>
+              {opponentEscrowCreated ? '✅ Created' : '⏳ Waiting...'}
+            </span>
+          </p>
+          <p style={{ margin: '5px 0' }}>
+            <strong>Game Ready:</strong> 
+            <span style={{ 
+              color: bothEscrowsReady ? '#4CAF50' : '#ff9800',
+              fontWeight: 'bold',
+              marginLeft: '5px'
+            }}>
+              {bothEscrowsReady ? '✅ Ready to Start!' : '⏳ Waiting for Escrows'}
             </span>
           </p>
         </div>
@@ -212,7 +301,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       <div style={{ marginTop: '30px' }}>
         {!escrowCreated ? (
           <button
-            onClick={onCreateEscrow}
+            onClick={() => {
+              console.log('🔧 Create Escrow button clicked');
+              console.log('Connected:', connected);
+              console.log('IsLoading:', isLoading);
+              onCreateEscrow();
+            }}
             disabled={!connected || isLoading}
             style={{
               padding: '15px 30px',

@@ -108,6 +108,19 @@ CREATE TABLE game_analysis (
     UNIQUE(game_id, move_number)
 );
 
+-- Chat messages for games
+CREATE TABLE chat_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    game_id UUID REFERENCES games(id) ON DELETE CASCADE,
+    player_id VARCHAR(255) NOT NULL, -- Wallet address or user ID
+    player_name VARCHAR(100),
+    message TEXT NOT NULL,
+    message_type VARCHAR(50) DEFAULT 'chat' CHECK (message_type IN ('chat', 'system', 'draw_offer', 'resignation')),
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ========================================
 -- TOURNAMENTS
 -- ========================================
@@ -266,6 +279,11 @@ CREATE INDEX idx_leaderboard_entries_user ON leaderboard_entries(user_id);
 -- Notifications
 CREATE INDEX idx_notifications_user_read ON notifications(user_id, is_read);
 CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
+
+-- Chat messages indexes
+CREATE INDEX idx_chat_messages_game_id ON chat_messages(game_id);
+CREATE INDEX idx_chat_messages_created_at ON chat_messages(game_id, created_at DESC);
+CREATE INDEX idx_chat_messages_player_id ON chat_messages(player_id);
 
 -- ========================================
 -- TRIGGERS FOR AUTOMATIC UPDATES

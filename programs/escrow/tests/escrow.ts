@@ -405,7 +405,21 @@ describe("chess_escrow", () => {
 
     it("should record a move", async () => {
       const tx = await program.methods
-        .recordMove(moveNotation, gamePositionHash)
+        .recordMove(
+          moveNotation, 
+          gamePositionHash,
+          "e2", // from_square
+          "e4", // to_square
+          "P",  // piece
+          undefined, // captured_piece
+          1000, // time_spent
+          false, // is_check
+          false, // is_checkmate
+          false, // is_castle
+          false, // is_en_passant
+          false, // is_promotion
+          undefined   // promotion_piece
+        )
         .accounts({
           gameEscrow: moveGameEscrowPda,
           player: playerWhite.publicKey,
@@ -439,7 +453,21 @@ describe("chess_escrow", () => {
       
       try {
         await program.methods
-          .recordMove(moveNotation, gamePositionHash)
+          .recordMove(
+            moveNotation, 
+            gamePositionHash,
+            "e2", // from_square
+            "e4", // to_square
+            "P",  // piece
+            undefined, // captured_piece
+            1000, // time_spent
+            false, // is_check
+            false, // is_checkmate
+            false, // is_castle
+            false, // is_en_passant
+            false, // is_promotion
+            undefined   // promotion_piece
+          )
           .accounts({
             gameEscrow: notStartedGameEscrowPda,
             player: playerWhite.publicKey,
@@ -455,7 +483,21 @@ describe("chess_escrow", () => {
     it("should fail if unauthorized player tries to record move", async () => {
       try {
         await program.methods
-          .recordMove(moveNotation, gamePositionHash)
+          .recordMove(
+            moveNotation, 
+            gamePositionHash,
+            "e2", // from_square
+            "e4", // to_square
+            "P",  // piece
+            undefined, // captured_piece
+            1000, // time_spent
+            false, // is_check
+            false, // is_checkmate
+            false, // is_castle
+            false, // is_en_passant
+            false, // is_promotion
+            undefined   // promotion_piece
+          )
           .accounts({
             gameEscrow: moveGameEscrowPda,
             player: unauthorizedPlayer.publicKey,
@@ -918,7 +960,21 @@ describe("chess_escrow", () => {
       
       try {
         await program.methods
-          .recordMove(longMoveNotation, gamePositionHash)
+          .recordMove(
+            longMoveNotation, 
+            gamePositionHash,
+            "e2", // from_square
+            "e4", // to_square
+            "P",  // piece
+            undefined, // captured_piece
+            1000, // time_spent
+            false, // is_check
+            false, // is_checkmate
+            false, // is_castle
+            false, // is_en_passant
+            false, // is_promotion
+            undefined   // promotion_piece
+          )
           .accounts({
             gameEscrow: edgeGameEscrowPda,
             player: playerWhite.publicKey,

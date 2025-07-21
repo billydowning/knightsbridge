@@ -3,7 +3,7 @@
  * Displays an interactive chess board with legal move highlighting, animations, and improved UX
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import ChessEngine from '../engine/chessEngine';
 import type { GameState, Position } from '../types';
 
@@ -176,7 +176,9 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
   playerRole,
   disabled = false
 }) => {
-  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+  const files = orientation === 'white' 
+    ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];
   const ranks = orientation === 'white' 
     ? ['8', '7', '6', '5', '4', '3', '2', '1'] 
     : ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -195,6 +197,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
     const kingSquare = ChessEngine.findKing(position, gameState?.currentPlayer || 'white');
     const isKingInCheck = gameState?.inCheck && kingSquare;
     
+    // Render squares in the correct order for the orientation
     for (let rank of ranks) {
       for (let file of files) {
         const square = file + rank;
@@ -202,8 +205,8 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
         const isLight = (files.indexOf(file) + parseInt(rank)) % 2 === 0;
         const isSelected = selectedSquare === square;
         const isLegalMove = legalMoves.includes(square);
-        const isInCheck = isKingInCheck && square === kingSquare;
-                  const isLastMove = Boolean(gameState?.lastMove && gameState.lastMove.from === square && gameState.lastMove.to === square);
+        const isInCheck = Boolean(isKingInCheck && square === kingSquare);
+        const isLastMove: boolean = gameState?.lastMove ? (gameState.lastMove.from === square || gameState.lastMove.to === square) : false;
         
         squares.push(
           <ChessSquare
@@ -243,7 +246,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
       {renderBoard()}
     </div>
   );
-};
+});
 
 /**
  * Board with rank and file labels
@@ -256,7 +259,9 @@ export const LabeledChessBoard: React.FC<LabeledChessBoardProps> = ({
   showLabels = true,
   ...props
 }) => {
-  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+  const files = props.orientation === 'white' 
+    ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];
   const ranks = props.orientation === 'white' 
     ? ['8', '7', '6', '5', '4', '3', '2', '1'] 
     : ['1', '2', '3', '4', '5', '6', '7', '8'];

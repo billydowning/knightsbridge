@@ -456,6 +456,80 @@ class DatabaseService {
       throw error;
     }
   }
+
+  /**
+   * Chat Message Management
+   */
+  
+  // Add a chat message
+  async addChatMessage(gameId, messageData) {
+    const query = `
+      INSERT INTO chat_messages (game_id, player_id, player_name, message, message_type)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+    
+    const values = [
+      gameId,
+      messageData.playerId,
+      messageData.playerName,
+      messageData.message,
+      messageData.messageType || 'chat'
+    ];
+    
+    try {
+      const result = await pool.query(query, values);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error adding chat message:', error);
+      throw error;
+    }
+  }
+  
+  // Get chat messages for a game
+  async getChatMessages(gameId, limit = 100) {
+    const query = `
+      SELECT * FROM chat_messages 
+      WHERE game_id = $1 
+      ORDER BY created_at DESC 
+      LIMIT $2
+    `;
+    
+    try {
+      const result = await pool.query(query, [gameId, limit]);
+      return result.rows.reverse(); // Return in chronological order
+    } catch (error) {
+      console.error('Error getting chat messages:', error);
+      throw error;
+    }
+  }
+  
+  // Add a move to the database
+  async addMove(gameId, moveData) {
+    const query = `
+      INSERT INTO moves (game_id, from_square, to_square, piece, player_id, color, move_number)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    
+    const values = [
+      gameId,
+      moveData.from,
+      moveData.to,
+      moveData.piece,
+      moveData.playerId,
+      moveData.color,
+      moveData.moveNumber || 1
+    ];
+    
+    try {
+      const result = await pool.query(query, values);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error adding move:', error);
+      throw error;
+    }
+  }
   
   /**
    * Utility Functions

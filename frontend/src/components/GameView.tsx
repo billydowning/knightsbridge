@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { ChessBoard } from './ChessBoard';
+import { ChatBox, type ChatMessage } from './ChatBox';
 import type { GameState } from '../types';
 
 export interface GameViewProps {
@@ -19,6 +20,11 @@ export interface GameViewProps {
   onBackToMenu: () => void;
   winningsClaimed: boolean;
   isLoading: boolean;
+  onDeclareWinner?: (winner: 'white' | 'black') => void;
+  onTestCheckmate?: () => void;
+  onTestCurrentBoard?: () => void;
+  chatMessages?: ChatMessage[];
+  onSendChatMessage?: (message: string) => void;
 }
 
 export const GameView: React.FC<GameViewProps> = ({
@@ -32,7 +38,12 @@ export const GameView: React.FC<GameViewProps> = ({
   onStartNewGame,
   onBackToMenu,
   winningsClaimed,
-  isLoading
+  isLoading,
+  onDeclareWinner,
+  onTestCheckmate,
+  onTestCurrentBoard,
+  chatMessages = [],
+  onSendChatMessage
 }) => {
   const isGameOver = gameState.winner || gameState.draw;
   const isMyTurn = gameState.currentPlayer === playerRole;
@@ -101,6 +112,21 @@ export const GameView: React.FC<GameViewProps> = ({
           {getPlayerStatusMessage()}
         </div>
 
+        {/* Testing Instructions */}
+        {gameState.gameActive && !isGameOver && (
+          <div style={{ 
+            marginTop: '10px', 
+            padding: '10px', 
+            backgroundColor: '#e3f2fd', 
+            borderRadius: '5px', 
+            border: '1px solid #2196f3',
+            fontSize: '14px',
+            color: '#1565c0'
+          }}>
+            <strong>🧪 Testing Mode:</strong> Open a new browser tab and join as the opposite color to test both players manually.
+          </div>
+        )}
+
         {/* Game Over Messages */}
         {gameState.winner && (
           <div style={{ 
@@ -125,16 +151,37 @@ export const GameView: React.FC<GameViewProps> = ({
         )}
       </div>
       
-      {/* Chess Board */}
-      <ChessBoard
-        position={gameState.position}
-        onSquareClick={onSquareClick}
-        selectedSquare={gameState.selectedSquare}
-        orientation={playerRole === 'white' ? 'white' : 'black'}
-        gameState={gameState}
-        playerRole={playerRole}
-        disabled={!gameState.gameActive || !isMyTurn || isLoading}
-      />
+      {/* Chess Board and Chat Layout */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'flex-start',
+        marginTop: '20px',
+        gap: '20px'
+      }}>
+        {/* Chess Board */}
+        <div>
+          <ChessBoard
+            position={gameState.position}
+            onSquareClick={onSquareClick}
+            selectedSquare={gameState.selectedSquare}
+            orientation={playerRole === 'white' ? 'white' : 'black'}
+            gameState={gameState}
+            playerRole={playerRole}
+            disabled={!gameState.gameActive || !isMyTurn || isLoading}
+          />
+        </div>
+
+        {/* Chat Box */}
+        {onSendChatMessage && (
+          <ChatBox
+            roomId={roomId}
+            playerRole={playerRole}
+            messages={chatMessages}
+            onSendMessage={onSendChatMessage}
+          />
+        )}
+      </div>
       
       {/* Game Info Panel */}
       <div style={{ 
@@ -228,6 +275,77 @@ export const GameView: React.FC<GameViewProps> = ({
             >
               🏳️ Resign Game
             </button>
+          )}
+
+          {/* Testing Buttons - Only show in development/testing mode */}
+          {gameState.gameActive && !isGameOver && onDeclareWinner && (
+            <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#fff3cd', borderRadius: '5px', border: '1px solid #ffeaa7' }}>
+              <div style={{ fontSize: '12px', color: '#856404', marginBottom: '5px' }}>🧪 Testing Controls:</div>
+              <button
+                onClick={() => onDeclareWinner('white')}
+                style={{
+                  padding: '8px 15px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  margin: '2px',
+                  fontSize: '12px'
+                }}
+              >
+                🏆 Declare White Winner
+              </button>
+              <button
+                onClick={() => onDeclareWinner('black')}
+                style={{
+                  padding: '8px 15px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  margin: '2px',
+                  fontSize: '12px'
+                }}
+              >
+                🏆 Declare Black Winner
+              </button>
+              {onTestCheckmate && (
+                <button
+                  onClick={onTestCheckmate}
+                  style={{
+                    padding: '8px 15px',
+                    backgroundColor: '#ff9800',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    margin: '2px',
+                    fontSize: '12px'
+                  }}
+                >
+                  🧪 Test Checkmate
+                </button>
+              )}
+              {onTestCurrentBoard && (
+                <button
+                  onClick={onTestCurrentBoard}
+                  style={{
+                    padding: '8px 15px',
+                    backgroundColor: '#9c27b0',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    margin: '2px',
+                    fontSize: '12px'
+                  }}
+                >
+                  🔍 Test Current Board
+                </button>
+              )}
+            </div>
           )}
 
           {/* Game Over Options - Only show when game is finished */}

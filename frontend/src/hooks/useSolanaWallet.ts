@@ -7,8 +7,8 @@ import { useState, useEffect } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
 import { Program, AnchorProvider, BN, web3 } from '@coral-xyz/anchor';
-import { ChessEscrow } from '../../../src/idl/chess_escrow';
-import ChessEscrowIDL from '../../../src/idl/chess_escrow.json';
+import type { ChessEscrow } from '../idl/chess_escrow';
+import ChessEscrowIDL from '../idl/chess_escrow.json';
 import multiplayerState from '../services/multiplayerState';
 import { CHESS_PROGRAM_ID, FEE_WALLET_ADDRESS } from '../config/solanaConfig';
 

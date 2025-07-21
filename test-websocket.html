@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .message { background-color: #d1ecf1; color: #0c5460; margin: 5px 0; padding: 5px; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .join { background-color: #007bff; color: white; }
+        .send { background-color: #28a745; color: white; }
+        .move { background-color: #ffc107; color: black; }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 WebSocket Test</h1>
+    
+    <div id="status" class="status disconnected">
+        ❌ Disconnected
+    </div>
+    
+    <div>
+        <h3>Connection</h3>
+        <button onclick="connect()" class="join">Connect</button>
+        <button onclick="disconnect()" class="send">Disconnect</button>
+    </div>
+    
+    <div>
+        <h3>Game Actions</h3>
+        <input type="text" id="gameId" placeholder="Game ID" value="test-game-123">
+        <input type="text" id="playerId" placeholder="Player ID" value="player-1">
+        <input type="text" id="playerName" placeholder="Player Name" value="Test Player">
+        <button onclick="joinGame()" class="join">Join Game</button>
+    </div>
+    
+    <div>
+        <h3>Chat</h3>
+        <textarea id="messageInput" placeholder="Type your message..."></textarea>
+        <button onclick="sendMessage()" class="send">Send Message</button>
+    </div>
+    
+    <div>
+        <h3>Move</h3>
+        <input type="text" id="moveFrom" placeholder="From square (e.g., e2)" value="e2">
+        <input type="text" id="moveTo" placeholder="To square (e.g., e4)" value="e4">
+        <input type="text" id="movePiece" placeholder="Piece (e.g., pawn)" value="pawn">
+        <button onclick="makeMove()" class="move">Make Move</button>
+    </div>
+    
+    <div>
+        <h3>Messages</h3>
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        let socket = null;
+        let gameId = 'test-game-123';
+        let playerId = 'player-1';
+        let playerName = 'Test Player';
+        let assignedColor = null;
+
+        function updateStatus(connected) {
+            const status = document.getElementById('status');
+            if (connected) {
+                status.className = 'status connected';
+                status.innerHTML = '✅ Connected';
+            } else {
+                status.className = 'status disconnected';
+                status.innerHTML = '❌ Disconnected';
+            }
+        }
+
+        function addMessage(message) {
+            const messages = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function connect() {
+            socket = io('http://localhost:3001');
+            
+            socket.on('connect', () => {
+                updateStatus(true);
+                addMessage('Connected to WebSocket server');
+            });
+            
+            socket.on('disconnect', () => {
+                updateStatus(false);
+                addMessage('Disconnected from WebSocket server');
+            });
+            
+            socket.on('assignedColor', (data) => {
+                assignedColor = data.color;
+                addMessage(`Assigned color: ${data.color}, isTurn: ${data.isTurn}`);
+            });
+            
+            socket.on('playerJoined', (data) => {
+                addMessage(`Player joined: ${data.playerId} (${data.color})`);
+            });
+            
+            socket.on('gameStarted', (data) => {
+                addMessage(`Game started! White: ${data.whitePlayer}, Black: ${data.blackPlayer}`);
+            });
+            
+            socket.on('moveMade', (data) => {
+                addMessage(`Move made: ${data.move.from} to ${data.move.to} by ${data.color}`);
+            });
+            
+            socket.on('newMessage', (message) => {
+                addMessage(`Chat: ${message.playerName}: ${message.message}`);
+            });
+            
+            socket.on('moveError', (data) => {
+                addMessage(`Move error: ${data.error}`);
+            });
+            
+            socket.on('chatError', (data) => {
+                addMessage(`Chat error: ${data.error}`);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function joinGame() {
+            if (!socket) {
+                addMessage('Please connect first');
+                return;
+            }
+            
+            gameId = document.getElementById('gameId').value;
+            playerId = document.getElementById('playerId').value;
+            playerName = document.getElementById('playerName').value;
+            
+            socket.emit('joinGame', gameId, {
+                playerId: playerId,
+                playerName: playerName
+            });
+            
+            addMessage(`Joining game: ${gameId} as ${playerName}`);
+        }
+
+        function sendMessage() {
+            if (!socket || !gameId) {
+                addMessage('Please connect and join a game first');
+                return;
+            }
+            
+            const message = document.getElementById('messageInput').value;
+            if (!message.trim()) {
+                addMessage('Please enter a message');
+                return;
+            }
+            
+            socket.emit('sendMessage', {
+                gameId: gameId,
+                message: message,
+                playerId: playerId,
+                playerName: playerName
+            });
+            
+            document.getElementById('messageInput').value = '';
+            addMessage(`Sending message: ${message}`);
+        }
+
+        function makeMove() {
+            if (!socket || !gameId || !assignedColor) {
+                addMessage('Please connect, join a game, and wait for color assignment');
+                return;
+            }
+            
+            const from = document.getElementById('moveFrom').value;
+            const to = document.getElementById('moveTo').value;
+            const piece = document.getElementById('movePiece').value;
+            
+            if (!from || !to || !piece) {
+                addMessage('Please fill in all move fields');
+                return;
+            }
+            
+            socket.emit('makeMove', {
+                gameId: gameId,
+                move: { from, to, piece },
+                playerId: playerId,
+                color: assignedColor
+            });
+            
+            addMessage(`Making move: ${from} to ${to} (${piece})`);
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            connect();
+        };
+    </script>
+</body>
+</html> 
