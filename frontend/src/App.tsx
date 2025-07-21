@@ -265,9 +265,16 @@ function ChessApp() {
           if (roomStatus) {
             console.log('📊 Room status updated:', roomStatus);
             const escrowCount = Object.keys(roomStatus.escrows).length;
+            const playerWallet = publicKey?.toString();
+            
+            // Check if opponent has created an escrow (not counting our own)
+            const opponentEscrowExists = roomStatus.escrows && 
+              Object.keys(roomStatus.escrows).some(escrowWallet => 
+                escrowWallet !== playerWallet
+              );
             
             // Update escrow status
-            setOpponentEscrowCreated(escrowCount >= 1);
+            setOpponentEscrowCreated(opponentEscrowExists);
             setBothEscrowsReady(escrowCount >= 2);
             
             // Auto-start game if both escrows are ready
@@ -294,9 +301,16 @@ function ChessApp() {
           const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
           if (roomStatus) {
             const escrowCount = Object.keys(roomStatus.escrows).length;
+            const playerWallet = publicKey?.toString();
+            
+            // Check if opponent has created an escrow (not counting our own)
+            const opponentEscrowExists = roomStatus.escrows && 
+              Object.keys(roomStatus.escrows).some(escrowWallet => 
+                escrowWallet !== playerWallet
+              );
             
             // Update escrow status
-            setOpponentEscrowCreated(escrowCount >= 1);
+            setOpponentEscrowCreated(opponentEscrowExists);
             setBothEscrowsReady(escrowCount >= 2);
             
             // Auto-start game if both escrows are ready
