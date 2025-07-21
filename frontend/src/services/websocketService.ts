@@ -74,7 +74,7 @@ class WebSocketService {
   }
 
   private setupSocket() {
-    const serverUrl = process.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:3001';
+    const serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridgeapp-production.up.railway.app';
     
     this.socket = io(serverUrl, {
       transports: ['websocket', 'polling'],

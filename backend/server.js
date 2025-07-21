@@ -10,7 +10,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*', // Allow all origins for development; restrict in production
+    origin: process.env.NODE_ENV === 'production' 
+      ? ['https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app']
+      : '*',
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 

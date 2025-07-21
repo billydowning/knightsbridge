@@ -1,6 +1,8 @@
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:3001/api';
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://knightsbridgeapp-production.up.railway.app/api'
+  : 'http://localhost:3001/api';
 
 async function testAPIEndpoints() {
   console.log('🧪 Testing API endpoints...\n');

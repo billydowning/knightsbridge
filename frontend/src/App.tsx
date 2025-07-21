@@ -57,9 +57,6 @@ class ErrorBoundary extends React.Component<
 
 // Main Chess App Component
 function ChessApp() {
-  console.log('🚀 ChessApp component rendering...');
-  console.log('Environment:', ENV_CONFIG);
-  
   // Solana wallet hook
   const { 
     publicKey, 
@@ -1473,8 +1470,6 @@ function ChessApp() {
 
 // App wrapper with Solana providers
 function App() {
-  console.log('🚀 App component rendering...');
-  
   const wallets = [
     new PhantomWalletAdapter(),
     new BackpackWalletAdapter()

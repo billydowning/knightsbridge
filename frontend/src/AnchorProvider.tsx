@@ -4,18 +4,11 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { clusterApiUrl } from '@solana/web3.js';
 
-console.log('🚀 AnchorProvider loading...');
-
-const network = 'devnet'; // Use 'mainnet-beta' for production
+const network = import.meta.env.MODE === 'production' ? 'mainnet-beta' : 'devnet';
 const endpoint = clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter()];
 
-console.log('🚀 Solana endpoint:', endpoint);
-console.log('🚀 Wallets configured:', wallets.length);
-
 export const AnchorProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  console.log('🚀 AnchorProvider rendering...');
-  
   try {
     return (
       <ConnectionProvider endpoint={endpoint}>

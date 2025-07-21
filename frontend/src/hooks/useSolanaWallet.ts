@@ -13,8 +13,6 @@ import ChessEscrowIDL from '../idl/chess_escrow.json';
 import multiplayerState from '../services/multiplayerState';
 import { CHESS_PROGRAM_ID, FEE_WALLET_ADDRESS } from '../config/solanaConfig';
 
-console.log('🚀 useSolanaWallet hook loading...');
-
 export interface SolanaWalletHook {
   // Wallet state
   publicKey: PublicKey | null;
@@ -41,13 +39,9 @@ export interface SolanaWalletHook {
  * Custom hook for Solana wallet operations
  */
 export const useSolanaWallet = (): SolanaWalletHook => {
-  console.log('🚀 useSolanaWallet hook initializing...');
-  
   try {
     const { publicKey, connected, signTransaction, sendTransaction } = useWallet();
     const { connection } = useConnection();
-    
-    console.log('🚀 Wallet state:', { connected, publicKey: publicKey?.toString() });
     
     const [balance, setBalance] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -55,7 +49,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
 
     // Check balance when wallet connects
     useEffect(() => {
-      console.log('🚀 Wallet connection changed:', { connected, publicKey: publicKey?.toString() });
       if (connected && publicKey) {
         checkBalance();
       }
@@ -99,7 +92,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         setError(null);
         const walletBalance = await connection.getBalance(publicKey);
         setBalance(walletBalance / LAMPORTS_PER_SOL);
-        console.log('💰 Balance updated:', (walletBalance / LAMPORTS_PER_SOL).toFixed(3), 'SOL');
       } catch (err) {
         const errorMessage = `Error checking balance: ${(err as Error).message}`;
         setError(errorMessage);
@@ -134,8 +126,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         setIsLoading(true);
         setError(null);
         
-        console.log('🔄 Creating escrow for room:', roomId, 'amount:', betAmount, 'SOL');
-        
         // Derive PDAs
         const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
           [Buffer.from("game"), Buffer.from(roomId)],
@@ -162,8 +152,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           } as any)
           .rpc();
         
-        console.log('✅ Game initialized, tx:', tx);
-        
         // Now deposit stake
         const depositTx = await program.methods
           .depositStake()
@@ -174,8 +162,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             systemProgram: SystemProgram.programId,
           } as any)
           .rpc();
-        
-        console.log('✅ Stake deposited, tx:', depositTx);
         
         // Add to multiplayer state
         multiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
@@ -244,8 +230,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         setIsLoading(true);
         setError(null);
         
-        console.log('🔄 Joining game and depositing stake for room:', roomId);
-        
         // Derive PDAs
         const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
           [Buffer.from("game"), Buffer.from(roomId)],
@@ -266,8 +250,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           } as any)
           .rpc();
         
-        console.log('✅ Joined game, tx:', joinTx);
-        
         // Deposit stake
         const depositTx = await program.methods
           .depositStake()
@@ -278,8 +260,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             systemProgram: SystemProgram.programId,
           })
           .rpc();
-        
-        console.log('✅ Stake deposited, tx:', depositTx);
         
         // Add to multiplayer state
         multiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
@@ -360,8 +340,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         setIsLoading(true);
         setError(null);
         
-        console.log('🏆 Claiming winnings for room:', roomId, 'Player:', playerRole, 'Winner:', gameWinner, 'Draw:', isDraw);
-        
         // Derive PDAs
         const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
           [Buffer.from("game"), Buffer.from(roomId)],
@@ -404,8 +382,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             systemProgram: SystemProgram.programId,
           })
           .rpc();
-        
-        console.log('✅ Game result declared and funds distributed, tx:', tx);
         
         let statusMessage = '';
         
@@ -482,7 +458,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           })
           .rpc();
         
-        console.log('📝 Move recorded on-chain:', moveNotation, 'tx:', tx);
         return true;
       } catch (err) {
         console.error('Failed to record move:', err);
@@ -523,8 +498,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             systemProgram: SystemProgram.programId,
           })
           .rpc();
-        
-        console.log('⏰ Timeout handled, tx:', tx);
         
         // Update balance
         setTimeout(() => checkBalance(), 1000);
@@ -569,8 +542,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             systemProgram: SystemProgram.programId,
           })
           .rpc();
-        
-        console.log('🚫 Game cancelled, tx:', tx);
         
         // Update balance
         setTimeout(() => checkBalance(), 1000);
@@ -639,8 +610,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         setIsLoading(true);
         setError(null);
         
-        console.log('🔄 Declaring game result:', { roomId, winner, reason });
-        
         // Derive PDAs
         const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
           [Buffer.from("game"), Buffer.from(roomId)],
@@ -698,7 +667,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           })
           .rpc();
         
-        console.log('✅ Game result declared, tx:', tx);
         return tx;
         
       } catch (err: any) {

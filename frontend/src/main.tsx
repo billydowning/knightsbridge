@@ -4,8 +4,6 @@ import App from './App.tsx'
 import './index.css'
 import { AnchorProvider } from './AnchorProvider.tsx';
 
-console.log('🚀 Main.tsx loading...');
-
 // Add global error handler
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
@@ -16,10 +14,8 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 try {
-  console.log('🚀 Creating React root...');
   const root = ReactDOM.createRoot(document.getElementById('root')!);
   
-  console.log('🚀 Rendering App component...');
   root.render(
     <React.StrictMode>
       <AnchorProvider>
@@ -27,7 +23,6 @@ try {
       </AnchorProvider>
     </React.StrictMode>,
   );
-  console.log('🚀 App rendered successfully!');
 } catch (error) {
   console.error('❌ Error in main.tsx:', error);
   // Show error on page
