@@ -380,6 +380,9 @@ function ChessApp() {
       const playerWallet = publicKey.toString();
       await databaseMultiplayerState.addEscrow(roomId, playerWallet, betAmount);
       
+      // Update local state to show escrow was created
+      setEscrowCreated(true);
+      
       setGameStatus(`Escrow created! Bet: ${betAmount} SOL. Waiting for opponent...`);
       console.log('✅ Escrow created successfully');
       
