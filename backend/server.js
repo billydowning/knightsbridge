@@ -1,6 +1,7 @@
 // Knightsbridge Chess Backend Server
 // Updated: 2025-07-21 - Database-based multiplayer system
 // Force redeploy for WebSocket fixes - Additional debugging
+// Manual Railway redeploy required - Test endpoints added
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
