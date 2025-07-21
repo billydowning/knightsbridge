@@ -413,10 +413,10 @@ function ChessApp() {
       });
       
       // Check if the next player is in check
-      const nextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
+      const isNextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
       console.log('🔍 Next player check status:', {
         nextPlayer,
-        nextPlayerInCheck
+        isNextPlayerInCheck
       });
       
       // Update the game state
@@ -430,7 +430,7 @@ function ChessApp() {
         lastUpdated: Date.now(),
         gameActive: !isCheckmate,
         winner: isCheckmate ? gameState.currentPlayer : null,
-        inCheck: nextPlayerInCheck
+        inCheck: isNextPlayerInCheck
       };
       
       // Update the game state using setState
