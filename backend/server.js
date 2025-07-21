@@ -1,6 +1,6 @@
 // Knightsbridge Chess Backend Server
 // Updated: 2025-07-21 - Database-based multiplayer system
-// Force redeploy for WebSocket fixes
+// Force redeploy for WebSocket fixes - Additional debugging
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -9,8 +9,22 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { dbService } = require('./database');
 
+console.log('🚀 Starting Knightsbridge Chess Backend Server...');
+console.log('📋 Environment:', process.env.NODE_ENV);
+console.log('🔧 Debug mode:', process.env.DEBUG);
+
 const app = express();
 const server = http.createServer(app);
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app']
+    : '*',
+  credentials: true
+}));
+
+// Socket.io setup
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
@@ -24,9 +38,6 @@ const io = new Server(server, {
 console.log('🚀 Socket.io server initialized with CORS origins:', process.env.NODE_ENV === 'production' 
   ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app']
   : '*');
-
-app.use(cors());
-app.use(express.json()); // Parse JSON bodies
 
 // Rate limiting middleware
 const limiter = rateLimit({
@@ -51,6 +62,7 @@ const gameRooms = new Map(); // Store game rooms
 // Handle Socket.io connections
 io.on('connection', (socket) => {
   console.log('🔌 A user connected:', socket.id);
+  console.log('📋 Socket events available:', Object.keys(socket._events || {}));
 
   // Debug: Log when event handler is registered
   console.log('✅ createRoom event handler registered for socket:', socket.id);
@@ -68,6 +80,8 @@ io.on('connection', (socket) => {
   // Create a new room
   socket.on('createRoom', async (data, callback) => {
     console.log('📨 Received createRoom event:', data);
+    console.log('📨 Callback function:', typeof callback);
+    
     try {
       const { roomId, playerWallet } = data;
       
@@ -87,19 +101,24 @@ io.on('connection', (socket) => {
       };
 
       gameRooms.set(roomId, room);
-      
-      // Join the room
-      socket.join(roomId);
-      
       console.log('✅ Room created:', roomId, 'for player:', playerWallet);
-      callback({ success: true, role: 'white' });
-      
-      // Broadcast room update
-      io.to(roomId).emit('roomUpdated', { roomId, room });
+
+      // Join the socket to the room
+      socket.join(roomId);
+      console.log('✅ Socket joined room:', roomId);
+
+      // Broadcast room update to all clients in the room
+      io.to(roomId).emit('roomUpdated', room);
+      console.log('📡 Broadcasted roomUpdated to room:', roomId);
+
+      // Send success response
+      const response = { success: true, role: 'white' };
+      console.log('📤 Sending createRoom response:', response);
+      callback(response);
       
     } catch (error) {
-      console.error('❌ Error creating room:', error);
-      callback({ success: false, error: 'Failed to create room' });
+      console.error('❌ Error in createRoom:', error);
+      callback({ success: false, error: error.message });
     }
   });
 
