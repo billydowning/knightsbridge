@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-interface WebSocketMessage {
-  type: 'move' | 'chat' | 'gameState' | 'playerJoined' | 'gameStarted' | 'playerDisconnected';
-  data: any;
-}
+
 
 interface UseWebSocketProps {
   gameId: string;

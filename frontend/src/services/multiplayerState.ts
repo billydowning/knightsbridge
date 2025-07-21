@@ -5,7 +5,7 @@
  */
 
 // Import types from centralized location
-import type { GameState, PlayerRole, Room, RoomStatus, RoomsData, GameStatesData } from '../types/chess';
+import type { GameState, Room, RoomStatus, RoomsData, GameStatesData } from '../types/chess';
 
 // TypeScript Interfaces - Re-export for convenience
 export type { PlayerRole, Room, RoomStatus, RoomsData, GameStatesData } from '../types/chess';

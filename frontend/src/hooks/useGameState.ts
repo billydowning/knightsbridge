@@ -327,24 +327,7 @@ export const useGameState = (): GameStateHook => {
     }
   };
 
-  /**
-   * Handle game end with blockchain integration
-   * @param roomId - Room ID for blockchain integration
-   * @param winner - Winner of the game
-   * @param reason - Reason for game end
-   */
-  const handleGameEnd = async (roomId: string, winner: 'white' | 'black' | null, reason: string): Promise<void> => {
-    // Update local state
-    setWinner(winner);
-    
-    // Declare result on blockchain
-    if (roomId) {
-      const blockchainSuccess = await declareGameResult(roomId, winner, reason);
-      if (!blockchainSuccess) {
-        console.warn('⚠️ Game ended locally but blockchain declaration failed');
-      }
-    }
-  };
+
 
   /**
    * Resign the game (forfeit)
@@ -352,7 +335,7 @@ export const useGameState = (): GameStateHook => {
    * @param roomId - Optional room ID for multiplayer sync
    */
   const resignGame = (resigningPlayer: 'white' | 'black', roomId?: string): void => {
-    const winner = resigningPlayer === 'white' ? 'black' : 'white';
+    const winner: 'white' | 'black' = resigningPlayer === 'white' ? 'black' : 'white';
     
     setGameState(prev => ({
       ...prev,

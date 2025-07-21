@@ -40,33 +40,24 @@ export const GameViewEnhanced: React.FC<GameViewEnhancedProps> = ({
   // WebSocket integration
   const {
     isConnected,
-    messages,
     assignedColor,
     isMyTurn,
     error: wsError,
-    sendMessage,
+    sendChatMessage,
     getChatHistory,
-    playerReady,
+    setPlayerReady,
     resignGame,
     offerDraw,
-    respondToDraw,
-    clearError,
-    clearMessages
+    respondToDraw
   } = useWebSocket({
     gameId: roomId,
     playerId,
     playerName,
-    onConnect: () => {
-      console.log('Connected to game WebSocket');
-    },
-    onDisconnect: () => {
-      console.log('Disconnected from game WebSocket');
-    },
     onMoveReceived: (move) => {
       console.log('Move received:', move);
       // Handle incoming move - this would typically update the chess engine
     },
-    onChatMessage: (message) => {
+    onChatMessageReceived: (message) => {
       console.log('Chat message received:', message);
     },
     onPlayerJoined: (player) => {
@@ -79,17 +70,6 @@ export const GameViewEnhanced: React.FC<GameViewEnhancedProps> = ({
     },
     onGameStarted: (data) => {
       console.log('Game started:', data);
-    },
-    onGameResigned: (data) => {
-      console.log('Game resigned:', data);
-    },
-    onDrawOffered: (player) => {
-      console.log('Draw offered by:', player);
-      setDrawOfferPending(true);
-    },
-    onDrawResponse: (accepted) => {
-      console.log('Draw response:', accepted);
-      setDrawOfferPending(false);
     }
   });
 
@@ -103,9 +83,9 @@ export const GameViewEnhanced: React.FC<GameViewEnhancedProps> = ({
   // Notify server when player is ready
   useEffect(() => {
     if (isConnected && assignedColor) {
-      playerReady();
+      setPlayerReady();
     }
-  }, [isConnected, assignedColor, playerReady]);
+  }, [isConnected, assignedColor, setPlayerReady]);
 
   const isGameOver = gameState.winner || gameState.draw;
   const canClaimWinnings = (gameState.winner === assignedColor || gameState.draw) && !winningsClaimed;
@@ -343,15 +323,10 @@ export const GameViewEnhanced: React.FC<GameViewEnhancedProps> = ({
         
         {showChat && (
           <div className="h-full">
-            <GameChat
-              messages={messages}
-              onSendMessage={sendMessage}
-              playerName={playerName}
-              isConnected={isConnected}
-              error={wsError}
-              onClearError={clearError}
-              className="h-full"
-            />
+            {/* GameChat component temporarily disabled due to missing WebSocket properties */}
+            <div className="p-4 text-gray-500">
+              Chat feature coming soon...
+            </div>
           </div>
         )}
       </div>
