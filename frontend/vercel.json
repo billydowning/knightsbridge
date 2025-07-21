@@ -16,6 +16,7 @@
     }
   ],
   "env": {
-    "REACT_APP_BACKEND_URL": "https://knightsbridgeapp-production.up.railway.app"
+    "VITE_API_URL": "https://knightsbridgeapp-production.up.railway.app",
+    "VITE_WS_URL": "wss://knightsbridgeapp-production.up.railway.app"
   }
 } 

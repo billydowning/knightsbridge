@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
@@ -15,12 +15,51 @@ import { useSolanaWallet } from './hooks/useSolanaWallet';
 import { useWebSocket } from './hooks/useWebSocket';
 import multiplayerState from './services/multiplayerState';
 import type { ChatMessage } from './components/ChatBox';
+import { ENV_CONFIG } from './config/appConfig';
 
 // Types
 type AppGameMode = 'menu' | 'lobby' | 'game';
 
+// Error boundary component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('App Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <h1>Something went wrong</h1>
+          <p>Please refresh the page and try again.</p>
+          <button onClick={() => window.location.reload()}>
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // Main Chess App Component
 function ChessApp() {
+  console.log('🚀 ChessApp component rendering...');
+  console.log('Environment:', ENV_CONFIG);
+  
   // Solana wallet hook
   const { 
     publicKey, 
@@ -1434,19 +1473,23 @@ function ChessApp() {
 
 // App wrapper with Solana providers
 function App() {
+  console.log('🚀 App component rendering...');
+  
   const wallets = [
     new PhantomWalletAdapter(),
     new BackpackWalletAdapter()
   ];
 
   return (
-    <ConnectionProvider endpoint={SOLANA_RPC_ENDPOINT}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <ChessApp />
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <ErrorBoundary>
+      <ConnectionProvider endpoint={SOLANA_RPC_ENDPOINT}>
+        <WalletProvider wallets={wallets} autoConnect>
+          <WalletModalProvider>
+            <ChessApp />
+          </WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
+    </ErrorBoundary>
   );
 }
 
