@@ -38,7 +38,7 @@ export const useWebSocket = ({
   useEffect(() => {
     if (!gameId) return;
 
-    const newSocket = io(process.env.REACT_APP_BACKEND_URL || 'https://knightsbridgeapp-production.up.railway.app', {
+    const newSocket = io(import.meta.env.VITE_BACKEND_URL || 'https://knightsbridgeapp-production.up.railway.app', {
       transports: ['websocket', 'polling'],
       timeout: 20000,
       reconnection: true,
