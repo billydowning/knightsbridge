@@ -54,6 +54,34 @@ app.use(limiter);
 const apiRoutes = require('./routes/api');
 app.use('/api', apiRoutes);
 
+// Test endpoint to verify backend is working
+app.get('/test', (req, res) => {
+  console.log('🧪 Test endpoint called');
+  res.json({ 
+    message: 'Backend is working!', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    gameRoomsCount: gameRooms.size,
+    activeConnections: io.engine.clientsCount
+  });
+});
+
+// Debug endpoint to see current state
+app.get('/debug', (req, res) => {
+  console.log('🔍 Debug endpoint called');
+  const debugInfo = {
+    gameRooms: Array.from(gameRooms.entries()).map(([id, room]) => ({
+      roomId: id,
+      players: room.players.length,
+      gameStarted: room.gameStarted,
+      created: new Date(room.created).toISOString()
+    })),
+    activeConnections: io.engine.clientsCount,
+    environment: process.env.NODE_ENV
+  };
+  res.json(debugInfo);
+});
+
 // Game state management
 const gameStates = new Map(); // Store game states in memory
 const playerSessions = new Map(); // Track player sessions
