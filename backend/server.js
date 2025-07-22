@@ -244,9 +244,9 @@ app.get('/deploy-schema', async (req, res) => {
         blockchain_tx_id VARCHAR(100),
         player_white_id UUID REFERENCES users(id),
         player_black_id UUID REFERENCES users(id),
-        player_white_wallet VARCHAR(44) NOT NULL,
-        player_black_wallet VARCHAR(44) NOT NULL,
-        stake_amount DECIMAL(20, 9) NOT NULL,
+        player_white_wallet VARCHAR(44),
+        player_black_wallet VARCHAR(44),
+        stake_amount DECIMAL(20, 9) DEFAULT 0,
         platform_fee DECIMAL(20, 9) DEFAULT 0,
         winner VARCHAR(10) CHECK (winner IN ('white', 'black', 'draw', NULL)),
         game_result VARCHAR(20) CHECK (game_result IN ('checkmate', 'stalemate', 'resignation', 'timeout', 'agreement', NULL)),
@@ -538,8 +538,8 @@ io.on('connection', (socket) => {
 
       // Insert new room into database
       await pool.query(
-        'INSERT INTO games (room_id, player_white_wallet, player_black_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4, $5)',
-        [roomId, playerWallet, null, 'pending', new Date()]
+        'INSERT INTO games (room_id, player_white_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4)',
+        [roomId, playerWallet, 'pending', new Date()]
       );
       console.log('✅ Room created in database:', roomId, 'for player:', playerWallet);
 
