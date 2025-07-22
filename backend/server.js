@@ -23,6 +23,41 @@ const io = socketIo(server, {
   }
 });
 
+// Initialize database connection and create tables
+async function initializeDatabase() {
+  try {
+    console.log('🔌 Connecting to PostgreSQL database...');
+    
+    // Test connection
+    const client = await pool.connect();
+    console.log('✅ Database connection successful');
+    client.release();
+    
+    // Create escrows table if it doesn't exist
+    console.log('🏗️ Creating escrows table...');
+    const createEscrowsTable = `
+      CREATE TABLE IF NOT EXISTS escrows (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        room_id VARCHAR(100) NOT NULL,
+        player_wallet VARCHAR(44) NOT NULL,
+        escrow_amount DECIMAL(20, 9) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'released', 'refunded')),
+        blockchain_tx_id VARCHAR(100),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(room_id, player_wallet)
+      )
+    `;
+    
+    await pool.query(createEscrowsTable);
+    console.log('✅ Escrows table created/verified successfully');
+    
+  } catch (error) {
+    console.error('❌ Database initialization error:', error);
+    process.exit(1);
+  }
+}
+
 // Test database connection on startup
 testConnection().then(success => {
   if (success) {
@@ -195,6 +230,24 @@ app.get('/create-escrows-table', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error creating escrows table:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Clear escrows endpoint
+app.get('/clear-escrows', async (req, res) => {
+  try {
+    console.log('🧹 Clearing escrows table...');
+    
+    await pool.query('DELETE FROM escrows');
+    console.log('✅ Escrows table cleared successfully');
+    
+    res.json({ 
+      success: true,
+      message: 'Escrows table cleared successfully'
+    });
+  } catch (error) {
+    console.error('❌ Error clearing escrows:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -703,6 +756,7 @@ io.on('connection', (socket) => {
   // Add escrow for a player
   socket.on('addEscrow', async (data, callback) => {
     try {
+      console.log('💰 Received addEscrow event:', data);
       const { roomId, playerWallet, amount } = data;
       
       // Get current escrows from database
@@ -731,11 +785,16 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('roomUpdated', { roomId, gameState: 'in_progress' });
       }
       
+      callback({ success: true, message: 'Escrow created successfully' });
+      
     } catch (error) {
-      console.error('Error adding escrow:', error);
+      console.error('❌ Error adding escrow:', error);
       callback({ success: false, error: 'Failed to add escrow' });
     }
   });
+
+  // Debug: Log when addEscrow event handler is registered
+  console.log('✅ addEscrow event handler registered for socket:', socket.id);
 
   // Clear escrows for a room
   socket.on('clearEscrows', async (data, callback) => {
@@ -1050,6 +1109,9 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001; // Use Railway's PORT or default to 3001
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Initialize database and create tables
+  await initializeDatabase();
 });
