@@ -190,22 +190,44 @@ class DatabaseMultiplayerStateManager {
       await this.connect();
     }
 
-    return new Promise((resolve, reject) => {
-      if (!this.socket) {
-        reject(new Error('Not connected to server'));
-        return;
-      }
+    // Add retry mechanism for timing issues
+    const maxRetries = 3;
+    let lastError: Error | null = null;
 
-      this.socket.emit('joinRoom', { roomId, playerWallet }, (response: any) => {
-        if (response.success) {
-          console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', response.role);
-          resolve(response.role);
-        } else {
-          console.error('❌ Failed to join room:', response.error);
-          reject(new Error(response.error));
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 Attempt ${attempt}/${maxRetries} to join room:`, roomId);
+        
+        return new Promise((resolve, reject) => {
+          if (!this.socket) {
+            reject(new Error('Not connected to server'));
+            return;
+          }
+
+          this.socket.emit('joinRoom', { roomId, playerWallet }, (response: any) => {
+            if (response.success) {
+              console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', response.role);
+              resolve(response.role);
+            } else {
+              console.error(`❌ Failed to join room (attempt ${attempt}):`, response.error);
+              reject(new Error(response.error));
+            }
+          });
+        });
+      } catch (error) {
+        lastError = error as Error;
+        console.log(`⚠️ Attempt ${attempt} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         }
-      });
-    });
+      }
+    }
+
+    // All attempts failed
+    console.error('❌ All attempts to join room failed');
+    throw lastError || new Error('Failed to join room after all retries');
   }
 
   /**

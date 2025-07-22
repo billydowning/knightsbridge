@@ -83,6 +83,17 @@ app.get('/debug', (req, res) => {
   res.json(debugInfo);
 });
 
+// Debug endpoint to list all rooms
+app.get('/debug/rooms', (req, res) => {
+  const rooms = Array.from(gameRooms.keys());
+  res.json({
+    roomCount: rooms.length,
+    rooms: rooms,
+    gameStates: Array.from(gameStates.keys()),
+    playerSessions: Array.from(playerSessions.keys())
+  });
+});
+
 // Game state management
 const gameStates = new Map(); // Store game states in memory
 const playerSessions = new Map(); // Track player sessions
@@ -111,6 +122,7 @@ io.on('connection', (socket) => {
   socket.on('createRoom', async (data, callback) => {
     console.log('📨 Received createRoom event:', data);
     console.log('📨 Callback function:', typeof callback);
+    console.log('🔍 Current rooms in memory:', Array.from(gameRooms.keys()));
     
     try {
       const { roomId, playerWallet } = data;
@@ -132,6 +144,7 @@ io.on('connection', (socket) => {
 
       gameRooms.set(roomId, room);
       console.log('✅ Room created:', roomId, 'for player:', playerWallet);
+      console.log('🔍 Rooms after creation:', Array.from(gameRooms.keys()));
 
       // Join the socket to the room
       socket.join(roomId);
@@ -169,12 +182,19 @@ io.on('connection', (socket) => {
   socket.on('joinRoom', async (data, callback) => {
     try {
       const { roomId, playerWallet } = data;
+      console.log('📨 Received joinRoom event:', data);
+      console.log('🔍 Current rooms in memory:', Array.from(gameRooms.keys()));
+      console.log('🔍 Looking for room:', roomId);
       
       const room = gameRooms.get(roomId);
       if (!room) {
+        console.log('❌ Room not found:', roomId);
+        console.log('🔍 Available rooms:', Array.from(gameRooms.keys()));
         callback({ success: false, error: 'Room does not exist' });
         return;
       }
+
+      console.log('✅ Room found:', roomId, 'players:', room.players.length);
 
       // Check if player is already in the room
       const existingPlayer = room.players.find(p => p.wallet === playerWallet);
