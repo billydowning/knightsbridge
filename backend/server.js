@@ -125,40 +125,46 @@ app.get('/debug/rooms', async (req, res) => {
 });
 
 // Debug endpoint to check specific room
-app.get('/debug/room/:roomId', (req, res) => {
+app.get('/debug/room/:roomId', async (req, res) => {
   const roomId = req.params.roomId;
-  const room = gameRooms.get(roomId);
   
-  if (!room) {
-    res.json({ error: 'Room not found' });
-    return;
+  try {
+    const result = await pool.query('SELECT room_id, player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
+    const room = result.rows[0];
+
+    if (!room) {
+      res.json({ error: 'Room not found' });
+      return;
+    }
+    
+    res.json({
+      roomId: room.room_id,
+      playerWhiteWallet: room.player_white_wallet,
+      playerBlackWallet: room.player_black_wallet,
+      gameState: room.game_state,
+      lastUpdated: room.last_updated
+    });
+  } catch (error) {
+    console.error('❌ Debug room error:', error);
+    res.status(500).json({ error: error.message });
   }
-  
-  res.json({
-    roomId: room.roomId,
-    playerCount: room.players.length,
-    players: room.players,
-    playerWallets: room.players.map(p => p.wallet),
-    playerRoles: room.players.map(p => p.role),
-    escrows: room.escrows,
-    gameStarted: room.gameStarted,
-    created: room.created,
-    lastUpdated: room.lastUpdated
-  });
 });
 
 // Debug endpoint to clear all rooms
-app.get('/debug/clear', (req, res) => {
-  const roomCount = gameRooms.size;
-  gameRooms.clear();
-  gameStates.clear();
-  chatMessages.clear();
-  saveData();
-  res.json({ 
-    message: 'All rooms cleared', 
-    clearedRooms: roomCount,
-    currentRooms: 0
-  });
+app.get('/debug/clear', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM games');
+    await pool.query('DELETE FROM moves');
+    await pool.query('DELETE FROM chat_messages');
+    console.log('🧹 All rooms cleared from database');
+    res.json({ 
+      message: 'All rooms cleared from database', 
+      currentRooms: 0
+    });
+  } catch (error) {
+    console.error('❌ Error clearing rooms:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Deploy database schema
@@ -198,87 +204,6 @@ app.get('/deploy-schema', async (req, res) => {
   }
 });
 
-// Game state management
-const gameStates = new Map(); // Store game states in memory
-const playerSessions = new Map(); // Track player sessions
-const gameRooms = new Map(); // Store game rooms
-const chatMessages = new Map(); // Store chat messages by room ID
-
-// Simple file-based persistence for Railway restarts
-const DATA_FILE = path.join(__dirname, 'rooms-data.json');
-
-// Clear corrupted room data on startup
-function clearCorruptedRooms() {
-  const roomsToRemove = [];
-  
-  for (const [roomId, room] of gameRooms.entries()) {
-    // If room has more than 2 players, it's corrupted
-    if (room.players.length > 2) {
-      console.log('🧹 Removing corrupted room:', roomId, 'with', room.players.length, 'players');
-      roomsToRemove.push(roomId);
-    }
-    
-    // If room has duplicate players, it's corrupted
-    const wallets = room.players.map(p => p.wallet);
-    const uniqueWallets = new Set(wallets);
-    if (wallets.length !== uniqueWallets.size) {
-      console.log('🧹 Removing room with duplicate players:', roomId);
-      roomsToRemove.push(roomId);
-    }
-  }
-  
-  // Remove corrupted rooms
-  roomsToRemove.forEach(roomId => {
-    gameRooms.delete(roomId);
-    console.log('🗑️ Removed corrupted room:', roomId);
-  });
-  
-  if (roomsToRemove.length > 0) {
-    saveData();
-    console.log('💾 Saved cleaned data');
-  }
-}
-
-// Load data from file on startup
-function loadData() {
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      data.rooms.forEach(([key, value]) => gameRooms.set(key, value));
-      data.gameStates.forEach(([key, value]) => gameStates.set(key, value));
-      data.chatMessages.forEach(([key, value]) => chatMessages.set(key, value));
-      console.log('📥 Loaded data from file:', {
-        rooms: gameRooms.size,
-        gameStates: gameStates.size,
-        chatMessages: chatMessages.size
-      });
-      
-      // Clean corrupted data
-      clearCorruptedRooms();
-    }
-  } catch (error) {
-    console.error('❌ Error loading data:', error);
-  }
-}
-
-// Save data to file
-function saveData() {
-  try {
-    const data = {
-      rooms: Array.from(gameRooms.entries()),
-      gameStates: Array.from(gameStates.entries()),
-      chatMessages: Array.from(chatMessages.entries())
-    };
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-    console.log('💾 Saved data to file');
-  } catch (error) {
-    console.error('❌ Error saving data:', error);
-  }
-}
-
-// Load data on startup
-loadData();
-
 // Handle Socket.io connections
 io.on('connection', (socket) => {
   console.log('🔌 A user connected:', socket.id);
@@ -312,39 +237,31 @@ io.on('connection', (socket) => {
   socket.on('createRoom', async (data, callback) => {
     console.log('📨 Received createRoom event:', data);
     console.log('📨 Callback function:', typeof callback);
-    console.log('🔍 Current rooms in memory:', Array.from(gameRooms.keys()));
     
     try {
       const { roomId, playerWallet } = data;
       
-      if (gameRooms.has(roomId)) {
-        console.log('❌ Room already exists:', roomId);
+      // Check if room already exists in database
+      const existingRoom = await pool.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
+      if (existingRoom.rows.length > 0) {
+        console.log('❌ Room already exists in database:', roomId);
         callback({ success: false, error: 'Room already exists' });
         return;
       }
 
-      const room = {
-        roomId,
-        players: [{ wallet: playerWallet, role: 'white', isReady: true }],
-        escrows: {},
-        gameStarted: false,
-        created: Date.now(),
-        lastUpdated: Date.now()
-      };
-
-      gameRooms.set(roomId, room);
-      console.log('✅ Room created:', roomId, 'for player:', playerWallet);
-      console.log('🔍 Rooms after creation:', Array.from(gameRooms.keys()));
-
-      // Save data to file
-      saveData();
+      // Insert new room into database
+      await pool.query(
+        'INSERT INTO games (room_id, player_white_wallet, player_black_wallet, game_state, last_updated) VALUES ($1, $2, $3, $4, $5)',
+        [roomId, playerWallet, null, 'pending', new Date()]
+      );
+      console.log('✅ Room created in database:', roomId, 'for player:', playerWallet);
 
       // Join the socket to the room
       socket.join(roomId);
       console.log('✅ Socket joined room:', roomId);
 
       // Broadcast room update to all clients in the room
-      io.to(roomId).emit('roomUpdated', room);
+      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'pending' });
       console.log('📡 Broadcasted roomUpdated to room:', roomId);
 
       // Send success response
@@ -376,73 +293,45 @@ io.on('connection', (socket) => {
     try {
       const { roomId, playerWallet } = data;
       console.log('📨 Received joinRoom event:', data);
-      console.log('🔍 Current rooms in memory:', Array.from(gameRooms.keys()));
-      console.log('🔍 Looking for room:', roomId);
       
-      const room = gameRooms.get(roomId);
-      if (!room) {
-        console.log('❌ Room not found:', roomId);
-        console.log('🔍 Available rooms:', Array.from(gameRooms.keys()));
+      // Check if room exists in database
+      const existingRoom = await pool.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
+      if (existingRoom.rows.length === 0) {
+        console.log('❌ Room not found in database:', roomId);
         callback({ success: false, error: 'Room does not exist' });
         return;
       }
 
-      console.log('✅ Room found:', roomId, 'players:', room.players.length);
-      console.log('🔍 Room details:', {
-        roomId: room.roomId,
-        players: room.players,
-        playerCount: room.players.length,
-        playerWallets: room.players.map(p => p.wallet),
-        playerRoles: room.players.map(p => p.role)
-      });
+      // Get current players in the room from database
+      const result = await pool.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]);
+      const currentPlayers = result.rows;
 
       // Check if player is already in the room
-      const existingPlayer = room.players.find(p => p.wallet === playerWallet);
+      const existingPlayer = currentPlayers.find(p => p.player_white_wallet === playerWallet || p.player_black_wallet === playerWallet);
       if (existingPlayer) {
         console.log('✅ Player already in room:', existingPlayer);
         socket.join(roomId);
-        callback({ success: true, role: existingPlayer.role });
+        callback({ success: true, role: existingPlayer.player_white_wallet === playerWallet ? 'white' : 'black' });
         return;
       }
 
-      console.log('🆕 New player trying to join:', playerWallet);
-      console.log('🔍 Current player count:', room.players.length);
+      // Add new player to the room
+      const newRole = currentPlayers.length === 0 ? 'white' : 'black'; // Assign role based on current players
+      await pool.query(
+        'UPDATE games SET player_black_wallet = $1 WHERE room_id = $2',
+        [playerWallet, roomId]
+      );
+      console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', newRole);
 
-      // Add new player if room has space
-      if (room.players.length < 2) {
-        const newRole = room.players.length === 0 ? 'white' : 'black';
-        console.log('🎭 Assigning role:', newRole, 'to player:', playerWallet);
-        
-        room.players.push({ wallet: playerWallet, role: newRole, isReady: true });
-        room.lastUpdated = Date.now();
-        
-        // Save data to file
-        saveData();
-        
-        // Join the room
-        socket.join(roomId);
-        
-        console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', newRole);
-        callback({ success: true, role: newRole });
-        
-        // Broadcast room update
-        io.to(roomId).emit('roomUpdated', { roomId, room });
-        
-        // If both players are present, notify about game ready
-        if (room.players.length === 2) {
-          io.to(roomId).emit('gameReady', { roomId, players: room.players });
-        }
-      } else {
-        console.log('❌ Room is full - cannot add player');
-        console.log('🔍 Room state when full:', {
-          roomId: room.roomId,
-          playerCount: room.players.length,
-          players: room.players,
-          playerWallets: room.players.map(p => p.wallet),
-          playerRoles: room.players.map(p => p.role)
-        });
-        callback({ success: false, error: 'Room is full' });
+      // Broadcast room update
+      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'pending' });
+      
+      // If both players are present, notify about game ready
+      if (currentPlayers.length === 1) { // Only one player was in the room, now two
+        io.to(roomId).emit('gameReady', { roomId, players: currentPlayers.map(p => p.player_white_wallet === playerWallet ? 'white' : 'black') });
       }
+
+      callback({ success: true, role: newRole });
       
     } catch (error) {
       console.error('Error joining room:', error);
@@ -455,18 +344,20 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
-      const room = gameRooms.get(roomId);
+      // Get room details from database
+      const result = await pool.query('SELECT player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
+      const room = result.rows[0];
+
       if (!room) {
         callback({ success: false, error: 'Room does not exist' });
         return;
       }
 
       const roomStatus = {
-        playerCount: room.players.length,
-        players: room.players,
-        escrowCount: Object.keys(room.escrows).length,
-        escrows: room.escrows,
-        gameStarted: room.gameStarted
+        playerWhiteWallet: room.player_white_wallet,
+        playerBlackWallet: room.player_black_wallet,
+        gameState: room.game_state,
+        lastUpdated: room.last_updated
       };
 
       callback({ success: true, roomStatus });
@@ -482,30 +373,30 @@ io.on('connection', (socket) => {
     try {
       const { roomId, playerWallet, amount } = data;
       
-      const room = gameRooms.get(roomId);
-      if (!room) {
-        callback({ success: false, error: 'Room does not exist' });
+      // Get current escrows from database
+      const result = await pool.query('SELECT escrow_amount FROM escrows WHERE room_id = $1 AND player_wallet = $2', [roomId, playerWallet]);
+      if (result.rows.length > 0) {
+        console.log('❌ Escrow already exists for player:', playerWallet, 'in room:', roomId);
+        callback({ success: false, error: 'Escrow already exists' });
         return;
       }
 
-      // Add escrow
-      room.escrows[playerWallet] = amount;
-      room.lastUpdated = Date.now();
-      
-      console.log('✅ Escrow added:', roomId, playerWallet, amount);
-      callback({ success: true });
-      
+      // Insert new escrow into database
+      await pool.query(
+        'INSERT INTO escrows (room_id, player_wallet, escrow_amount) VALUES ($1, $2, $3)',
+        [roomId, playerWallet, amount]
+      );
+      console.log('✅ Escrow added to database:', roomId, playerWallet, amount);
+
       // Broadcast escrow update
-      io.to(roomId).emit('escrowUpdated', { roomId, escrows: room.escrows });
+      io.to(roomId).emit('escrowUpdated', { roomId, escrows: await pool.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows) });
       
       // Auto-start game if both escrows are created and both players are present
-      if (Object.keys(room.escrows).length === 2 && room.players.length === 2 && !room.gameStarted) {
-        room.gameStarted = true;
-        room.lastUpdated = Date.now();
-        
-        console.log('🎮 Auto-starting game in room:', roomId);
-        io.to(roomId).emit('gameStarted', { roomId, players: room.players });
-        io.to(roomId).emit('roomUpdated', { roomId, room });
+      const currentPlayers = await pool.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]).then(r => r.rows);
+      if (currentPlayers.length === 2 && (currentPlayers[0].player_white_wallet === currentPlayers[1].player_black_wallet || currentPlayers[0].player_black_wallet === currentPlayers[1].player_white_wallet)) {
+        await pool.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['in_progress', roomId]);
+        io.to(roomId).emit('gameStarted', { roomId, players: currentPlayers.map(p => p.player_white_wallet === currentPlayers[0].player_black_wallet ? 'white' : 'black') });
+        io.to(roomId).emit('roomUpdated', { roomId, gameState: 'in_progress' });
       }
       
     } catch (error) {
@@ -519,21 +410,12 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
-      const room = gameRooms.get(roomId);
-      if (!room) {
-        callback({ success: false, error: 'Room does not exist' });
-        return;
-      }
-
-      room.escrows = {};
-      room.gameStarted = false;
-      room.lastUpdated = Date.now();
-      
+      // Clear escrows from database
+      await pool.query('DELETE FROM escrows WHERE room_id = $1', [roomId]);
       console.log('🔄 Cleared escrows for room:', roomId);
-      callback({ success: true });
-      
+
       // Broadcast room update
-      io.to(roomId).emit('roomUpdated', { roomId, room });
+      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'pending' });
       
     } catch (error) {
       console.error('Error clearing escrows:', error);
@@ -546,10 +428,11 @@ io.on('connection', (socket) => {
     try {
       const { roomId, gameState } = data;
       
-      gameStates.set(roomId, {
-        ...gameState,
-        lastUpdated: Date.now()
-      });
+      // Update game state in database
+      await pool.query(
+        'UPDATE games SET game_state = $1, last_updated = $2 WHERE room_id = $3',
+        [gameState, new Date(), roomId]
+      );
       
       console.log('✅ Game state saved:', roomId);
       callback({ success: true });
@@ -568,9 +451,12 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
-      const gameState = gameStates.get(roomId);
+      // Get game state from database
+      const result = await pool.query('SELECT game_state FROM games WHERE room_id = $1', [roomId]);
+      const gameState = result.rows[0];
+
       if (gameState) {
-        callback({ success: true, gameState });
+        callback({ success: true, gameState: gameState.game_state });
       } else {
         callback({ success: false, error: 'Game state not found' });
       }
@@ -584,11 +470,12 @@ io.on('connection', (socket) => {
   // Clear all rooms (for testing/debugging)
   socket.on('clearAllRooms', async (data, callback) => {
     try {
-      gameRooms.clear();
-      gameStates.clear();
-      playerSessions.clear();
+      await pool.query('DELETE FROM games');
+      await pool.query('DELETE FROM escrows');
+      await pool.query('DELETE FROM moves');
+      await pool.query('DELETE FROM chat_messages');
       
-      console.log('🧹 All rooms cleared');
+      console.log('🧹 All rooms cleared from database');
       callback({ success: true });
       
     } catch (error) {
@@ -606,29 +493,30 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Store move in game state
-      if (!gameStates.has(gameId)) {
-        gameStates.set(gameId, { moves: [], currentTurn: 'white' });
+      // Get current game state from database
+      const result = await pool.query('SELECT game_state, current_turn FROM games WHERE room_id = $1', [gameId]);
+      const gameState = result.rows[0];
+
+      if (!gameState) {
+        socket.emit('moveError', { error: 'Game state not found' });
+        return;
       }
-      
-      const gameState = gameStates.get(gameId);
-      
+
       // Check if it's the player's turn
-      if (gameState.currentTurn !== color) {
+      if (gameState.current_turn !== color) {
         socket.emit('moveError', { error: 'Not your turn' });
         return;
       }
 
-      // Add move to game state
-      gameState.moves.push({
-        ...move,
-        playerId,
-        color,
-        timestamp: Date.now()
-      });
+      // Add move to database
+      await pool.query(
+        'INSERT INTO moves (room_id, move_data, player_id, color, timestamp) VALUES ($1, $2, $3, $4, $5)',
+        [gameId, JSON.stringify(move), playerId, color, new Date()]
+      );
 
       // Switch turns
-      gameState.currentTurn = color === 'white' ? 'black' : 'white';
+      const nextTurn = color === 'white' ? 'black' : 'white';
+      await pool.query('UPDATE games SET current_turn = $1 WHERE room_id = $2', [nextTurn, gameId]);
 
       // Broadcast move to other player
       socket.to(gameId).emit('moveMade', {
@@ -636,28 +524,14 @@ io.on('connection', (socket) => {
         playerId,
         color,
         timestamp: Date.now(),
-        nextTurn: gameState.currentTurn
+        nextTurn: nextTurn
       });
 
       // Confirm move to sender
       socket.emit('moveConfirmed', {
         move,
-        nextTurn: gameState.currentTurn
+        nextTurn: nextTurn
       });
-
-      // Save move to database
-      try {
-        await dbService.addMove(gameId, {
-          from: move.from,
-          to: move.to,
-          piece: move.piece,
-          playerId,
-          color,
-          timestamp: new Date()
-        });
-      } catch (error) {
-        console.error('Error saving move to database:', error);
-      }
 
     } catch (error) {
       console.error('Error processing move:', error);
@@ -679,30 +553,21 @@ io.on('connection', (socket) => {
         return;
       }
 
-      const chatMessage = {
-        id: Date.now().toString(),
+      // Insert new chat message into database
+      await pool.query(
+        'INSERT INTO chat_messages (game_id, player_id, player_name, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
+        [gameId, playerId, playerName, message.trim(), new Date()]
+      );
+
+      // Broadcast message to all players in the game
+      io.to(gameId).emit('chatMessage', {
+        id: Date.now().toString(), // Use a unique ID for frontend
         gameId,
         playerId,
         playerName,
         message: message.trim(),
         timestamp: new Date()
-      };
-
-      // Store message in memory
-      if (!chatMessages.has(gameId)) {
-        chatMessages.set(gameId, []);
-      }
-      chatMessages.get(gameId).push(chatMessage);
-
-      // Broadcast message to all players in the game
-      io.to(gameId).emit('chatMessage', chatMessage);
-
-      // Save message to database
-      try {
-        await dbService.addChatMessage(gameId, chatMessage);
-      } catch (error) {
-        console.error('Error saving chat message to database:', error);
-      }
+      });
 
     } catch (error) {
       console.error('Error processing chat message:', error);
@@ -715,7 +580,16 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
-      const messages = chatMessages.get(roomId) || [];
+      // Get chat messages from database
+      const result = await pool.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [roomId]);
+      const messages = result.rows.map(msg => ({
+        id: msg.id, // Assuming msg.id is the unique ID from the DB
+        gameId: msg.game_id,
+        playerId: msg.player_id,
+        playerName: msg.player_name,
+        message: msg.message,
+        timestamp: msg.timestamp
+      }));
       callback({ success: true, messages });
       
     } catch (error) {
@@ -739,26 +613,31 @@ io.on('connection', (socket) => {
         return;
       }
 
-      const chatMessage = {
-        id: Date.now().toString(),
+      // Insert new chat message into database
+      await pool.query(
+        'INSERT INTO chat_messages (game_id, player_wallet, player_role, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
+        [roomId, playerWallet, playerRole, message.trim(), new Date()]
+      );
+
+      console.log('💬 Chat message sent:', roomId, playerWallet, message);
+      callback({ success: true, message: {
+        id: Date.now().toString(), // Use a unique ID for frontend
         roomId,
         playerWallet,
         playerRole,
         message: message.trim(),
         timestamp: new Date()
-      };
-
-      // Store message in memory
-      if (!chatMessages.has(roomId)) {
-        chatMessages.set(roomId, []);
-      }
-      chatMessages.get(roomId).push(chatMessage);
-
-      console.log('💬 Chat message sent:', roomId, playerWallet, message);
-      callback({ success: true, message: chatMessage });
+      } });
 
       // Broadcast message to all players in the room
-      io.to(roomId).emit('chatMessageReceived', chatMessage);
+      io.to(roomId).emit('chatMessageReceived', {
+        id: Date.now().toString(), // Use a unique ID for frontend
+        roomId,
+        playerWallet,
+        playerRole,
+        message: message.trim(),
+        timestamp: new Date()
+      });
 
     } catch (error) {
       console.error('Error sending chat message:', error);
@@ -768,18 +647,32 @@ io.on('connection', (socket) => {
 
   // Handle game state requests
   socket.on('getGameState', async (gameId) => {
-    const gameState = gameStates.get(gameId);
-    if (gameState) {
-      socket.emit('gameState', gameState);
-    } else {
-      socket.emit('gameState', { moves: [], currentTurn: 'white' });
+    try {
+      const result = await pool.query('SELECT game_state FROM games WHERE room_id = $1', [gameId]);
+      const gameState = result.rows[0];
+      if (gameState) {
+        socket.emit('gameState', gameState.game_state);
+      } else {
+        socket.emit('gameState', 'pending');
+      }
+    } catch (error) {
+      console.error('Error getting game state:', error);
+      socket.emit('gameState', 'pending');
     }
   });
 
   // Handle chat history requests
   socket.on('getChatHistory', async (gameId) => {
     try {
-      const messages = await dbService.getChatMessages(gameId);
+      const result = await pool.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [gameId]);
+      const messages = result.rows.map(msg => ({
+        id: msg.id, // Assuming msg.id is the unique ID from the DB
+        gameId: msg.game_id,
+        playerId: msg.player_id,
+        playerName: msg.player_name,
+        message: msg.message,
+        timestamp: msg.timestamp
+      }));
       socket.emit('chatHistory', messages);
     } catch (error) {
       console.error('Error fetching chat history:', error);
@@ -820,16 +713,7 @@ io.on('connection', (socket) => {
     console.log('User disconnected:', socket.id);
     
     // Clean up player session
-    const session = playerSessions.get(socket.id);
-    if (session) {
-      // Notify other players about disconnection
-      socket.to(session.gameId).emit('playerDisconnected', {
-        playerId: session.playerId,
-        color: session.color
-      });
-      
-      playerSessions.delete(socket.id);
-    }
+    // No in-memory playerSessions to clean up
   });
 });
 
