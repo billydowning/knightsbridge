@@ -263,6 +263,19 @@ app.get('/deploy-schema', async (req, res) => {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       )`,
 
+      // Escrows Table
+      `CREATE TABLE IF NOT EXISTS escrows (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        room_id VARCHAR(100) NOT NULL,
+        player_wallet VARCHAR(44) NOT NULL,
+        escrow_amount DECIMAL(20, 9) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'released', 'refunded')),
+        blockchain_tx_id VARCHAR(100),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(room_id, player_wallet)
+      )`,
+
       // Game Moves (Enhanced)
       `CREATE TABLE IF NOT EXISTS game_moves (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
