@@ -96,6 +96,43 @@ app.get('/debug/rooms', (req, res) => {
   });
 });
 
+// Debug endpoint to check specific room
+app.get('/debug/room/:roomId', (req, res) => {
+  const roomId = req.params.roomId;
+  const room = gameRooms.get(roomId);
+  
+  if (!room) {
+    res.json({ error: 'Room not found' });
+    return;
+  }
+  
+  res.json({
+    roomId: room.roomId,
+    playerCount: room.players.length,
+    players: room.players,
+    playerWallets: room.players.map(p => p.wallet),
+    playerRoles: room.players.map(p => p.role),
+    escrows: room.escrows,
+    gameStarted: room.gameStarted,
+    created: room.created,
+    lastUpdated: room.lastUpdated
+  });
+});
+
+// Debug endpoint to clear all rooms
+app.get('/debug/clear', (req, res) => {
+  const roomCount = gameRooms.size;
+  gameRooms.clear();
+  gameStates.clear();
+  chatMessages.clear();
+  saveData();
+  res.json({ 
+    message: 'All rooms cleared', 
+    clearedRooms: roomCount,
+    currentRooms: 0
+  });
+});
+
 // Game state management
 const gameStates = new Map(); // Store game states in memory
 const playerSessions = new Map(); // Track player sessions
@@ -104,6 +141,38 @@ const chatMessages = new Map(); // Store chat messages by room ID
 
 // Simple file-based persistence for Railway restarts
 const DATA_FILE = path.join(__dirname, 'rooms-data.json');
+
+// Clear corrupted room data on startup
+function clearCorruptedRooms() {
+  const roomsToRemove = [];
+  
+  for (const [roomId, room] of gameRooms.entries()) {
+    // If room has more than 2 players, it's corrupted
+    if (room.players.length > 2) {
+      console.log('🧹 Removing corrupted room:', roomId, 'with', room.players.length, 'players');
+      roomsToRemove.push(roomId);
+    }
+    
+    // If room has duplicate players, it's corrupted
+    const wallets = room.players.map(p => p.wallet);
+    const uniqueWallets = new Set(wallets);
+    if (wallets.length !== uniqueWallets.size) {
+      console.log('🧹 Removing room with duplicate players:', roomId);
+      roomsToRemove.push(roomId);
+    }
+  }
+  
+  // Remove corrupted rooms
+  roomsToRemove.forEach(roomId => {
+    gameRooms.delete(roomId);
+    console.log('🗑️ Removed corrupted room:', roomId);
+  });
+  
+  if (roomsToRemove.length > 0) {
+    saveData();
+    console.log('💾 Saved cleaned data');
+  }
+}
 
 // Load data from file on startup
 function loadData() {
@@ -118,6 +187,9 @@ function loadData() {
         gameStates: gameStates.size,
         chatMessages: chatMessages.size
       });
+      
+      // Clean corrupted data
+      clearCorruptedRooms();
     }
   } catch (error) {
     console.error('❌ Error loading data:', error);
