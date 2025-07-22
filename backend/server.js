@@ -251,18 +251,31 @@ io.on('connection', (socket) => {
       }
 
       console.log('✅ Room found:', roomId, 'players:', room.players.length);
+      console.log('🔍 Room details:', {
+        roomId: room.roomId,
+        players: room.players,
+        playerCount: room.players.length,
+        playerWallets: room.players.map(p => p.wallet),
+        playerRoles: room.players.map(p => p.role)
+      });
 
       // Check if player is already in the room
       const existingPlayer = room.players.find(p => p.wallet === playerWallet);
       if (existingPlayer) {
+        console.log('✅ Player already in room:', existingPlayer);
         socket.join(roomId);
         callback({ success: true, role: existingPlayer.role });
         return;
       }
 
+      console.log('🆕 New player trying to join:', playerWallet);
+      console.log('🔍 Current player count:', room.players.length);
+
       // Add new player if room has space
       if (room.players.length < 2) {
         const newRole = room.players.length === 0 ? 'white' : 'black';
+        console.log('🎭 Assigning role:', newRole, 'to player:', playerWallet);
+        
         room.players.push({ wallet: playerWallet, role: newRole, isReady: true });
         room.lastUpdated = Date.now();
         
@@ -283,6 +296,14 @@ io.on('connection', (socket) => {
           io.to(roomId).emit('gameReady', { roomId, players: room.players });
         }
       } else {
+        console.log('❌ Room is full - cannot add player');
+        console.log('🔍 Room state when full:', {
+          roomId: room.roomId,
+          playerCount: room.players.length,
+          players: room.players,
+          playerWallets: room.players.map(p => p.wallet),
+          playerRoles: room.players.map(p => p.role)
+        });
         callback({ success: false, error: 'Room is full' });
       }
       
