@@ -539,7 +539,7 @@ io.on('connection', (socket) => {
       // Insert new room into database
       await pool.query(
         'INSERT INTO games (room_id, player_white_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4)',
-        [roomId, playerWallet, 'pending', new Date()]
+        [roomId, playerWallet, 'waiting', new Date()]
       );
       console.log('✅ Room created in database:', roomId, 'for player:', playerWallet);
 
@@ -548,7 +548,7 @@ io.on('connection', (socket) => {
       console.log('✅ Socket joined room:', roomId);
 
       // Broadcast room update to all clients in the room
-      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'pending' });
+      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
       console.log('📡 Broadcasted roomUpdated to room:', roomId);
 
       // Send success response
@@ -611,7 +611,7 @@ io.on('connection', (socket) => {
       console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', newRole);
 
       // Broadcast room update
-      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'pending' });
+      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
       
       // If both players are present, notify about game ready
       if (currentPlayers.length === 1) { // Only one player was in the room, now two
@@ -702,7 +702,7 @@ io.on('connection', (socket) => {
       console.log('🔄 Cleared escrows for room:', roomId);
 
       // Broadcast room update
-      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'pending' });
+      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
       
     } catch (error) {
       console.error('Error clearing escrows:', error);
@@ -940,11 +940,11 @@ io.on('connection', (socket) => {
       if (gameState) {
         socket.emit('gameState', gameState.game_state);
       } else {
-        socket.emit('gameState', 'pending');
+        socket.emit('gameState', 'waiting');
       }
     } catch (error) {
       console.error('Error getting game state:', error);
-      socket.emit('gameState', 'pending');
+      socket.emit('gameState', 'waiting');
     }
   });
 
