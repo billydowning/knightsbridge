@@ -172,28 +172,58 @@ app.get('/deploy-schema', async (req, res) => {
   try {
     console.log('🏗️ Deploying database schema...');
     
-    // Read the schema file
-    const fs = require('fs');
-    const path = require('path');
-    const schemaPath = path.join(__dirname, '..', 'database_schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    
-    // Split into individual statements
-    const statements = schema.split(';').filter(stmt => stmt.trim());
+    // Create essential tables directly
+    const schemaStatements = [
+      // Create games table
+      `CREATE TABLE IF NOT EXISTS games (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        room_id VARCHAR(100) UNIQUE NOT NULL,
+        player_white_wallet VARCHAR(44),
+        player_black_wallet VARCHAR(44),
+        game_state VARCHAR(20) DEFAULT 'pending',
+        stake_amount DECIMAL(20, 9) DEFAULT 0,
+        winner VARCHAR(10) CHECK (winner IN ('white', 'black', 'draw', NULL)),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )`,
+      
+      // Create chat_messages table
+      `CREATE TABLE IF NOT EXISTS chat_messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        game_id UUID REFERENCES games(id) ON DELETE CASCADE,
+        player_wallet VARCHAR(44) NOT NULL,
+        player_role VARCHAR(10) NOT NULL,
+        message TEXT NOT NULL,
+        timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )`,
+      
+      // Create moves table
+      `CREATE TABLE IF NOT EXISTS moves (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        room_id VARCHAR(100) NOT NULL,
+        move_data JSONB NOT NULL,
+        player_id VARCHAR(44) NOT NULL,
+        color VARCHAR(10) NOT NULL,
+        timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )`,
+      
+      // Create indexes
+      `CREATE INDEX IF NOT EXISTS idx_games_room_id ON games(room_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_chat_messages_game_id ON chat_messages(game_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_moves_room_id ON moves(room_id)`
+    ];
     
     // Execute each statement
-    for (const statement of statements) {
-      if (statement.trim()) {
-        await pool.query(statement);
-        console.log('✅ Executed schema statement');
-      }
+    for (const statement of schemaStatements) {
+      await pool.query(statement);
+      console.log('✅ Executed schema statement');
     }
     
     console.log('✅ Database schema deployed successfully');
     res.json({ 
       success: true, 
       message: 'Database schema deployed successfully',
-      statementsExecuted: statements.length
+      statementsExecuted: schemaStatements.length
     });
   } catch (error) {
     console.error('❌ Error deploying schema:', error);
