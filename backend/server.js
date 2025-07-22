@@ -738,13 +738,37 @@ io.on('connection', (socket) => {
         return;
       }
 
+      // Get escrows for this room
+      const escrowsResult = await pool.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]);
+      const escrows = escrowsResult.rows;
+
+      // Calculate player count
+      const playerCount = (room.player_white_wallet ? 1 : 0) + (room.player_black_wallet ? 1 : 0);
+      
+      // Build players array
+      const players = [];
+      if (room.player_white_wallet) {
+        players.push({ role: 'white', wallet: room.player_white_wallet });
+      }
+      if (room.player_black_wallet) {
+        players.push({ role: 'black', wallet: room.player_black_wallet });
+      }
+
+      // Build escrows object
+      const escrowsObj = {};
+      escrows.forEach(escrow => {
+        escrowsObj[escrow.player_wallet] = escrow.escrow_amount;
+      });
+
       const roomStatus = {
-        playerWhiteWallet: room.player_white_wallet,
-        playerBlackWallet: room.player_black_wallet,
-        gameState: room.game_state,
-        lastUpdated: room.updated_at
+        playerCount: playerCount,
+        players: players,
+        escrowCount: escrows.length,
+        escrows: escrowsObj,
+        gameStarted: room.game_state === 'active'
       };
 
+      console.log('📊 Room status for', roomId, ':', roomStatus);
       callback({ success: true, roomStatus });
       
     } catch (error) {

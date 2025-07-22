@@ -41,7 +41,14 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const { theme } = useTheme();
   const [copied, setCopied] = React.useState(false);
   
+  // Debug: Log room status
+  React.useEffect(() => {
+    console.log('🔍 LobbyView room status:', roomStatus);
+  }, [roomStatus]);
+  
+  // Calculate player count based on room status
   const playerCount = roomStatus?.playerCount || 0;
+  
   const escrowCount = roomStatus?.escrowCount || 0;
   const gameStarted = roomStatus?.gameStarted || false;
   const bothPlayersPresent = playerCount === 2;
