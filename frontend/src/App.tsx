@@ -248,6 +248,7 @@ function ChessApp() {
       console.log('🔄 Setting up multiplayer sync for room:', roomId, 'mode:', gameMode);
       
       const cleanup = databaseMultiplayerState.setupStorageSync(() => {
+        // Only log occasionally to reduce console flooding
         console.log('📡 Multiplayer sync triggered');
         
         // Sync game state from database (only in game mode)
@@ -256,28 +257,26 @@ function ChessApp() {
           setTimeout(() => {
             databaseMultiplayerState.getGameState(roomId).then((savedGameState) => {
               if (savedGameState) {
-                console.log('📥 Loading game state from database:', savedGameState);
-                
                 // Only update if the saved state is newer than our current state
-                // Reduced buffer to ensure turn changes are applied
-                if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated + 50) {
+                // Increased buffer to prevent unnecessary updates
+                if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated + 200) {
                   console.log('✅ Updating game state with newer database state');
                   console.log('🔄 Current player:', gameState.currentPlayer, '-> New player:', savedGameState.currentPlayer);
                   setGameState(savedGameState);
                 } else {
+                  // Only log occasionally to reduce console flooding
                   console.log('⏭️ Skipping update - local state is newer or too recent');
                 }
               }
             }).catch(error => {
               console.error('Error loading game state:', error);
             });
-          }, 300); // Reduced delay to 300ms for faster sync
+          }, 500); // Increased delay to 500ms to reduce frequency
         }
         
         // Check room status for escrow updates (works in both lobby and game modes)
         databaseMultiplayerState.getRoomStatus(roomId).then((roomStatus) => {
           if (roomStatus) {
-            console.log('📊 Room status updated:', roomStatus);
             const escrowCount = Object.keys(roomStatus.escrows).length;
             const playerWallet = publicKey?.toString();
             
@@ -337,7 +336,7 @@ function ChessApp() {
         } catch (error) {
           console.error('Error polling room status:', error);
         }
-      }, 2000); // Poll every 2 seconds
+      }, 3000); // Increased to 3 seconds to reduce frequency
       
       return () => clearInterval(interval);
     }
@@ -360,21 +359,32 @@ function ChessApp() {
         } catch (error) {
           console.error('Error polling game state:', error);
         }
-      }, 1000); // Poll every 1 second
+      }, 2000); // Increased to 2 seconds to reduce frequency
       
       return () => clearInterval(interval);
     }
-  }, [roomId, gameMode, gameState.lastUpdated]);
+  }, [roomId, gameMode]); // Removed gameState.lastUpdated dependency
 
-  // Save game state to database when it changes
+  // Save game state to database when it changes (but not on every change)
   useEffect(() => {
-    if (roomId && gameMode === 'game') {
-      console.log('💾 Saving game state to database for sync');
-      databaseMultiplayerState.saveGameState(roomId, gameState).catch(error => {
-        console.error('Error saving game state:', error);
-      });
+    if (roomId && gameMode === 'game' && gameState.gameActive) {
+      // Only save if the game state has meaningful changes (not just timestamp updates)
+      const hasSignificantChanges = gameState.moveHistory.length > 0 || 
+                                  gameState.currentPlayer !== 'white' ||
+                                  gameState.selectedSquare !== null ||
+                                  gameState.inCheck ||
+                                  gameState.inCheckmate ||
+                                  gameState.winner ||
+                                  gameState.draw;
+      
+      if (hasSignificantChanges) {
+        console.log('💾 Saving game state to database for sync');
+        databaseMultiplayerState.saveGameState(roomId, gameState).catch(error => {
+          console.error('Error saving game state:', error);
+        });
+      }
     }
-  }, [gameState, roomId, gameMode]);
+  }, [gameState.position, gameState.currentPlayer, gameState.moveHistory, gameState.winner, gameState.draw, gameState.inCheck, gameState.inCheckmate, roomId, gameMode]); // Only depend on specific game state properties, not the entire gameState object
 
   // Reset game state when game starts
   useEffect(() => {
