@@ -482,8 +482,15 @@ function ChessApp() {
       const nextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
       const nextPlayerInCheckmate = detectCheckmate(newPosition, nextPlayer);
       
+      console.log('🔍 Move Analysis:');
+      console.log('  - Current player:', gameState.currentPlayer);
+      console.log('  - Next player:', nextPlayer);
+      console.log('  - Next player in check:', nextPlayerInCheck);
+      console.log('  - Next player in checkmate:', nextPlayerInCheckmate);
+      
       // Determine winner if checkmate occurs
       const winner = nextPlayerInCheckmate ? gameState.currentPlayer : null;
+      console.log('  - Winner:', winner);
       
       // Create updated game state
       const updatedGameState = {
@@ -498,6 +505,12 @@ function ChessApp() {
         gameActive: winner ? false : gameState.gameActive,
         lastUpdated: Date.now()
       };
+      
+      console.log('📊 Updated Game State:');
+      console.log('  - inCheck:', updatedGameState.inCheck);
+      console.log('  - inCheckmate:', updatedGameState.inCheckmate);
+      console.log('  - winner:', updatedGameState.winner);
+      console.log('  - gameActive:', updatedGameState.gameActive);
       
       // Save to database FIRST (single source of truth)
       databaseMultiplayerState.saveGameState(roomId, updatedGameState)
@@ -1300,8 +1313,15 @@ function ChessApp() {
     // Add message to local state
     setChatMessages(prev => [...prev, newMessage]);
     
-    // Save to localStorage for multiplayer sync
+    // Send via WebSocket if available
+    if (wsSendChatMessage) {
+      wsSendChatMessage(message);
+    }
+    
+    // Also save to database if room exists
     if (roomId) {
+      // For now, we'll use localStorage as fallback
+      // TODO: Implement database chat storage
       const chatKey = `chess_chat_${roomId}`;
       const existingMessages = JSON.parse(localStorage.getItem(chatKey) || '[]');
       const updatedMessages = [...existingMessages, newMessage];
