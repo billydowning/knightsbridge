@@ -247,58 +247,13 @@ function ChessApp() {
     if (roomId && (gameMode === 'lobby' || gameMode === 'game')) {
       console.log('🔄 Setting up multiplayer sync for room:', roomId, 'mode:', gameMode);
       
-      const cleanup = databaseMultiplayerState.setupStorageSync(() => {
-        // Only log occasionally to reduce console flooding
-        console.log('📡 Multiplayer sync triggered');
-        
-        // Sync game state from database (only in game mode)
-        if (gameMode === 'game') {
-          // Add a small delay to prevent race conditions with recent moves
-          setTimeout(() => {
-            databaseMultiplayerState.getGameState(roomId).then((savedGameState) => {
-              if (savedGameState) {
-                // Only update if the saved state is newer than our current state
-                if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated + 200) {
-                  console.log('📥 Loading game state from database:', savedGameState);
-                  setGameState(savedGameState);
-                }
-              }
-            }).catch(error => {
-              console.error('Error loading game state:', error);
-            });
-          }, 500); // 500ms delay to prevent race conditions
+      // Simple approach: just join the room for real-time updates
+      if (databaseMultiplayerState.isConnected()) {
+        const socket = (databaseMultiplayerState as any).socket;
+        if (socket) {
+          socket.emit('joinRoom', { roomId });
         }
-        
-        // Sync room status (only in lobby mode)
-        if (gameMode === 'lobby') {
-          databaseMultiplayerState.getRoomStatus(roomId).then((roomStatus) => {
-            if (roomStatus) {
-              const escrowCount = Object.keys(roomStatus.escrows).length;
-              const playerWallet = publicKey?.toString();
-              
-              // Check if opponent has created an escrow (not counting our own)
-              const opponentEscrowExists = roomStatus.escrows && 
-                Object.keys(roomStatus.escrows).some(escrowWallet => 
-                  escrowWallet !== playerWallet
-                );
-              
-              // Update escrow status
-              setOpponentEscrowCreated(opponentEscrowExists);
-              setEscrowCreated(escrowCount > 0);
-              
-              // Check if both escrows are created
-              if (escrowCount >= 2) {
-                console.log('🎮 Both escrows created, starting game...');
-                setGameMode('game');
-              }
-            }
-          }).catch(error => {
-            console.error('Error loading room status:', error);
-          });
-        }
-      });
-      
-      return cleanup;
+      }
     }
   }, [roomId, gameMode]);
 
