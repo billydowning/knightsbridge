@@ -142,7 +142,7 @@ app.get('/debug/room/:roomId', async (req, res) => {
       playerWhiteWallet: room.player_white_wallet,
       playerBlackWallet: room.player_black_wallet,
       gameState: room.game_state,
-      lastUpdated: room.last_updated
+      lastUpdated: room.updated_at
     });
   } catch (error) {
     console.error('❌ Debug room error:', error);
@@ -538,7 +538,7 @@ io.on('connection', (socket) => {
 
       // Insert new room into database
       await pool.query(
-        'INSERT INTO games (room_id, player_white_wallet, player_black_wallet, game_state, last_updated) VALUES ($1, $2, $3, $4, $5)',
+        'INSERT INTO games (room_id, player_white_wallet, player_black_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4, $5)',
         [roomId, playerWallet, null, 'pending', new Date()]
       );
       console.log('✅ Room created in database:', roomId, 'for player:', playerWallet);
@@ -644,7 +644,7 @@ io.on('connection', (socket) => {
         playerWhiteWallet: room.player_white_wallet,
         playerBlackWallet: room.player_black_wallet,
         gameState: room.game_state,
-        lastUpdated: room.last_updated
+        lastUpdated: room.updated_at
       };
 
       callback({ success: true, roomStatus });
@@ -717,7 +717,7 @@ io.on('connection', (socket) => {
       
       // Update game state in database
       await pool.query(
-        'UPDATE games SET game_state = $1, last_updated = $2 WHERE room_id = $3',
+        'UPDATE games SET game_state = $1, updated_at = $2 WHERE room_id = $3',
         [gameState, new Date(), roomId]
       );
       
