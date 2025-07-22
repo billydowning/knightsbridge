@@ -257,10 +257,11 @@ function ChessApp() {
               if (savedGameState) {
                 console.log('📥 Loading game state from database:', savedGameState);
                 
-                // Only update if the saved state is significantly newer than our current state
-                // This prevents overriding with stale data and race conditions
-                if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated + 100) {
+                // Only update if the saved state is newer than our current state
+                // Reduced buffer to ensure turn changes are applied
+                if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated + 50) {
                   console.log('✅ Updating game state with newer database state');
+                  console.log('🔄 Current player:', gameState.currentPlayer, '-> New player:', savedGameState.currentPlayer);
                   setGameState(savedGameState);
                 } else {
                   console.log('⏭️ Skipping update - local state is newer or too recent');
@@ -269,7 +270,7 @@ function ChessApp() {
             }).catch(error => {
               console.error('Error loading game state:', error);
             });
-          }, 500); // 500ms delay to prevent race conditions
+          }, 300); // Reduced delay to 300ms for faster sync
         }
         
         // Check room status for escrow updates (works in both lobby and game modes)
@@ -340,6 +341,29 @@ function ChessApp() {
       return () => clearInterval(interval);
     }
   }, [roomId, gameMode]);
+
+  // Poll for game state updates (fallback for real-time sync)
+  useEffect(() => {
+    if (roomId && gameMode === 'game') {
+      const interval = setInterval(async () => {
+        try {
+          const savedGameState = await databaseMultiplayerState.getGameState(roomId);
+          if (savedGameState) {
+            // Only update if the saved state is newer than our current state
+            if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated + 50) {
+              console.log('📡 Polling: Updating game state from database');
+              console.log('🔄 Turn change detected:', gameState.currentPlayer, '->', savedGameState.currentPlayer);
+              setGameState(savedGameState);
+            }
+          }
+        } catch (error) {
+          console.error('Error polling game state:', error);
+        }
+      }, 1000); // Poll every 1 second
+      
+      return () => clearInterval(interval);
+    }
+  }, [roomId, gameMode, gameState.lastUpdated]);
 
   // Save game state to database when it changes
   useEffect(() => {
