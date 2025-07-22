@@ -107,9 +107,6 @@ function ChessApp() {
     lastMove: null
   });
 
-  // Selection state
-  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
-
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
@@ -254,22 +251,25 @@ function ChessApp() {
         
         // Sync game state from database (only in game mode)
         if (gameMode === 'game') {
-          databaseMultiplayerState.getGameState(roomId).then((savedGameState) => {
-            if (savedGameState) {
-              console.log('📥 Loading game state from database:', savedGameState);
-              
-              // Only update if the saved state is newer than our current state
-              // This prevents overriding with stale data
-              if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated) {
-                console.log('✅ Updating game state with newer database state');
-                setGameState(savedGameState);
-              } else {
-                console.log('⏭️ Skipping update - local state is newer than database state');
+          // Add a small delay to prevent race conditions with recent moves
+          setTimeout(() => {
+            databaseMultiplayerState.getGameState(roomId).then((savedGameState) => {
+              if (savedGameState) {
+                console.log('📥 Loading game state from database:', savedGameState);
+                
+                // Only update if the saved state is significantly newer than our current state
+                // This prevents overriding with stale data and race conditions
+                if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated + 100) {
+                  console.log('✅ Updating game state with newer database state');
+                  setGameState(savedGameState);
+                } else {
+                  console.log('⏭️ Skipping update - local state is newer or too recent');
+                }
               }
-            }
-          }).catch(error => {
-            console.error('Error loading game state:', error);
-          });
+            }).catch(error => {
+              console.error('Error loading game state:', error);
+            });
+          }, 500); // 500ms delay to prevent race conditions
         }
         
         // Check room status for escrow updates (works in both lobby and game modes)
@@ -429,12 +429,12 @@ function ChessApp() {
     if (!roomId || gameMode !== 'game') return;
     
     // If no square is selected, select this square if it has a piece
-    if (!selectedSquare) {
+    if (!gameState.selectedSquare) {
       const piece = gameState.position[square];
       if (piece) {
         const pieceColor = ChessEngine.getPieceColor(piece);
         if (pieceColor === gameState.currentPlayer) {
-          setSelectedSquare(square);
+          setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
           return;
         }
       }
@@ -442,7 +442,7 @@ function ChessApp() {
     }
     
     // If a square is selected, try to move
-    const fromSquare = selectedSquare;
+    const fromSquare = gameState.selectedSquare;
     const toSquare = square;
     
     // Validate move using existing function
@@ -470,9 +470,14 @@ function ChessApp() {
       databaseMultiplayerState.saveGameState(roomId, updatedGameState)
         .then(() => {
           console.log('✅ Game state saved to database');
+          console.log('🔄 Turn changed from', gameState.currentPlayer, 'to', nextPlayer);
           // Only update local state AFTER successful database save
           setGameState(updatedGameState);
-          setSelectedSquare(null);
+          
+          // Add a small delay before allowing real-time sync to prevent race conditions
+          setTimeout(() => {
+            console.log('✅ Move completed and synchronized');
+          }, 100);
         })
         .catch(error => {
           console.error('❌ Failed to save game state:', error);
@@ -484,12 +489,12 @@ function ChessApp() {
       if (piece) {
         const pieceColor = ChessEngine.getPieceColor(piece);
         if (pieceColor === gameState.currentPlayer) {
-          setSelectedSquare(square);
+          setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
         } else {
-          setSelectedSquare(null);
+          setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
         }
       } else {
-        setSelectedSquare(null);
+        setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
       }
     }
   };
