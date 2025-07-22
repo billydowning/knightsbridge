@@ -778,11 +778,36 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('escrowUpdated', { roomId, escrows: await pool.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows) });
       
       // Auto-start game if both escrows are created and both players are present
-      const currentPlayers = await pool.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]).then(r => r.rows);
-      if (currentPlayers.length === 2 && (currentPlayers[0].player_white_wallet === currentPlayers[1].player_black_wallet || currentPlayers[0].player_black_wallet === currentPlayers[1].player_white_wallet)) {
-        await pool.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['in_progress', roomId]);
-        io.to(roomId).emit('gameStarted', { roomId, players: currentPlayers.map(p => p.player_white_wallet === currentPlayers[0].player_black_wallet ? 'white' : 'black') });
-        io.to(roomId).emit('roomUpdated', { roomId, gameState: 'in_progress' });
+      const currentPlayers = await pool.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]).then(r => r.rows[0]);
+      const escrows = await pool.query('SELECT player_wallet FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows);
+      
+      console.log('🔍 Auto-start check:', {
+        roomId,
+        currentPlayers,
+        escrows: escrows.map(e => e.player_wallet),
+        whiteWallet: currentPlayers?.player_white_wallet,
+        blackWallet: currentPlayers?.player_black_wallet,
+        escrowCount: escrows.length
+      });
+      
+      // Check if both players are present and both escrows are created
+      if (currentPlayers && 
+          currentPlayers.player_white_wallet && 
+          currentPlayers.player_black_wallet && 
+          escrows.length === 2) {
+        
+        console.log('🎮 Starting game automatically - both players and escrows ready');
+        await pool.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
+        io.to(roomId).emit('gameStarted', { 
+          roomId, 
+          players: [currentPlayers.player_white_wallet, currentPlayers.player_black_wallet]
+        });
+        io.to(roomId).emit('roomUpdated', { roomId, gameState: 'active' });
+      } else {
+        console.log('⏳ Game not ready yet:', {
+          bothPlayersPresent: !!(currentPlayers?.player_white_wallet && currentPlayers?.player_black_wallet),
+          escrowCount: escrows.length
+        });
       }
       
       callback({ success: true, message: 'Escrow created successfully' });
