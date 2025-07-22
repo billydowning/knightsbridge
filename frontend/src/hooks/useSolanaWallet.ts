@@ -166,10 +166,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         // Add to multiplayer state
         multiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
         
-        // Update balance after transactions
-        setTimeout(() => {
-          checkBalance();
-        }, 1000);
+        // Update balance after transactions (removed polling)
+        // setTimeout(() => {
+        //   checkBalance();
+        // }, 1000);
         
         return true;
         
@@ -264,10 +264,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         // Add to multiplayer state
         multiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
         
-        // Update balance
-        setTimeout(() => {
-          checkBalance();
-        }, 1000);
+        // Update balance after transactions (removed polling)
+        // setTimeout(() => {
+        //   checkBalance();
+        // }, 1000);
         
         return true;
         
@@ -399,10 +399,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           statusMessage = `❌ You lost this game. Better luck next time!`;
         }
         
-        // Update balance
-        setTimeout(() => {
-          checkBalance();
-        }, 1000);
+        // Update balance (removed polling)
+        // setTimeout(() => {
+        //   checkBalance();
+        // }, 1000);
         
         return statusMessage;
         
@@ -499,8 +499,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           })
           .rpc();
         
-        // Update balance
-        setTimeout(() => checkBalance(), 1000);
+        // Update balance (removed polling)
+        // setTimeout(() => checkBalance(), 1000);
         
         return 'Timeout claimed successfully!';
       } catch (err: any) {
@@ -543,8 +543,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           })
           .rpc();
         
-        // Update balance
-        setTimeout(() => checkBalance(), 1000);
+        // Update balance (removed polling)
+        // setTimeout(() => checkBalance(), 1000);
         
         return true;
       } catch (err: any) {
