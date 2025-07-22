@@ -53,6 +53,7 @@ export const GameView: React.FC<GameViewProps> = ({
   const getGameStatusMessage = (): string => {
     if (gameState.winner) return `${gameState.winner} wins!`;
     if (gameState.draw) return 'Draw!';
+    if (gameState.inCheckmate) return `${gameState.currentPlayer} is in checkmate!`;
     if (gameState.inCheck) return `${gameState.currentPlayer} is in check!`;
     if (gameState.gameActive) return `${gameState.currentPlayer}'s turn`;
     return 'Game not started';
@@ -100,9 +101,9 @@ export const GameView: React.FC<GameViewProps> = ({
       <div style={{ 
         margin: '10px 0', 
         padding: '15px', 
-        backgroundColor: gameState.inCheck ? '#ffe6e6' : '#f0f0f0', 
+        backgroundColor: gameState.inCheckmate ? '#ffebee' : gameState.inCheck ? '#ffe6e6' : '#f0f0f0', 
         borderRadius: '8px',
-        border: gameState.inCheck ? '2px solid #ff6b6b' : '1px solid #ddd'
+        border: gameState.inCheckmate ? '2px solid #d32f2f' : gameState.inCheck ? '2px solid #ff6b6b' : '1px solid #ddd'
       }}>
         <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
           <strong>Game Status:</strong> {getGameStatusMessage()}

@@ -28,6 +28,7 @@ export interface GameState {
   halfmoveClock: number;
   fullmoveNumber: number;
   inCheck: boolean;
+  inCheckmate: boolean;
   lastMove?: { from: string; to: string } | null;
 }
 

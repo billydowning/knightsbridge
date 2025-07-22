@@ -104,6 +104,7 @@ function ChessApp() {
     halfmoveClock: 0,
     fullmoveNumber: 1,
     inCheck: false,
+    inCheckmate: false,
     lastMove: null
   });
 
@@ -407,6 +408,7 @@ function ChessApp() {
         halfmoveClock: 0,
         fullmoveNumber: 1,
         inCheck: false,
+        inCheckmate: false,
         lastMove: null
       };
       
@@ -478,6 +480,10 @@ function ChessApp() {
       
       const nextPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
       const nextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
+      const nextPlayerInCheckmate = detectCheckmate(newPosition, nextPlayer);
+      
+      // Determine winner if checkmate occurs
+      const winner = nextPlayerInCheckmate ? gameState.currentPlayer : null;
       
       // Create updated game state
       const updatedGameState = {
@@ -487,6 +493,9 @@ function ChessApp() {
         selectedSquare: null,
         lastMove: { from: fromSquare, to: toSquare },
         inCheck: nextPlayerInCheck,
+        inCheckmate: nextPlayerInCheckmate,
+        winner: winner,
+        gameActive: winner ? false : gameState.gameActive,
         lastUpdated: Date.now()
       };
       
@@ -1122,6 +1131,7 @@ function ChessApp() {
       winner: null,
       draw: false,
       inCheck: false,
+      inCheckmate: false,
       lastUpdated: Date.now()
     });
     
