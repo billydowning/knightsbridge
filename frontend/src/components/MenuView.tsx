@@ -32,6 +32,10 @@ export const MenuView: React.FC<MenuViewProps> = ({
   const isJoining = roomId.trim() !== '';
   const isButtonDisabled = !connected || isLoading || (connected && balance < betAmount);
   const hasInsufficientBalance = connected && balance < betAmount;
+  const [showLargerAmounts, setShowLargerAmounts] = React.useState(false);
+
+  const smallBetAmounts = [0.01, 0.05, 0.1, 0.5, 1];
+  const largeBetAmounts = [2, 5, 10, 50, 100];
 
   const handleCreateRoom = () => {
     // Generate a new room ID for creating
@@ -63,7 +67,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
             gap: '10px', 
             justifyContent: 'center' 
           }}>
-            {presetBetAmounts.map((amount) => (
+            {smallBetAmounts.map((amount) => (
               <button
                 key={amount}
                 onClick={() => setBetAmount(amount)}
@@ -83,6 +87,63 @@ export const MenuView: React.FC<MenuViewProps> = ({
               </button>
             ))}
           </div>
+          
+          {/* Toggle for larger amounts */}
+          <button
+            onClick={() => setShowLargerAmounts(!showLargerAmounts)}
+            style={{
+              marginTop: '15px',
+              padding: '8px 16px',
+              backgroundColor: 'transparent',
+              color: theme.primary,
+              border: `1px solid ${theme.primary}`,
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {showLargerAmounts ? '▼ Hide larger amounts' : '▶ Click here to see larger amounts'}
+          </button>
+          
+          {/* Larger bet amounts (hidden by default) */}
+          {showLargerAmounts && (
+            <div style={{ 
+              marginTop: '15px',
+              padding: '15px',
+              backgroundColor: theme.background,
+              borderRadius: '8px',
+              border: `1px solid ${theme.border}`
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: '10px', 
+                justifyContent: 'center' 
+              }}>
+                {largeBetAmounts.map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => setBetAmount(amount)}
+                    style={{
+                      padding: '12px 20px',
+                      backgroundColor: betAmount === amount ? theme.accent : theme.surface,
+                      color: betAmount === amount ? 'white' : theme.text,
+                      border: `2px solid ${theme.border}`,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {amount} SOL
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Balance Display */}
