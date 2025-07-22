@@ -822,11 +822,17 @@ io.on('connection', (socket) => {
         
         console.log('🎮 Starting game automatically - both players and escrows ready');
         await pool.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
+        
+        // Broadcast game started event to ALL players in the room
         io.to(roomId).emit('gameStarted', { 
           roomId, 
           players: [currentPlayers.player_white_wallet, currentPlayers.player_black_wallet]
         });
+        
+        // Also emit room updated event
         io.to(roomId).emit('roomUpdated', { roomId, gameState: 'active' });
+        
+        console.log('✅ Game started event broadcasted to room:', roomId);
       } else {
         console.log('⏳ Game not ready yet:', {
           bothPlayersPresent: !!(currentPlayers?.player_white_wallet && currentPlayers?.player_black_wallet),
@@ -1055,7 +1061,7 @@ io.on('connection', (socket) => {
 
       // Insert new chat message into database
       await pool.query(
-        'INSERT INTO chat_messages (game_id, player_wallet, player_role, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
+        'INSERT INTO chat_messages (game_id, player_id, player_name, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
         [roomId, playerWallet, playerRole, message.trim(), new Date()]
       );
 
