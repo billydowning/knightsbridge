@@ -188,6 +188,7 @@ function ChessApp() {
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
   const [winningsClaimed, setWinningsClaimed] = useState<boolean>(false);
   const [appLoading, setAppLoading] = useState<boolean>(false);
+  const [roomStatus, setRoomStatus] = useState<any>(null);
   
   // Multiplayer state tracking
   const [opponentEscrowCreated, setOpponentEscrowCreated] = useState<boolean>(false);
@@ -1374,6 +1375,28 @@ function ChessApp() {
     }
   }, [roomId]);
 
+  // Fetch room status
+  const fetchRoomStatus = async () => {
+    if (roomId && databaseMultiplayerState.isConnected()) {
+      try {
+        const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+        if (roomStatus) {
+          setRoomStatus(roomStatus);
+          console.log('✅ Room status updated:', roomStatus);
+        }
+      } catch (error) {
+        console.error('Error fetching room status:', error);
+      }
+    }
+  };
+
+  // Fetch room status when entering lobby
+  useEffect(() => {
+    if (gameMode === 'lobby' && roomId) {
+      fetchRoomStatus();
+    }
+  }, [gameMode, roomId]);
+
   // Listen for real-time chat messages
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
@@ -1392,6 +1415,25 @@ function ChessApp() {
         
         return () => {
           socket.off('chatMessageReceived', handleChatMessage);
+        };
+      }
+    }
+  }, [roomId]);
+
+  // Listen for escrow updates and refresh room status
+  useEffect(() => {
+    if (roomId && databaseMultiplayerState.isConnected()) {
+      const handleEscrowUpdate = () => {
+        console.log('💰 Escrow updated, refreshing room status');
+        fetchRoomStatus();
+      };
+
+      const socket = (databaseMultiplayerState as any).socket;
+      if (socket) {
+        socket.on('escrowUpdated', handleEscrowUpdate);
+        
+        return () => {
+          socket.off('escrowUpdated', handleEscrowUpdate);
         };
       }
     }
@@ -1421,7 +1463,7 @@ function ChessApp() {
             playerRole={playerRole}
             playerWallet={publicKey?.toString() || ''}
             betAmount={betAmount}
-            roomStatus={null}
+            roomStatus={roomStatus}
             escrowCreated={escrowCreated}
             connected={connected}
             isLoading={appLoading}
