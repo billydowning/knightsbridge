@@ -258,112 +258,49 @@ function ChessApp() {
             databaseMultiplayerState.getGameState(roomId).then((savedGameState) => {
               if (savedGameState) {
                 // Only update if the saved state is newer than our current state
-                // Increased buffer to prevent unnecessary updates
                 if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated + 200) {
-                  console.log('✅ Updating game state with newer database state');
-                  console.log('🔄 Current player:', gameState.currentPlayer, '-> New player:', savedGameState.currentPlayer);
+                  console.log('📥 Loading game state from database:', savedGameState);
                   setGameState(savedGameState);
-                } else {
-                  // Only log occasionally to reduce console flooding
-                  console.log('⏭️ Skipping update - local state is newer or too recent');
                 }
               }
             }).catch(error => {
               console.error('Error loading game state:', error);
             });
-          }, 500); // Increased delay to 500ms to reduce frequency
+          }, 500); // 500ms delay to prevent race conditions
         }
         
-        // Check room status for escrow updates (works in both lobby and game modes)
-        databaseMultiplayerState.getRoomStatus(roomId).then((roomStatus) => {
-          if (roomStatus) {
-            const escrowCount = Object.keys(roomStatus.escrows).length;
-            const playerWallet = publicKey?.toString();
-            
-            // Check if opponent has created an escrow (not counting our own)
-            const opponentEscrowExists = roomStatus.escrows && 
-              Object.keys(roomStatus.escrows).some(escrowWallet => 
-                escrowWallet !== playerWallet
-              );
-            
-            // Update escrow status
-            setOpponentEscrowCreated(opponentEscrowExists);
-            setBothEscrowsReady(escrowCount >= 2);
-            
-            // Auto-start game if both escrows are ready
-            if (escrowCount >= 2 && gameMode === 'lobby') {
-              console.log('🎮 Both escrows ready, starting game automatically...');
-              setGameMode('game');
-              setGameStatus('Game started! Both escrows are ready.');
+        // Sync room status (only in lobby mode)
+        if (gameMode === 'lobby') {
+          databaseMultiplayerState.getRoomStatus(roomId).then((roomStatus) => {
+            if (roomStatus) {
+              const escrowCount = Object.keys(roomStatus.escrows).length;
+              const playerWallet = publicKey?.toString();
+              
+              // Check if opponent has created an escrow (not counting our own)
+              const opponentEscrowExists = roomStatus.escrows && 
+                Object.keys(roomStatus.escrows).some(escrowWallet => 
+                  escrowWallet !== playerWallet
+                );
+              
+              // Update escrow status
+              setOpponentEscrowCreated(opponentEscrowExists);
+              setEscrowCreated(escrowCount > 0);
+              
+              // Check if both escrows are created
+              if (escrowCount >= 2) {
+                console.log('🎮 Both escrows created, starting game...');
+                setGameMode('game');
+              }
             }
-          }
-        }).catch(error => {
-          console.error('Error getting room status:', error);
-        });
+          }).catch(error => {
+            console.error('Error loading room status:', error);
+          });
+        }
       });
       
       return cleanup;
     }
   }, [roomId, gameMode]);
-
-  // Poll for room status updates (fallback for real-time sync)
-  useEffect(() => {
-    if (roomId && gameMode === 'lobby') {
-      const interval = setInterval(async () => {
-        try {
-          const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-          if (roomStatus) {
-            const escrowCount = Object.keys(roomStatus.escrows).length;
-            const playerWallet = publicKey?.toString();
-            
-            // Check if opponent has created an escrow (not counting our own)
-            const opponentEscrowExists = roomStatus.escrows && 
-              Object.keys(roomStatus.escrows).some(escrowWallet => 
-                escrowWallet !== playerWallet
-              );
-            
-            // Update escrow status
-            setOpponentEscrowCreated(opponentEscrowExists);
-            setBothEscrowsReady(escrowCount >= 2);
-            
-            // Auto-start game if both escrows are ready
-            if (escrowCount >= 2) {
-              console.log('🎮 Both escrows ready, starting game automatically...');
-              setGameMode('game');
-              setGameStatus('Game started! Both escrows are ready.');
-            }
-          }
-        } catch (error) {
-          console.error('Error polling room status:', error);
-        }
-      }, 3000); // Increased to 3 seconds to reduce frequency
-      
-      return () => clearInterval(interval);
-    }
-  }, [roomId, gameMode]);
-
-  // Poll for game state updates (fallback for real-time sync)
-  useEffect(() => {
-    if (roomId && gameMode === 'game') {
-      const interval = setInterval(async () => {
-        try {
-          const savedGameState = await databaseMultiplayerState.getGameState(roomId);
-          if (savedGameState) {
-            // Only update if the saved state is newer than our current state
-            if (!gameState.lastUpdated || savedGameState.lastUpdated > gameState.lastUpdated + 50) {
-              console.log('📡 Polling: Updating game state from database');
-              console.log('🔄 Turn change detected:', gameState.currentPlayer, '->', savedGameState.currentPlayer);
-              setGameState(savedGameState);
-            }
-          }
-        } catch (error) {
-          console.error('Error polling game state:', error);
-        }
-      }, 2000); // Increased to 2 seconds to reduce frequency
-      
-      return () => clearInterval(interval);
-    }
-  }, [roomId, gameMode]); // Removed gameState.lastUpdated dependency
 
   // Save game state to database when it changes (but not on every change)
   useEffect(() => {
