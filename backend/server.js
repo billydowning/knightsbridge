@@ -167,6 +167,38 @@ app.get('/debug/clear', async (req, res) => {
   }
 });
 
+// Create escrows table endpoint
+app.get('/create-escrows-table', async (req, res) => {
+  try {
+    console.log('🏗️ Creating escrows table...');
+    
+    const createEscrowsTable = `
+      CREATE TABLE IF NOT EXISTS escrows (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        room_id VARCHAR(100) NOT NULL,
+        player_wallet VARCHAR(44) NOT NULL,
+        escrow_amount DECIMAL(20, 9) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'released', 'refunded')),
+        blockchain_tx_id VARCHAR(100),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(room_id, player_wallet)
+      )
+    `;
+    
+    await pool.query(createEscrowsTable);
+    console.log('✅ Escrows table created successfully');
+    
+    res.json({ 
+      success: true,
+      message: 'Escrows table created successfully'
+    });
+  } catch (error) {
+    console.error('❌ Error creating escrows table:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Deploy database schema
 app.get('/deploy-schema', async (req, res) => {
   try {
