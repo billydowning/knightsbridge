@@ -9,6 +9,8 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { dbService } = require('./database');
+const fs = require('fs');
+const path = require('path');
 
 console.log('🚀 Starting Knightsbridge Chess Backend Server...');
 console.log('📋 Environment:', process.env.NODE_ENV);
@@ -100,6 +102,46 @@ const playerSessions = new Map(); // Track player sessions
 const gameRooms = new Map(); // Store game rooms
 const chatMessages = new Map(); // Store chat messages by room ID
 
+// Simple file-based persistence for Railway restarts
+const DATA_FILE = path.join(__dirname, 'rooms-data.json');
+
+// Load data from file on startup
+function loadData() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      data.rooms.forEach(([key, value]) => gameRooms.set(key, value));
+      data.gameStates.forEach(([key, value]) => gameStates.set(key, value));
+      data.chatMessages.forEach(([key, value]) => chatMessages.set(key, value));
+      console.log('📥 Loaded data from file:', {
+        rooms: gameRooms.size,
+        gameStates: gameStates.size,
+        chatMessages: chatMessages.size
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error loading data:', error);
+  }
+}
+
+// Save data to file
+function saveData() {
+  try {
+    const data = {
+      rooms: Array.from(gameRooms.entries()),
+      gameStates: Array.from(gameStates.entries()),
+      chatMessages: Array.from(chatMessages.entries())
+    };
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    console.log('💾 Saved data to file');
+  } catch (error) {
+    console.error('❌ Error saving data:', error);
+  }
+}
+
+// Load data on startup
+loadData();
+
 // Handle Socket.io connections
 io.on('connection', (socket) => {
   console.log('🔌 A user connected:', socket.id);
@@ -107,6 +149,17 @@ io.on('connection', (socket) => {
 
   // Debug: Log when event handler is registered
   console.log('✅ createRoom event handler registered for socket:', socket.id);
+
+  // Test event handler to verify backend is working
+  socket.on('test', (data, callback) => {
+    console.log('🧪 Test event received:', data);
+    callback({ success: true, message: 'Backend is working!' });
+  });
+
+  // Heartbeat to keep connection alive
+  socket.on('ping', (callback) => {
+    callback({ pong: Date.now() });
+  });
 
   // Debug: Add error handler to see if there are any Socket.io errors
   socket.on('error', (error) => {
@@ -145,6 +198,9 @@ io.on('connection', (socket) => {
       gameRooms.set(roomId, room);
       console.log('✅ Room created:', roomId, 'for player:', playerWallet);
       console.log('🔍 Rooms after creation:', Array.from(gameRooms.keys()));
+
+      // Save data to file
+      saveData();
 
       // Join the socket to the room
       socket.join(roomId);
@@ -209,6 +265,9 @@ io.on('connection', (socket) => {
         const newRole = room.players.length === 0 ? 'white' : 'black';
         room.players.push({ wallet: playerWallet, role: newRole, isReady: true });
         room.lastUpdated = Date.now();
+        
+        // Save data to file
+        saveData();
         
         // Join the room
         socket.join(roomId);

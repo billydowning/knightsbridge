@@ -470,29 +470,39 @@ function ChessApp() {
     }
     
     const playerWallet = publicKey.toString();
+    console.log('🎯 handleJoinRoom called with roomId:', roomId, 'playerWallet:', playerWallet);
     
     try {
       // If no room ID provided, create a new room
       if (!roomId.trim()) {
         const newRoomId = `ROOM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        console.log('🏗️ Creating new room with ID:', newRoomId);
         
         // Create room using database multiplayer state
         const role = await databaseMultiplayerState.createRoom(newRoomId, playerWallet);
+        console.log('📨 createRoom response:', role);
+        
         if (role) {
           setPlayerRole(role);
           setRoomId(newRoomId); // Set room ID after successful creation
           setGameStatus(`Room created: ${newRoomId} - You are ${role}. Share this ID with your opponent!`);
           setGameMode('lobby'); // Proceed directly to lobby
+          console.log('✅ Room created successfully:', newRoomId);
         } else {
+          console.error('❌ Room creation failed');
           setGameStatus('Failed to create room');
           return;
         }
       } else {
         // Joining existing room
+        console.log('🚪 Joining existing room:', roomId);
         const role = await databaseMultiplayerState.joinRoom(roomId, playerWallet);
+        console.log('📨 joinRoom response:', role);
+        
         if (role) {
           setPlayerRole(role);
           setGameStatus(`Joined room: ${roomId} - You are ${role}. Waiting for opponent...`);
+          console.log('✅ Successfully joined room:', roomId, 'as', role);
           
           // Check if game has already started or both escrows are ready
           const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
@@ -537,7 +547,13 @@ function ChessApp() {
         }
       }
     } catch (error) {
-      console.error('Error joining room:', error);
+      console.error('❌ Error joining room:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        roomId: roomId,
+        playerWallet: playerWallet
+      });
       setGameStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -562,6 +578,22 @@ function ChessApp() {
     setOpponentEscrowCreated(false);
     setBothEscrowsReady(false);
     setGameStatus('Welcome to Knightsbridge Chess!');
+  };
+
+  // Test backend connection
+  const handleTestConnection = async () => {
+    try {
+      console.log('🧪 Testing backend connection...');
+      const isWorking = await databaseMultiplayerState.testConnection();
+      if (isWorking) {
+        setGameStatus('✅ Backend connection successful!');
+      } else {
+        setGameStatus('❌ Backend connection failed!');
+      }
+    } catch (error) {
+      console.error('❌ Connection test error:', error);
+      setGameStatus(`❌ Connection test error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   // Helper function to detect checkmate

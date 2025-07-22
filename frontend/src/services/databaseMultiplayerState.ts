@@ -80,6 +80,10 @@ class DatabaseMultiplayerStateManager {
       this.socket = io(this.serverUrl, {
         transports: ['websocket', 'polling'],
         timeout: 10000,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000
       });
 
       this.socket.on('connect', () => {
@@ -88,6 +92,27 @@ class DatabaseMultiplayerStateManager {
 
       this.socket.on('disconnect', (reason) => {
         console.log('❌ Disconnected from server:', reason);
+        if (reason === 'io server disconnect') {
+          // Server disconnected us, try to reconnect
+          console.log('🔄 Server disconnected, attempting to reconnect...');
+          this.socket?.connect();
+        }
+      });
+
+      this.socket.on('reconnect', (attemptNumber) => {
+        console.log('🔄 Reconnected to server after', attemptNumber, 'attempts');
+      });
+
+      this.socket.on('reconnect_attempt', (attemptNumber) => {
+        console.log('🔄 Reconnection attempt:', attemptNumber);
+      });
+
+      this.socket.on('reconnect_error', (error) => {
+        console.error('❌ Reconnection error:', error);
+      });
+
+      this.socket.on('reconnect_failed', () => {
+        console.error('❌ Reconnection failed after all attempts');
       });
 
       this.socket.on('error', (error) => {
@@ -121,10 +146,36 @@ class DatabaseMultiplayerStateManager {
         }
       });
 
+      // Start heartbeat to keep connection alive
+      this.startHeartbeat();
+
     } catch (error) {
       console.error('❌ Failed to connect to server:', error);
       throw error;
     }
+  }
+
+  /**
+   * Start heartbeat to keep connection alive
+   */
+  private startHeartbeat(): void {
+    if (!this.socket) return;
+
+    const heartbeat = setInterval(() => {
+      if (this.socket?.connected) {
+        this.socket.emit('ping', (response: any) => {
+          if (response?.pong) {
+            console.log('💓 Heartbeat successful');
+          }
+        });
+      } else {
+        console.log('💓 Heartbeat skipped - not connected');
+        clearInterval(heartbeat);
+      }
+    }, 30000); // Send heartbeat every 30 seconds
+
+    // Store the interval ID for cleanup
+    (this.socket as any).heartbeatInterval = heartbeat;
   }
 
   /**
@@ -145,6 +196,34 @@ class DatabaseMultiplayerStateManager {
   }
 
   /**
+   * Test connection to backend
+   */
+  async testConnection(): Promise<boolean> {
+    if (!this.isConnected()) {
+      await this.connect();
+    }
+
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Not connected to server'));
+        return;
+      }
+
+      console.log('🧪 Testing backend connection...');
+      this.socket.emit('test', { message: 'Hello backend!' }, (response: any) => {
+        console.log('🧪 Test response:', response);
+        if (response && response.success) {
+          console.log('✅ Backend connection test successful');
+          resolve(true);
+        } else {
+          console.error('❌ Backend connection test failed');
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  /**
    * Create a new room
    */
   async createRoom(roomId: string, playerWallet: string): Promise<'white' | null> {
@@ -154,6 +233,8 @@ class DatabaseMultiplayerStateManager {
     }
 
     console.log('📡 Emitting createRoom:', { roomId, playerWallet });
+    console.log('🔍 Socket connected:', this.socket?.connected);
+    console.log('🔍 Socket ID:', this.socket?.id);
     
     return new Promise((resolve, reject) => {
       if (!this.socket) {
@@ -168,9 +249,13 @@ class DatabaseMultiplayerStateManager {
         reject(new Error('Request timeout - server not responding'));
       }, 10000); // 10 second timeout
 
+      console.log('📤 Sending createRoom event to server...');
       this.socket.emit('createRoom', { roomId, playerWallet }, (response: any) => {
         clearTimeout(timeout);
         console.log('📨 Received createRoom response:', response);
+        console.log('📨 Response type:', typeof response);
+        console.log('📨 Response success:', response?.success);
+        
         if (response && response.success) {
           console.log('✅ Room created:', roomId, 'for player:', playerWallet);
           resolve('white');
@@ -263,19 +348,25 @@ class DatabaseMultiplayerStateManager {
       await this.connect();
     }
 
+    console.log('💰 Adding escrow:', { roomId, playerWallet, amount });
+    console.log('🔍 Socket connected:', this.socket?.connected);
+
     return new Promise((resolve, reject) => {
       if (!this.socket) {
         reject(new Error('Not connected to server'));
         return;
       }
 
+      console.log('📤 Sending addEscrow event to server...');
       this.socket.emit('addEscrow', { roomId, playerWallet, amount }, (response: any) => {
-        if (response.success) {
-          console.log('✅ Escrow added:', roomId, playerWallet, amount);
+        console.log('📨 Received addEscrow response:', response);
+        
+        if (response && response.success) {
+          console.log('✅ Escrow added successfully');
           resolve();
         } else {
-          console.error('❌ Failed to add escrow:', response.error);
-          reject(new Error(response.error));
+          console.error('❌ Failed to add escrow:', response?.error);
+          reject(new Error(response?.error || 'Failed to add escrow'));
         }
       });
     });
