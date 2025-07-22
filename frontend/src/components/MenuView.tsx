@@ -28,7 +28,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
   onJoinRoom
 }) => {
   const { theme } = useTheme();
-  const presetBetAmounts = [0.01, 0.05, 0.1, 0.5, 1];
+  const presetBetAmounts = [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10, 50, 100];
   const isJoining = roomId.trim() !== '';
   const isButtonDisabled = !connected || isLoading || (connected && balance < betAmount);
   const hasInsufficientBalance = connected && balance < betAmount;

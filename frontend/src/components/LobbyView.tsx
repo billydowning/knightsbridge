@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { useTheme } from '../App';
 import type { RoomStatus } from '../types';
 
 export interface LobbyViewProps {
@@ -37,6 +38,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   onStartGame,
   onBackToMenu
 }) => {
+  const { theme } = useTheme();
   const [copied, setCopied] = React.useState(false);
   
   const playerCount = roomStatus?.playerCount || 0;
@@ -47,18 +49,19 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const readyToStart = bothPlayersPresent && bothEscrowsCreated;
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      <h2>🏠 Room: {roomId}</h2>
+    <div style={{ textAlign: 'center', color: theme.text }}>
+      <h2 style={{ color: theme.text }}>🏠 Room: {roomId}</h2>
       
       {/* Room ID Share Section */}
       <div style={{ 
         margin: '20px 0',
         padding: '20px',
-        backgroundColor: '#e8f5e8',
+        backgroundColor: theme.surface,
         borderRadius: '10px',
-        border: '2px solid #4CAF50'
+        border: `2px solid ${theme.border}`,
+        boxShadow: theme.shadow
       }}>
-        <h3 style={{ margin: '0 0 15px 0', color: '#2e7d32' }}>📋 Share Room ID</h3>
+        <h3 style={{ margin: '0 0 15px 0', color: theme.text }}>📋 Share Room ID</h3>
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -74,10 +77,10 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               padding: '12px 16px',
               fontSize: '18px',
               fontWeight: 'bold',
-              border: '2px solid #4CAF50',
+              border: `2px solid ${theme.border}`,
               borderRadius: '8px',
-              backgroundColor: '#ffffff',
-              color: '#2e7d32',
+              backgroundColor: theme.background,
+              color: theme.text,
               minWidth: '200px',
               textAlign: 'center'
             }}
@@ -90,7 +93,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             }}
             style={{
               padding: '12px 20px',
-              backgroundColor: copied ? '#45a049' : '#4CAF50',
+              backgroundColor: copied ? theme.secondary : theme.primary,
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -103,16 +106,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             {copied ? '✅ Copied!' : '📋 Copy'}
           </button>
         </div>
-        <p style={{ 
-          margin: '10px 0 0 0', 
-          fontSize: '14px', 
-          color: '#2e7d32',
-          fontStyle: 'italic'
-        }}>
-          {playerRole === 'white' 
-            ? 'Share this Room ID with your opponent (Black player)'
-            : 'You joined this room as Black player'
-          }
+        <p style={{ margin: '10px 0 0 0', fontSize: '14px', color: theme.textSecondary }}>
+          Share this Room ID with your opponent to join the game
         </p>
       </div>
       
@@ -125,63 +120,63 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       }}>
         <div style={{ 
           padding: '15px', 
-          backgroundColor: '#f8f9fa', 
+          backgroundColor: theme.surface, 
           borderRadius: '8px',
-          border: '2px solid #dee2e6'
+          border: `2px solid ${theme.border}`
         }}>
-          <h4 style={{ margin: '0 0 10px 0' }}>👤 Your Info</h4>
-          <p style={{ margin: '5px 0' }}>
+          <h4 style={{ margin: '0 0 10px 0', color: theme.text }}>👤 Your Info</h4>
+          <p style={{ margin: '5px 0', color: theme.textSecondary }}>
             <strong>Role:</strong> 
             <span style={{ 
-              color: playerRole === 'white' ? '#4CAF50' : '#FF9800',
+              color: playerRole === 'white' ? theme.success : theme.warning,
               fontWeight: 'bold',
               marginLeft: '5px'
             }}>
               {playerRole.toUpperCase()}
             </span>
           </p>
-          <p style={{ margin: '5px 0' }}>
+          <p style={{ margin: '5px 0', color: theme.textSecondary }}>
             <strong>Wallet:</strong> {playerWallet.slice(0, 6)}...{playerWallet.slice(-4)}
           </p>
-          <p style={{ margin: '5px 0' }}>
+          <p style={{ margin: '5px 0', color: theme.textSecondary }}>
             <strong>Bet:</strong> {betAmount} SOL
           </p>
         </div>
 
         <div style={{ 
           padding: '15px', 
-          backgroundColor: '#f8f9fa', 
+          backgroundColor: theme.surface, 
           borderRadius: '8px',
-          border: '2px solid #dee2e6'
+          border: `2px solid ${theme.border}`
         }}>
-          <h4 style={{ margin: '0 0 10px 0' }}>🎮 Room Status</h4>
-          <p style={{ margin: '5px 0' }}>
+          <h4 style={{ margin: '0 0 10px 0', color: theme.text }}>🎮 Room Status</h4>
+          <p style={{ margin: '5px 0', color: theme.textSecondary }}>
             <strong>Players:</strong> {playerCount}/2
           </p>
-          <p style={{ margin: '5px 0' }}>
+          <p style={{ margin: '5px 0', color: theme.textSecondary }}>
             <strong>Your Escrow:</strong> 
             <span style={{ 
-              color: escrowCreated ? '#4CAF50' : '#ff9800',
+              color: escrowCreated ? theme.success : theme.warning,
               fontWeight: 'bold',
               marginLeft: '5px'
             }}>
               {escrowCreated ? '✅ Created' : '❌ Not Created'}
             </span>
           </p>
-          <p style={{ margin: '5px 0' }}>
+          <p style={{ margin: '5px 0', color: theme.textSecondary }}>
             <strong>Opponent Escrow:</strong> 
             <span style={{ 
-              color: opponentEscrowCreated ? '#4CAF50' : '#ff9800',
+              color: opponentEscrowCreated ? theme.success : theme.warning,
               fontWeight: 'bold',
               marginLeft: '5px'
             }}>
               {opponentEscrowCreated ? '✅ Created' : '⏳ Waiting...'}
             </span>
           </p>
-          <p style={{ margin: '5px 0' }}>
+          <p style={{ margin: '5px 0', color: theme.textSecondary }}>
             <strong>Game Ready:</strong> 
             <span style={{ 
-              color: bothEscrowsReady ? '#4CAF50' : '#ff9800',
+              color: bothEscrowsReady ? theme.success : theme.warning,
               fontWeight: 'bold',
               marginLeft: '5px'
             }}>
@@ -194,13 +189,13 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {/* Players List */}
       {roomStatus && roomStatus.players && (
         <div style={{ 
-          background: '#f8f9fa', 
+          background: theme.surface, 
           padding: '15px', 
           borderRadius: '8px', 
           margin: '20px 0',
-          border: '1px solid #dee2e6'
+          border: `1px solid ${theme.border}`
         }}>
-          <h4 style={{ margin: '0 0 15px 0' }}>👥 Players in Room</h4>
+          <h4 style={{ margin: '0 0 15px 0', color: theme.text }}>👥 Players in Room</h4>
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
@@ -211,23 +206,23 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 key={index} 
                 style={{ 
                   padding: '10px',
-                  backgroundColor: player.wallet === playerWallet ? '#e3f2fd' : '#ffffff',
+                  backgroundColor: player.wallet === playerWallet ? theme.primaryLight : theme.surface,
                   borderRadius: '5px',
-                  border: player.wallet === playerWallet ? '2px solid #2196F3' : '1px solid #dee2e6'
+                  border: player.wallet === playerWallet ? `2px solid ${theme.primary}` : `1px solid ${theme.border}`
                 }}
               >
-                <p style={{ margin: '0', fontWeight: 'bold' }}>
+                <p style={{ margin: '0', fontWeight: 'bold', color: theme.text }}>
                   <span style={{ 
-                    color: player.role === 'white' ? '#4CAF50' : '#FF9800' 
+                    color: player.role === 'white' ? theme.success : theme.warning 
                   }}>
                     {player.role.toUpperCase()}:
                   </span>
                 </p>
-                <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>
+                <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: theme.textSecondary }}>
                   {player.wallet.slice(0, 8)}...{player.wallet.slice(-6)}
                   {player.wallet === playerWallet && (
                     <span style={{ 
-                      backgroundColor: '#2196F3', 
+                      backgroundColor: theme.primary, 
                       color: 'white', 
                       padding: '2px 6px', 
                       borderRadius: '10px', 
@@ -247,25 +242,25 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {/* Waiting for Opponent */}
       {playerCount === 1 && (
         <div style={{ 
-          background: '#fff3cd', 
+          background: theme.warningLight, 
           padding: '15px', 
           borderRadius: '8px', 
           margin: '20px 0',
-          border: '1px solid #ffeaa7'
+          border: `1px solid ${theme.warning}`
         }}>
-          <h4 style={{ margin: '0 0 10px 0' }}>⚠️ Waiting for Opponent!</h4>
-          <p style={{ margin: '10px 0' }}>Share this room ID with your opponent:</p>
+          <h4 style={{ margin: '0 0 10px 0', color: theme.warning }}>⚠️ Waiting for Opponent!</h4>
+          <p style={{ margin: '10px 0', color: theme.textSecondary }}>Share this room ID with your opponent:</p>
           <code style={{ 
-            background: '#f8f9fa', 
+            background: theme.surface, 
             padding: '8px 12px', 
             borderRadius: '4px',
             fontSize: '18px',
             fontWeight: 'bold',
-            border: '1px solid #dee2e6'
+            border: `1px solid ${theme.border}`
           }}>
             {roomId}
           </code>
-          <p style={{ margin: '10px 0', fontSize: '14px', color: '#666' }}>
+          <p style={{ margin: '10px 0', fontSize: '14px', color: theme.textSecondary }}>
             Tell them to enter this room ID and click "Join Room"
           </p>
         </div>
@@ -273,12 +268,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
       {/* Real-time Sync Indicator */}
       <div style={{ 
-        background: '#e7f3ff', 
+        background: theme.infoLight, 
         padding: '8px', 
         borderRadius: '4px', 
         margin: '15px 0', 
         fontSize: '12px',
-        color: '#1976d2'
+        color: theme.info
       }}>
         🔄 Real-time sync active - updates automatically
       </div>
@@ -286,14 +281,14 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {/* New Game Indicator */}
       {escrowCount === 0 && (
         <div style={{ 
-          background: '#fff3cd', 
+          background: theme.warningLight, 
           padding: '15px', 
           borderRadius: '8px', 
           margin: '20px 0',
-          border: '1px solid #ffeaa7'
+          border: `1px solid ${theme.warning}`
         }}>
-          <h4 style={{ margin: '0 0 10px 0' }}>🎮 Ready for New Game!</h4>
-          <p style={{ margin: '0' }}>Both players need to create new escrows to start playing again.</p>
+          <h4 style={{ margin: '0 0 10px 0', color: theme.warning }}>🎮 Ready for New Game!</h4>
+          <p style={{ margin: '0', color: theme.textSecondary }}>Both players need to create new escrows to start playing again.</p>
         </div>
       )}
 
@@ -310,7 +305,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             disabled={!connected || isLoading}
             style={{
               padding: '15px 30px',
-              backgroundColor: connected && !isLoading ? '#FF9800' : '#ccc',
+              backgroundColor: connected && !isLoading ? theme.warning : theme.border,
               color: 'white',
               border: 'none',
               borderRadius: '5px',
@@ -326,13 +321,13 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         ) : (
           <div>
             <div style={{ 
-              background: '#d4edda', 
+              background: theme.successLight, 
               padding: '15px', 
               borderRadius: '8px', 
               margin: '20px 0',
-              border: '1px solid #c3e6cb'
+              border: `1px solid ${theme.success}`
             }}>
-              <p style={{ margin: '0', fontWeight: 'bold', color: '#155724' }}>
+              <p style={{ margin: '0', fontWeight: 'bold', color: theme.successDark }}>
                 ✅ Your escrow created! 
                 {bothEscrowsCreated ? 
                   ' Game will start automatically...' : 
@@ -346,7 +341,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 disabled={isLoading}
                 style={{
                   padding: '15px 30px',
-                  backgroundColor: isLoading ? '#ccc' : '#2196F3',
+                  backgroundColor: isLoading ? theme.border : theme.info,
                   color: 'white',
                   border: 'none',
                   borderRadius: '5px',
@@ -369,7 +364,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           disabled={isLoading}
           style={{
             padding: '10px 20px',
-            backgroundColor: '#666',
+            backgroundColor: theme.textSecondary,
             color: 'white',
             border: 'none',
             borderRadius: '5px',
@@ -386,10 +381,10 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       <div style={{ 
         marginTop: '20px', 
         padding: '10px', 
-        backgroundColor: '#f8f9fa', 
+        backgroundColor: theme.surface, 
         borderRadius: '5px',
         fontSize: '14px',
-        color: '#666'
+        color: theme.textSecondary
       }}>
         <strong>Next Steps:</strong> {
           !bothPlayersPresent ? 'Waiting for second player to join' :

@@ -32,6 +32,19 @@ interface ThemeContextType {
     accent: string;
     border: string;
     shadow: string;
+    success: string;
+    warning: string;
+    info: string;
+    error: string;
+    successLight: string;
+    warningLight: string;
+    infoLight: string;
+    errorLight: string;
+    primaryLight: string;
+    successDark: string;
+    warningDark: string;
+    infoDark: string;
+    errorDark: string;
   };
 }
 
@@ -101,6 +114,22 @@ const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     accent: isDarkMode ? '#e74c3c' : '#e74c3c',
     border: isDarkMode ? '#404040' : '#bdc3c7',
     shadow: isDarkMode ? '0 2px 10px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.1)',
+    // Additional colors for status indicators
+    success: isDarkMode ? '#27ae60' : '#27ae60',
+    warning: isDarkMode ? '#f39c12' : '#f39c12',
+    info: isDarkMode ? '#3498db' : '#3498db',
+    error: isDarkMode ? '#e74c3c' : '#e74c3c',
+    // Light variants for backgrounds
+    successLight: isDarkMode ? '#1e3a1e' : '#d4edda',
+    warningLight: isDarkMode ? '#3d2e1e' : '#fff3cd',
+    infoLight: isDarkMode ? '#1e2e3a' : '#e7f3ff',
+    errorLight: isDarkMode ? '#3a1e1e' : '#f8d7da',
+    primaryLight: isDarkMode ? '#1e2e3a' : '#e3f2fd',
+    // Dark variants for text
+    successDark: isDarkMode ? '#4ade80' : '#155724',
+    warningDark: isDarkMode ? '#fbbf24' : '#856404',
+    infoDark: isDarkMode ? '#60a5fa' : '#0c5460',
+    errorDark: isDarkMode ? '#f87171' : '#721c24',
   };
 
   return (
@@ -1452,9 +1481,6 @@ function ChessApp() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <DarkModeToggle />
           <WalletMultiButton />
-          <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-            {gameStatus}
-          </div>
         </div>
       </div>
 
