@@ -175,7 +175,7 @@ app.get('/deploy-schema', async (req, res) => {
     // Read the schema file
     const fs = require('fs');
     const path = require('path');
-    const schemaPath = path.join(__dirname, '../database_schema.sql');
+    const schemaPath = path.join(__dirname, '..', 'database_schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
     // Split into individual statements
