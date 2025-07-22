@@ -39,6 +39,10 @@ interface DatabaseMultiplayerStateHook {
   saveGameState: (roomId: string, gameState: GameState) => Promise<void>;
   getGameState: (roomId: string) => Promise<(GameState & { lastUpdated: number }) | null>;
   
+  // Chat management
+  sendChatMessage: (roomId: string, message: string, playerWallet: string, playerRole: string) => Promise<any>;
+  getChatMessages: (roomId: string) => Promise<any>;
+  
   // Real-time sync
   setupRealtimeSync: (roomId: string, callback: (data: any) => void) => () => void;
   
@@ -327,6 +331,58 @@ class DatabaseMultiplayerStateManager {
         } else {
           console.error('❌ Failed to get game state:', response.error);
           resolve(null);
+        }
+      });
+    });
+  }
+
+  /**
+   * Send a chat message
+   */
+  async sendChatMessage(roomId: string, message: string, playerWallet: string, playerRole: string): Promise<any> {
+    if (!this.isConnected()) {
+      await this.connect();
+    }
+
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Not connected to server'));
+        return;
+      }
+
+      this.socket.emit('sendChatMessage', { roomId, message, playerWallet, playerRole }, (response: any) => {
+        if (response.success) {
+          console.log('✅ Chat message sent:', roomId, message);
+          resolve(response);
+        } else {
+          console.error('❌ Failed to send chat message:', response.error);
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
+  /**
+   * Get chat messages for a room
+   */
+  async getChatMessages(roomId: string): Promise<any> {
+    if (!this.isConnected()) {
+      await this.connect();
+    }
+
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Not connected to server'));
+        return;
+      }
+
+      this.socket.emit('getChatMessages', { roomId }, (response: any) => {
+        if (response.success) {
+          console.log('✅ Chat messages retrieved:', roomId);
+          resolve(response.messages);
+        } else {
+          console.error('❌ Failed to get chat messages:', response.error);
+          resolve([]); // Return empty array on error
         }
       });
     });

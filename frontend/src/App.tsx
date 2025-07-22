@@ -668,43 +668,41 @@ function ChessApp() {
     console.log('Position:', position);
     console.log('Current player:', currentPlayer);
     
+    // First, check if the king is in check
+    const isInCheck = isKingInCheck(position, currentPlayer);
+    if (!isInCheck) {
+      console.log('✅ King is not in check, no checkmate');
+      return false;
+    }
+    
     // Find the king of the current player
     const kingSymbol = currentPlayer === 'white' ? '♔' : '♚';
-    let kingFound = false;
     let kingSquare = null;
     
-    // Check if king still exists on the board
+    // Find the king's position
     for (const square in position) {
       if (position[square] === kingSymbol) {
-        kingFound = true;
         kingSquare = square;
         break;
       }
     }
     
-    console.log('King symbol:', kingSymbol);
-    console.log('King found:', kingFound);
-    console.log('King square:', kingSquare);
-    
-    if (!kingFound) {
+    if (!kingSquare) {
       console.log('🏆 CHECKMATE DETECTED! King was captured!');
       return true;
     }
     
-    // Additional check: if king is in check and can't move
-    if (kingSquare) {
-      const isInCheck = isKingInCheck(position, currentPlayer);
-      if (isInCheck) {
-        console.log('⚠️ King is in check, checking if it can escape...');
-        const canEscape = checkIfKingCanEscape(position, kingSquare, currentPlayer);
-        if (!canEscape) {
-          console.log('🏆 CHECKMATE DETECTED! King is trapped!');
-          return true;
-        }
-      }
+    console.log('King square:', kingSquare);
+    console.log('⚠️ King is in check, checking if it can escape...');
+    
+    // Check if king can escape
+    const canEscape = checkIfKingCanEscape(position, kingSquare, currentPlayer);
+    if (!canEscape) {
+      console.log('🏆 CHECKMATE DETECTED! King is trapped!');
+      return true;
     }
     
-    console.log('✅ King still exists and can escape, no checkmate');
+    console.log('✅ King can escape, no checkmate');
     return false;
   };
   
@@ -715,30 +713,45 @@ function ChessApp() {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
     
-    // Check all adjacent squares for king escape
-    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
-      for (let rankIndex = 0; rankIndex < ranks.length; rankIndex++) {
-        const targetSquare = files[fileIndex] + ranks[rankIndex];
-        const fileDiff = Math.abs(files[fileIndex].charCodeAt(0) - kingSquare[0].charCodeAt(0));
-        const rankDiff = Math.abs(parseInt(ranks[rankIndex]) - parseInt(kingSquare[1]));
+    const kingFile = kingSquare[0];
+    const kingRank = parseInt(kingSquare[1]);
+    
+    // Check all 8 possible king moves (including diagonals)
+    const possibleMoves = [
+      { file: kingFile.charCodeAt(0) - 1, rank: kingRank - 1 }, // a1
+      { file: kingFile.charCodeAt(0), rank: kingRank - 1 },     // b1
+      { file: kingFile.charCodeAt(0) + 1, rank: kingRank - 1 }, // c1
+      { file: kingFile.charCodeAt(0) - 1, rank: kingRank },     // a2
+      { file: kingFile.charCodeAt(0) + 1, rank: kingRank },     // c2
+      { file: kingFile.charCodeAt(0) - 1, rank: kingRank + 1 }, // a3
+      { file: kingFile.charCodeAt(0), rank: kingRank + 1 },     // b3
+      { file: kingFile.charCodeAt(0) + 1, rank: kingRank + 1 }  // c3
+    ];
+    
+    for (const move of possibleMoves) {
+      // Check if move is within board bounds
+      if (move.file >= 'a'.charCodeAt(0) && move.file <= 'h'.charCodeAt(0) && 
+          move.rank >= 1 && move.rank <= 8) {
         
-        // Only check adjacent squares
-        if (fileDiff <= 1 && rankDiff <= 1 && targetSquare !== kingSquare) {
-          // Check if square is empty or contains opponent piece
-          const targetPiece = position[targetSquare];
-          if (!targetPiece || (currentPlayer === 'white' ? ['♚', '♛', '♜', '♝', '♞', '♟'] : ['♔', '♕', '♖', '♗', '♘', '♙']).includes(targetPiece)) {
-            // Simulate the king move and check if it would still be in check
-            const simulatedPosition = { ...position };
-            simulatedPosition[targetSquare] = simulatedPosition[kingSquare];
-            simulatedPosition[kingSquare] = '';
-            
-            const wouldStillBeInCheck = isKingInCheck(simulatedPosition, currentPlayer);
-            if (!wouldStillBeInCheck) {
-              console.log(`✅ King can escape to ${targetSquare}`);
-              return true;
-            } else {
-              console.log(`❌ King cannot escape to ${targetSquare} - still in check`);
-            }
+        const targetSquare = String.fromCharCode(move.file) + move.rank;
+        const targetPiece = position[targetSquare];
+        
+        // Check if square is empty or contains opponent piece
+        const whitePieces = ['♔', '♕', '♖', '♗', '♘', '♙'];
+        const isOwnPiece = targetPiece && whitePieces.includes(targetPiece) === (currentPlayer === 'white');
+        
+        if (!isOwnPiece) {
+          // Simulate the king move and check if it would still be in check
+          const simulatedPosition = { ...position };
+          simulatedPosition[targetSquare] = simulatedPosition[kingSquare];
+          simulatedPosition[kingSquare] = '';
+          
+          const wouldStillBeInCheck = isKingInCheck(simulatedPosition, currentPlayer);
+          if (!wouldStillBeInCheck) {
+            console.log(`✅ King can escape to ${targetSquare}`);
+            return true;
+          } else {
+            console.log(`❌ King cannot escape to ${targetSquare} - still in check`);
           }
         }
       }
@@ -1310,73 +1323,73 @@ function ChessApp() {
     
     console.log('💬 Sending chat message:', newMessage);
     
-    // Add message to local state
+    // Add message to local state immediately for UI responsiveness
     setChatMessages(prev => [...prev, newMessage]);
     
-    // Send via WebSocket if available
-    if (wsSendChatMessage) {
-      wsSendChatMessage(message);
-    }
-    
-    // Also save to database if room exists
-    if (roomId) {
-      // For now, we'll use localStorage as fallback
-      // TODO: Implement database chat storage
-      const chatKey = `chess_chat_${roomId}`;
-      const existingMessages = JSON.parse(localStorage.getItem(chatKey) || '[]');
-      const updatedMessages = [...existingMessages, newMessage];
-      localStorage.setItem(chatKey, JSON.stringify(updatedMessages));
-      
-      // Trigger storage event for other tabs
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: chatKey,
-        newValue: JSON.stringify(updatedMessages)
-      }));
+    // Send via database system
+    if (roomId && publicKey) {
+      databaseMultiplayerState.sendChatMessage(roomId, message, publicKey.toString(), playerRole)
+        .then((response) => {
+          if (response.success) {
+            console.log('✅ Chat message sent successfully');
+          } else {
+            console.error('❌ Failed to send chat message:', response.error);
+            // Remove the message from local state if it failed
+            setChatMessages(prev => prev.filter(msg => msg.id !== newMessage.id));
+          }
+        })
+        .catch(error => {
+          console.error('❌ Error sending chat message:', error);
+          // Remove the message from local state if it failed
+          setChatMessages(prev => prev.filter(msg => msg.id !== newMessage.id));
+        });
     }
   };
 
-  // Load chat messages from localStorage
+  // Load chat messages from database
   useEffect(() => {
     if (roomId) {
-      const chatKey = `chess_chat_${roomId}`;
-      const savedMessages = localStorage.getItem(chatKey);
-      if (savedMessages) {
-        try {
-          const messages = JSON.parse(savedMessages);
-          // Convert timestamp strings back to Date objects
-          const messagesWithDates = messages.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }));
-          setChatMessages(messagesWithDates);
-        } catch (error) {
+      console.log('📥 Loading chat messages from database for room:', roomId);
+      databaseMultiplayerState.getChatMessages(roomId)
+        .then((messages) => {
+          if (messages && Array.isArray(messages)) {
+            // Convert timestamp strings back to Date objects
+            const messagesWithDates = messages.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            }));
+            setChatMessages(messagesWithDates);
+            console.log('✅ Loaded', messagesWithDates.length, 'chat messages');
+          }
+        })
+        .catch(error => {
           console.error('Error loading chat messages:', error);
-        }
-      }
+        });
     }
   }, [roomId]);
 
-  // Listen for chat message updates from other tabs
+  // Listen for real-time chat messages
   useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key && event.key.startsWith('chess_chat_') && event.newValue) {
-        try {
-          const messages = JSON.parse(event.newValue);
-          // Convert timestamp strings back to Date objects
-          const messagesWithDates = messages.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }));
-          setChatMessages(messagesWithDates);
-        } catch (error) {
-          console.error('Error parsing chat messages:', error);
-        }
-      }
-    };
+    if (roomId && databaseMultiplayerState.isConnected()) {
+      const handleChatMessage = (message: any) => {
+        console.log('💬 Received real-time chat message:', message);
+        setChatMessages(prev => [...prev, {
+          ...message,
+          timestamp: new Date(message.timestamp)
+        }]);
+      };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+      // Listen for chat message events
+      const socket = (databaseMultiplayerState as any).socket;
+      if (socket) {
+        socket.on('chatMessageReceived', handleChatMessage);
+        
+        return () => {
+          socket.off('chatMessageReceived', handleChatMessage);
+        };
+      }
+    }
+  }, [roomId]);
 
   // Render based on game mode
   const renderContent = () => {

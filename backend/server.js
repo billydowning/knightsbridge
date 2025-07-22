@@ -87,6 +87,7 @@ app.get('/debug', (req, res) => {
 const gameStates = new Map(); // Store game states in memory
 const playerSessions = new Map(); // Track player sessions
 const gameRooms = new Map(); // Store game rooms
+const chatMessages = new Map(); // Store chat messages by room ID
 
 // Handle Socket.io connections
 io.on('connection', (socket) => {
@@ -447,21 +448,21 @@ io.on('connection', (socket) => {
         playerId,
         playerName,
         message: message.trim(),
-        timestamp: Date.now(),
-        type: 'chat'
+        timestamp: new Date()
       };
 
+      // Store message in memory
+      if (!chatMessages.has(gameId)) {
+        chatMessages.set(gameId, []);
+      }
+      chatMessages.get(gameId).push(chatMessage);
+
       // Broadcast message to all players in the game
-      io.to(gameId).emit('newMessage', chatMessage);
+      io.to(gameId).emit('chatMessage', chatMessage);
 
       // Save message to database
       try {
-        await dbService.addChatMessage(gameId, {
-          playerId,
-          playerName,
-          message: chatMessage.message,
-          timestamp: new Date()
-        });
+        await dbService.addChatMessage(gameId, chatMessage);
       } catch (error) {
         console.error('Error saving chat message to database:', error);
       }
@@ -469,6 +470,62 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Error processing chat message:', error);
       socket.emit('chatError', { error: 'Failed to send message' });
+    }
+  });
+
+  // Get chat messages for a room
+  socket.on('getChatMessages', async (data, callback) => {
+    try {
+      const { roomId } = data;
+      
+      const messages = chatMessages.get(roomId) || [];
+      callback({ success: true, messages });
+      
+    } catch (error) {
+      console.error('Error getting chat messages:', error);
+      callback({ success: false, error: 'Failed to get chat messages' });
+    }
+  });
+
+  // Send chat message to room
+  socket.on('sendChatMessage', async (data, callback) => {
+    try {
+      const { roomId, message, playerWallet, playerRole } = data;
+      
+      if (!message || message.trim().length === 0) {
+        callback({ success: false, error: 'Message cannot be empty' });
+        return;
+      }
+
+      if (message.length > 500) {
+        callback({ success: false, error: 'Message too long (max 500 characters)' });
+        return;
+      }
+
+      const chatMessage = {
+        id: Date.now().toString(),
+        roomId,
+        playerWallet,
+        playerRole,
+        message: message.trim(),
+        timestamp: new Date()
+      };
+
+      // Store message in memory
+      if (!chatMessages.has(roomId)) {
+        chatMessages.set(roomId, []);
+      }
+      chatMessages.get(roomId).push(chatMessage);
+
+      console.log('💬 Chat message sent:', roomId, playerWallet, message);
+      callback({ success: true, message: chatMessage });
+
+      // Broadcast message to all players in the room
+      io.to(roomId).emit('chatMessageReceived', chatMessage);
+
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+      callback({ success: false, error: 'Failed to send message' });
     }
   });
 
