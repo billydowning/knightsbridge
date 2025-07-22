@@ -607,7 +607,8 @@ export const ChessEngine = {
     enPassantTarget: null,
     halfmoveClock: 0, // For 50-move rule (counts half-moves since last pawn move or capture)
     fullmoveNumber: 1, // Increments after black's move
-    inCheck: false
+    inCheck: false,
+    inCheckmate: false
   }),
 
   // Enhanced game end detection with all FIDE rules
