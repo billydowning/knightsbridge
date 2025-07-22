@@ -172,6 +172,31 @@ app.get('/deploy-schema', async (req, res) => {
   try {
     console.log('🏗️ Deploying complete database schema...');
     
+    // First, drop existing tables to ensure clean slate
+    const dropStatements = [
+      'DROP TABLE IF EXISTS user_achievements CASCADE',
+      'DROP TABLE IF EXISTS achievements CASCADE',
+      'DROP TABLE IF EXISTS leaderboard_entries CASCADE',
+      'DROP TABLE IF EXISTS leaderboards CASCADE',
+      'DROP TABLE IF EXISTS tournament_games CASCADE',
+      'DROP TABLE IF EXISTS tournament_participants CASCADE',
+      'DROP TABLE IF EXISTS tournaments CASCADE',
+      'DROP TABLE IF EXISTS game_analysis CASCADE',
+      'DROP TABLE IF EXISTS game_moves CASCADE',
+      'DROP TABLE IF EXISTS chat_messages CASCADE',
+      'DROP TABLE IF EXISTS game_analytics CASCADE',
+      'DROP TABLE IF EXISTS notifications CASCADE',
+      'DROP TABLE IF EXISTS user_statistics CASCADE',
+      'DROP TABLE IF EXISTS games CASCADE',
+      'DROP TABLE IF EXISTS users CASCADE'
+    ];
+    
+    console.log('🧹 Dropping existing tables...');
+    for (const statement of dropStatements) {
+      await pool.query(statement);
+      console.log('✅ Dropped table');
+    }
+    
     // Complete database schema with all features
     const schemaStatements = [
       // Users & Authentication
