@@ -61,42 +61,67 @@ const apiRoutes = require('./routes/api');
 app.use('/api', apiRoutes);
 
 // Test endpoint to verify backend is working
-app.get('/test', (req, res) => {
+app.get('/test', async (req, res) => {
   console.log('🧪 Test endpoint called');
-  res.json({ 
-    message: 'Backend is working!', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    gameRoomsCount: gameRooms.size,
-    activeConnections: io.engine.clientsCount
-  });
+  
+  try {
+    // Test database connection
+    const dbConnected = await testConnection();
+    
+    res.json({ 
+      message: 'Backend is working!', 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      databaseConnected: dbConnected,
+      activeConnections: io.engine.clientsCount
+    });
+  } catch (error) {
+    console.error('❌ Test endpoint error:', error);
+    res.status(500).json({ 
+      message: 'Backend error', 
+      error: error.message 
+    });
+  }
 });
 
 // Debug endpoint to see current state
-app.get('/debug', (req, res) => {
+app.get('/debug', async (req, res) => {
   console.log('🔍 Debug endpoint called');
-  const debugInfo = {
-    gameRooms: Array.from(gameRooms.entries()).map(([id, room]) => ({
-      roomId: id,
-      players: room.players.length,
-      gameStarted: room.gameStarted,
-      created: new Date(room.created).toISOString()
-    })),
-    activeConnections: io.engine.clientsCount,
-    environment: process.env.NODE_ENV
-  };
-  res.json(debugInfo);
+  
+  try {
+    // Get room count from database
+    const result = await pool.query('SELECT COUNT(*) as room_count FROM games');
+    const roomCount = result.rows[0].room_count;
+    
+    const debugInfo = {
+      roomCount: parseInt(roomCount),
+      activeConnections: io.engine.clientsCount,
+      environment: process.env.NODE_ENV,
+      databaseConnected: await testConnection()
+    };
+    res.json(debugInfo);
+  } catch (error) {
+    console.error('❌ Debug endpoint error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Debug endpoint to list all rooms
-app.get('/debug/rooms', (req, res) => {
-  const rooms = Array.from(gameRooms.keys());
-  res.json({
-    roomCount: rooms.length,
-    rooms: rooms,
-    gameStates: Array.from(gameStates.keys()),
-    playerSessions: Array.from(playerSessions.keys())
-  });
+app.get('/debug/rooms', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT room_id, player_white_wallet, player_black_wallet, game_state FROM games');
+    const rooms = result.rows.map(row => row.room_id);
+    
+    res.json({
+      roomCount: rooms.length,
+      rooms: rooms,
+      gameStates: [], // Will be implemented later
+      playerSessions: [] // Will be implemented later
+    });
+  } catch (error) {
+    console.error('❌ Debug rooms error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Debug endpoint to check specific room
