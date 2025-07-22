@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import ChessEngine from '../engine/chessEngine';
 import type { GameState, Move } from '../types/chess';
-import multiplayerState from '../services/multiplayerState';
+import databaseMultiplayerState from '../services/databaseMultiplayerState';
 import { useSolanaWallet } from './useSolanaWallet';
 import { generatePositionHash, generateMoveNotation, validateMoveNotation } from '../utils/blockchainUtils';
 
@@ -144,7 +144,7 @@ export const useGameState = (): GameStateHook => {
 
       // Save to multiplayer state if in multiplayer mode
       if (roomId) {
-        multiplayerState.saveGameState(roomId, newState);
+        databaseMultiplayerState.saveGameState(roomId, newState);
       }
 
       moveSuccessful = true;
@@ -236,7 +236,7 @@ export const useGameState = (): GameStateHook => {
 
     // Save reset state to multiplayer if roomId provided
     if (roomId) {
-      multiplayerState.saveGameState(roomId, initialState);
+      databaseMultiplayerState.saveGameState(roomId, initialState);
       console.log('🔄 Game reset and synced to multiplayer state');
     }
   };
@@ -353,7 +353,7 @@ export const useGameState = (): GameStateHook => {
         gameActive: false,
         lastUpdated: Date.now()
       };
-      multiplayerState.saveGameState(roomId, updatedState);
+      databaseMultiplayerState.saveGameState(roomId, updatedState);
       console.log(`🏳️ Player ${resigningPlayer} resigned. ${winner} wins by resignation.`);
     }
   };

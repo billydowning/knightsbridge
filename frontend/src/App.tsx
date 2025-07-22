@@ -1106,10 +1106,10 @@ function ChessApp() {
     const newRoomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
     setRoomId(newRoomId);
     
-    // Clear any existing game state from localStorage
+    // Clear any existing game state from database
     if (roomId) {
-      localStorage.removeItem(`chess_game_${roomId}`);
-      localStorage.removeItem(`chess_chat_${roomId}`);
+      // Database cleanup is handled by the backend
+      console.log('🗑️ Clearing game state for room:', roomId);
     }
     
     // Set game mode back to lobby to start fresh
@@ -1130,9 +1130,9 @@ function ChessApp() {
     setGameState(updatedGameState);
     setGameStatus(`${winner} wins! (Testing mode)`);
     
-    // Save game state to localStorage for multiplayer sync
+    // Save game state to database for multiplayer sync
     if (roomId) {
-      console.log('💾 Saving winner declaration to localStorage');
+      console.log('💾 Saving winner declaration to database');
       databaseMultiplayerState.saveGameState(roomId, updatedGameState);
     }
   };

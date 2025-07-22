@@ -10,7 +10,7 @@ import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
 import { Program, AnchorProvider, BN, web3 } from '@coral-xyz/anchor';
 import type { ChessEscrow } from '../idl/chess_escrow';
 import ChessEscrowIDL from '../idl/chess_escrow.json';
-import multiplayerState from '../services/multiplayerState';
+import databaseMultiplayerState from '../services/databaseMultiplayerState';
 import { CHESS_PROGRAM_ID, FEE_WALLET_ADDRESS } from '../config/solanaConfig';
 
 export interface SolanaWalletHook {
@@ -164,7 +164,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           .rpc();
         
         // Add to multiplayer state
-        multiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+        databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
         
         // Update balance after transactions (removed polling)
         // setTimeout(() => {
@@ -262,7 +262,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           .rpc();
         
         // Add to multiplayer state
-        multiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+        databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
         
         // Update balance after transactions (removed polling)
         // setTimeout(() => {
