@@ -18,6 +18,33 @@ import type { ChatMessage } from './components/ChatBox';
 import { ENV_CONFIG } from './config/appConfig';
 import { ChessEngine } from './engine/chessEngine';
 
+// Theme context
+interface ThemeContextType {
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
+  theme: {
+    background: string;
+    surface: string;
+    text: string;
+    textSecondary: string;
+    primary: string;
+    secondary: string;
+    accent: string;
+    border: string;
+    shadow: string;
+  };
+}
+
+const ThemeContext = React.createContext<ThemeContextType | undefined>(undefined);
+
+export const useTheme = () => {
+  const context = React.useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
+
 // Types
 type AppGameMode = 'menu' | 'lobby' | 'game';
 
@@ -56,8 +83,64 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// Main Chess App Component
+// Theme provider component
+const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true); // Default to dark mode
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  const theme = {
+    background: isDarkMode ? '#1a1a1a' : '#f5f5f5',
+    surface: isDarkMode ? '#2d2d2d' : '#ffffff',
+    text: isDarkMode ? '#ffffff' : '#2c3e50',
+    textSecondary: isDarkMode ? '#b0b0b0' : '#7f8c8d',
+    primary: isDarkMode ? '#3498db' : '#3498db',
+    secondary: isDarkMode ? '#27ae60' : '#27ae60',
+    accent: isDarkMode ? '#e74c3c' : '#e74c3c',
+    border: isDarkMode ? '#404040' : '#bdc3c7',
+    shadow: isDarkMode ? '0 2px 10px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.1)',
+  };
+
+  return (
+    <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode, theme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+// Dark mode toggle button component
+const DarkModeToggle: React.FC = () => {
+  const { isDarkMode, toggleDarkMode, theme } = useTheme();
+
+  return (
+    <button
+      onClick={toggleDarkMode}
+      style={{
+        padding: '8px 12px',
+        backgroundColor: theme.surface,
+        color: theme.text,
+        border: `2px solid ${theme.border}`,
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        transition: 'all 0.2s ease'
+      }}
+    >
+      {isDarkMode ? '☀️ Light' : '🌙 Dark'}
+    </button>
+  );
+};
+
 function ChessApp() {
+  // Get theme
+  const { theme } = useTheme();
+  
   // Solana wallet hook
   const { 
     publicKey, 
@@ -75,6 +158,7 @@ function ChessApp() {
   const [escrowCreated, setEscrowCreated] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
   const [winningsClaimed, setWinningsClaimed] = useState<boolean>(false);
+  const [appLoading, setAppLoading] = useState<boolean>(false);
   
   // Multiplayer state tracking
   const [opponentEscrowCreated, setOpponentEscrowCreated] = useState<boolean>(false);
@@ -464,97 +548,56 @@ function ChessApp() {
   };
 
   const handleJoinRoom = async () => {
-    if (!connected || !publicKey) {
+    if (!publicKey) {
       setGameStatus('Please connect your wallet first');
       return;
     }
-    
+
     const playerWallet = publicKey.toString();
     console.log('🎯 handleJoinRoom called with roomId:', roomId, 'playerWallet:', playerWallet);
-    
+
     try {
-      // If no room ID provided, create a new room
+      setGameStatus('Connecting to game...');
+      setAppLoading(true);
+
+      // If roomId is empty, we're creating a new room
       if (!roomId.trim()) {
-        const newRoomId = `ROOM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        // Generate a new room ID
+        const newRoomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
         console.log('🏗️ Creating new room with ID:', newRoomId);
+        setRoomId(newRoomId);
         
-        // Create room using database multiplayer state
+        // Create the room
         const role = await databaseMultiplayerState.createRoom(newRoomId, playerWallet);
-        console.log('📨 createRoom response:', role);
-        
         if (role) {
           setPlayerRole(role);
-          setRoomId(newRoomId); // Set room ID after successful creation
-          setGameStatus(`Room created: ${newRoomId} - You are ${role}. Share this ID with your opponent!`);
-          setGameMode('lobby'); // Proceed directly to lobby
-          console.log('✅ Room created successfully:', newRoomId);
+          setGameMode('lobby');
+          setGameStatus(`Room created! Share Room ID: ${newRoomId} with your opponent`);
         } else {
-          console.error('❌ Room creation failed');
           setGameStatus('Failed to create room');
-          return;
         }
       } else {
-        // Joining existing room
-        console.log('🚪 Joining existing room:', roomId);
+        // Joining an existing room
+        console.log('🔌 Joining existing room:', roomId);
         const role = await databaseMultiplayerState.joinRoom(roomId, playerWallet);
-        console.log('📨 joinRoom response:', role);
-        
         if (role) {
           setPlayerRole(role);
-          setGameStatus(`Joined room: ${roomId} - You are ${role}. Waiting for opponent...`);
-          console.log('✅ Successfully joined room:', roomId, 'as', role);
-          
-          // Check if game has already started or both escrows are ready
-          const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-          if (roomStatus) {
-            const escrowCount = Object.keys(roomStatus.escrows).length;
-            console.log('💰 Room escrow count:', escrowCount);
-            
-            // Only set escrow status if the current player has created their escrow
-            // Don't auto-start game until both players have actually created escrows
-            if (escrowCount >= 1) {
-              setOpponentEscrowCreated(true);
-            }
-            
-            // Only set both escrows ready if we have 2 escrows AND the game hasn't started yet
-            if (escrowCount >= 2 && !roomStatus.gameStarted) {
-              setBothEscrowsReady(true);
-              console.log('💰 Both escrows ready, game will start automatically...');
-              setGameStatus(`Both escrows ready! Game will start automatically...`);
-            }
-            
-            if (roomStatus.gameStarted) {
-              console.log('🎮 Game already started, loading game state...');
-              
-              // Load existing game state if available
-              const savedGameState = await databaseMultiplayerState.getGameState(roomId);
-              if (savedGameState) {
-                console.log('📥 Loading existing game state:', savedGameState);
-                setGameState(savedGameState);
-              }
-              
-              setTimeout(() => {
-                setGameMode('game');
-                setGameStatus(`Game in progress! You are ${role}.`);
-              }, 1000);
-            }
-          }
-          
           setGameMode('lobby');
+          setGameStatus(`Joined room as ${role}`);
         } else {
-          setGameStatus('Failed to join room. Room may not exist or be full.');
-          return;
+          setGameStatus('Failed to join room');
         }
       }
+
+      // Get room status
+      const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+      console.log('📊 Room status:', roomStatus);
+
     } catch (error) {
       console.error('❌ Error joining room:', error);
-      console.error('❌ Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        roomId: roomId,
-        playerWallet: playerWallet
-      });
-      setGameStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setGameStatus(`Error: ${error.message}`);
+    } finally {
+      setAppLoading(false);
     }
   };
 
@@ -1338,7 +1381,7 @@ function ChessApp() {
             setBetAmount={setBetAmount}
             balance={balance}
             connected={connected}
-            isLoading={isLoading}
+            isLoading={appLoading}
           />
         );
       
@@ -1352,7 +1395,7 @@ function ChessApp() {
             roomStatus={null}
             escrowCreated={escrowCreated}
             connected={connected}
-            isLoading={isLoading}
+            isLoading={appLoading}
             onCreateEscrow={handleCreateEscrow}
             onStartGame={handleStartGame}
             onBackToMenu={handleBackToMenu}
@@ -1374,7 +1417,7 @@ function ChessApp() {
             onStartNewGame={handleStartNewGameWithEscrow}
             onBackToMenu={handleBackToMenu}
             winningsClaimed={winningsClaimed}
-            isLoading={isLoading}
+            isLoading={appLoading}
             onDeclareWinner={handleDeclareWinner}
             onTestCheckmate={handleTestCheckmate}
             onTestCurrentBoard={handleTestCurrentBoard}
@@ -1391,20 +1434,23 @@ function ChessApp() {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      backgroundColor: '#f5f5f5',
-      fontFamily: 'Arial, sans-serif'
+      backgroundColor: theme.background,
+      fontFamily: 'Arial, sans-serif',
+      color: theme.text
     }}>
       {/* Header */}
       <div style={{
-        backgroundColor: '#2c3e50',
-        color: 'white',
+        backgroundColor: theme.surface,
+        color: theme.text,
         padding: '1rem',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        borderBottom: `1px solid ${theme.border}`
       }}>
         <h1 style={{ margin: 0, fontSize: '1.5rem' }}>♟️ Knightsbridge Chess</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <DarkModeToggle />
           <WalletMultiButton />
           <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>
             {gameStatus}
@@ -1432,7 +1478,9 @@ function App() {
       <ConnectionProvider endpoint={SOLANA_RPC_ENDPOINT}>
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
-            <ChessApp />
+            <ThemeProvider>
+              <ChessApp />
+            </ThemeProvider>
           </WalletModalProvider>
         </WalletProvider>
       </ConnectionProvider>

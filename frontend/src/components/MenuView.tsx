@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { useTheme } from '../App';
 
 export interface MenuViewProps {
   roomId: string;
@@ -26,138 +27,246 @@ export const MenuView: React.FC<MenuViewProps> = ({
   isLoading,
   onJoinRoom
 }) => {
-  // Check if user manually entered a room ID (joining) vs auto-generated (creating)
-  // If roomId is not empty, user is joining (regardless of format)
+  const { theme } = useTheme();
+  const presetBetAmounts = [0.01, 0.05, 0.1, 0.5, 1];
   const isJoining = roomId.trim() !== '';
   const isButtonDisabled = !connected || isLoading || (connected && balance < betAmount);
   const hasInsufficientBalance = connected && balance < betAmount;
 
+  const handleCreateRoom = () => {
+    // Generate a new room ID for creating
+    const newRoomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    setRoomId(newRoomId);
+    onJoinRoom();
+  };
+
   return (
-    <div style={{ textAlign: 'center' }}>
-      <h2>🎯 Game Setup</h2>
+    <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
       
-      {/* Room ID Input */}
-      <div style={{ marginBottom: '20px' }}>
-        <input
-          type="text"
-          placeholder="Room ID (leave empty to CREATE new room)"
-          value={roomId}
-          onChange={(e) => setRoomId(e.target.value)}
-          disabled={isLoading}
-          style={{
-            padding: '10px',
-            margin: '10px',
-            border: '1px solid #ccc',
-            borderRadius: '5px',
-            width: '300px',
-            fontSize: '16px'
-          }}
-        />
-        <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
-          <strong>Leave empty:</strong> Create new room (you'll be WHITE) - Room ID will be generated<br/>
-          <strong>Enter room ID:</strong> Join existing room (you'll be BLACK) - Get ID from White player
+      {/* Create Room Section */}
+      <div style={{ 
+        backgroundColor: theme.surface, 
+        padding: '30px', 
+        borderRadius: '10px', 
+        boxShadow: theme.shadow,
+        marginBottom: '30px',
+        border: `1px solid ${theme.border}`
+      }}>
+        <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Create A Room</h2>
+        
+        {/* Bet Amount Buttons */}
+        <div style={{ marginBottom: '25px' }}>
+          <h4 style={{ margin: '0 0 15px 0', color: theme.textSecondary }}>Choose Bet Amount:</h4>
+          <div style={{ 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: '10px', 
+            justifyContent: 'center' 
+          }}>
+            {presetBetAmounts.map((amount) => (
+              <button
+                key={amount}
+                onClick={() => setBetAmount(amount)}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: betAmount === amount ? theme.primary : theme.surface,
+                  color: betAmount === amount ? 'white' : theme.text,
+                  border: `2px solid ${theme.border}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {amount} SOL
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Bet Amount Input */}
-      <div style={{ marginBottom: '20px' }}>
-        <input
-          type="number"
-          placeholder="Bet Amount (SOL)"
-          value={betAmount}
-          onChange={(e) => setBetAmount(Number(e.target.value))}
-          step="0.1"
-          min="0.1"
-          disabled={isLoading}
-          style={{
-            padding: '10px',
-            margin: '10px',
-            border: '1px solid #ccc',
-            borderRadius: '5px',
-            width: '250px',
-            fontSize: '16px'
-          }}
-        />
-      </div>
-
-      {/* Balance Display */}
-      {connected && (
-        <div style={{ 
-          marginBottom: '20px', 
-          padding: '10px', 
-          backgroundColor: '#f8f9fa', 
-          borderRadius: '5px',
-          fontSize: '14px'
-        }}>
-          <strong>Your Balance:</strong> {balance.toFixed(3)} SOL
-        </div>
-      )}
-
-      {/* Join/Create Button */}
-      <button
-        onClick={onJoinRoom}
-        disabled={isButtonDisabled}
-        style={{
-          padding: '15px 30px',
-          backgroundColor: isButtonDisabled ? '#ccc' : '#4CAF50',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: isButtonDisabled ? 'not-allowed' : 'pointer',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          minWidth: '200px'
-        }}
-      >
-        {isLoading ? (
-          '⏳ Loading...'
-        ) : (
-          isJoining ? 'Join Room (Black)' : 'Create Room (White)'
+        {/* Balance Display */}
+        {connected && (
+          <div style={{ 
+            marginBottom: '20px', 
+            padding: '12px', 
+            backgroundColor: theme.background, 
+            borderRadius: '8px',
+            fontSize: '14px',
+            color: theme.textSecondary,
+            border: `1px solid ${theme.border}`
+          }}>
+            <strong>Your Balance:</strong> {balance.toFixed(3)} SOL
+          </div>
         )}
-      </button>
 
-      {/* Error Messages */}
-      {hasInsufficientBalance && connected && (
-        <div style={{ 
-          color: 'red', 
-          marginTop: '15px',
-          padding: '10px',
-          backgroundColor: '#ffebee',
-          borderRadius: '5px',
-          fontSize: '14px'
-        }}>
-          <strong>⚠️ Insufficient Balance!</strong><br/>
-          Need {betAmount} SOL, but you have {balance.toFixed(3)} SOL
-        </div>
-      )}
+        {/* Create Room Button */}
+        <button
+          onClick={handleCreateRoom}
+          disabled={isButtonDisabled || betAmount === 0}
+          style={{
+            padding: '15px 40px',
+            backgroundColor: (isButtonDisabled || betAmount === 0) ? theme.border : theme.secondary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: (isButtonDisabled || betAmount === 0) ? 'not-allowed' : 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            minWidth: '200px',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {isLoading ? '⏳ Creating...' : 'Create Room'}
+        </button>
 
-      {!connected && (
-        <div style={{ 
-          color: '#ff9800', 
-          marginTop: '15px',
-          padding: '10px',
-          backgroundColor: '#fff3e0',
-          borderRadius: '5px',
-          fontSize: '14px'
-        }}>
-          <strong>💡 Connect your wallet to continue</strong>
+        {/* Error Messages for Create Section */}
+        {hasInsufficientBalance && connected && (
+          <div style={{ 
+            color: theme.accent, 
+            marginTop: '15px',
+            padding: '10px',
+            backgroundColor: theme.background,
+            borderRadius: '8px',
+            fontSize: '14px',
+            border: `1px solid ${theme.accent}`
+          }}>
+            <strong>⚠️ Insufficient Balance!</strong><br/>
+            Need {betAmount} SOL, but you have {balance.toFixed(3)} SOL
+          </div>
+        )}
+
+        {!connected && (
+          <div style={{ 
+            color: '#f39c12', 
+            marginTop: '15px',
+            padding: '10px',
+            backgroundColor: theme.background,
+            borderRadius: '8px',
+            fontSize: '14px',
+            border: `1px solid #f39c12`
+          }}>
+            <strong>💡 Connect your wallet to create a room</strong>
+          </div>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        margin: '30px 0',
+        color: theme.textSecondary
+      }}>
+        <div style={{ flex: 1, height: '1px', backgroundColor: theme.border }}></div>
+        <span style={{ margin: '0 20px', fontSize: '18px', fontWeight: 'bold' }}>OR</span>
+        <div style={{ flex: 1, height: '1px', backgroundColor: theme.border }}></div>
+      </div>
+
+      {/* Join Room Section */}
+      <div style={{ 
+        backgroundColor: theme.surface, 
+        padding: '30px', 
+        borderRadius: '10px', 
+        boxShadow: theme.shadow,
+        border: `1px solid ${theme.border}`
+      }}>
+        <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Join A Room</h2>
+        
+        {/* Room ID Input */}
+        <div style={{ marginBottom: '25px' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '8px', 
+            fontSize: '16px', 
+            fontWeight: 'bold',
+            color: theme.text
+          }}>
+            Room ID:
+          </label>
+          <input
+            type="text"
+            placeholder="Enter Room ID from White player"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+            disabled={isLoading}
+            style={{
+              padding: '15px 20px',
+              border: `2px solid ${theme.border}`,
+              borderRadius: '8px',
+              width: '100%',
+              maxWidth: '400px',
+              fontSize: '16px',
+              textAlign: 'center',
+              backgroundColor: theme.background,
+              color: theme.text,
+              transition: 'border-color 0.2s ease'
+            }}
+          />
+          <div style={{ 
+            fontSize: '14px', 
+            color: theme.textSecondary, 
+            marginTop: '10px',
+            fontStyle: 'italic',
+            textAlign: 'center'
+          }}>
+            Get the Room ID from the White player who created the room
+          </div>
         </div>
-      )}
+
+        {/* Join Room Button */}
+        <button
+          onClick={onJoinRoom}
+          disabled={!connected || isLoading || !roomId.trim()}
+          style={{
+            padding: '15px 40px',
+            backgroundColor: (!connected || isLoading || !roomId.trim()) ? theme.border : theme.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: (!connected || isLoading || !roomId.trim()) ? 'not-allowed' : 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            minWidth: '200px',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {isLoading ? '⏳ Joining...' : 'Join Room'}
+        </button>
+
+        {/* Error Messages for Join Section */}
+        {!connected && (
+          <div style={{ 
+            color: '#f39c12', 
+            marginTop: '15px',
+            padding: '10px',
+            backgroundColor: theme.background,
+            borderRadius: '8px',
+            fontSize: '14px',
+            border: `1px solid #f39c12`
+          }}>
+            <strong>💡 Connect your wallet to join a room</strong>
+          </div>
+        )}
+      </div>
 
       {/* Instructions */}
       <div style={{ 
         marginTop: '30px', 
-        padding: '15px', 
-        backgroundColor: '#e3f2fd', 
-        borderRadius: '5px',
+        padding: '20px', 
+        backgroundColor: theme.background, 
+        borderRadius: '10px',
         fontSize: '14px',
-        textAlign: 'left'
+        textAlign: 'left',
+        border: `1px solid ${theme.border}`,
+        color: theme.text
       }}>
-        <h4 style={{ margin: '0 0 10px 0' }}>📋 How to Play:</h4>
-        <ul style={{ margin: 0, paddingLeft: '20px' }}>
-          <li><strong>Create Room:</strong> Leave room ID empty to start a new game as White</li>
-          <li><strong>Join Room:</strong> Enter a room ID to join as Black</li>
-          <li><strong>Escrow:</strong> Both players must create escrows to start the game</li>
+        <h4 style={{ margin: '0 0 15px 0', color: theme.text }}>📋 How to Play:</h4>
+        <ul style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
+          <li><strong>Create Room:</strong> Choose bet amount and create a new game as White</li>
+          <li><strong>Share Room ID:</strong> Share the generated Room ID with your opponent</li>
+          <li><strong>Join Room:</strong> Enter the Room ID to join as Black</li>
+          <li><strong>Create Escrows:</strong> Both players must create escrows to start the game</li>
           <li><strong>Winner Takes All:</strong> Winner gets both escrows (minus fees)</li>
           <li><strong>Draw:</strong> Both players get their escrow back</li>
         </ul>
