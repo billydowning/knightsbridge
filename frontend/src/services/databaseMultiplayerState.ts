@@ -61,6 +61,7 @@ class DatabaseMultiplayerStateManager {
   private callbacks: Map<string, Set<(data: any) => void>> = new Map();
   private rooms: Map<string, GameRoom> = new Map();
   private serverUrl: string;
+  private isConnecting: boolean = false; // Add connection state tracking
 
   constructor() {
     this.serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridge-production.up.railway.app';
@@ -75,15 +76,28 @@ class DatabaseMultiplayerStateManager {
       return;
     }
 
+    if (this.isConnecting) {
+      console.log('⏳ Connection already in progress, waiting...');
+      // Wait for current connection attempt to complete
+      while (this.isConnecting) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return;
+    }
+
+    this.isConnecting = true;
+
     try {
       console.log('🔌 Connecting to server:', this.serverUrl);
       this.socket = io(this.serverUrl, {
-        transports: ['websocket', 'polling'],
-        timeout: 10000,
+        transports: ['websocket'], // Only use websocket, not polling
+        timeout: 15000, // Increase timeout
         reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000
+        reconnectionAttempts: 3, // Reduce attempts
+        reconnectionDelay: 2000, // Increase delay
+        reconnectionDelayMax: 10000, // Increase max delay
+        forceNew: false, // Don't force new connections
+        autoConnect: true
       });
 
       this.socket.on('connect', () => {
@@ -92,11 +106,7 @@ class DatabaseMultiplayerStateManager {
 
       this.socket.on('disconnect', (reason) => {
         console.log('❌ Disconnected from server:', reason);
-        if (reason === 'io server disconnect') {
-          // Server disconnected us, try to reconnect
-          console.log('🔄 Server disconnected, attempting to reconnect...');
-          this.socket?.connect();
-        }
+        // Don't manually reconnect, let Socket.io handle it
       });
 
       this.socket.on('reconnect', (attemptNumber) => {
@@ -152,6 +162,8 @@ class DatabaseMultiplayerStateManager {
     } catch (error) {
       console.error('❌ Failed to connect to server:', error);
       throw error;
+    } finally {
+      this.isConnecting = false;
     }
   }
 
@@ -183,9 +195,11 @@ class DatabaseMultiplayerStateManager {
    */
   disconnect(): void {
     if (this.socket) {
+      console.log('🔌 Disconnecting from server');
       this.socket.disconnect();
       this.socket = null;
     }
+    this.isConnecting = false; // Reset connection state
   }
 
   /**

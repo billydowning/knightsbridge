@@ -824,19 +824,23 @@ io.on('connection', (socket) => {
         await pool.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
         
         // Broadcast game started event to ALL players in the room
+        console.log('📢 Broadcasting gameStarted event to room:', roomId);
         io.to(roomId).emit('gameStarted', { 
           roomId, 
           players: [currentPlayers.player_white_wallet, currentPlayers.player_black_wallet]
         });
         
         // Also emit room updated event
+        console.log('📢 Broadcasting roomUpdated event to room:', roomId);
         io.to(roomId).emit('roomUpdated', { roomId, gameState: 'active' });
         
         console.log('✅ Game started event broadcasted to room:', roomId);
       } else {
         console.log('⏳ Game not ready yet:', {
           bothPlayersPresent: !!(currentPlayers?.player_white_wallet && currentPlayers?.player_black_wallet),
-          escrowCount: escrows.length
+          escrowCount: escrows.length,
+          whiteWallet: currentPlayers?.player_white_wallet,
+          blackWallet: currentPlayers?.player_black_wallet
         });
       }
       
