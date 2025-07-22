@@ -5,12 +5,10 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
+const socketIo = require('socket.io');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const { dbService } = require('./database');
-const fs = require('fs');
-const path = require('path');
+const { pool, testConnection, roomService, chatService } = require('./database');
 
 console.log('🚀 Starting Knightsbridge Chess Backend Server...');
 console.log('📋 Environment:', process.env.NODE_ENV);
@@ -18,6 +16,21 @@ console.log('🔧 Debug mode:', process.env.DEBUG);
 
 const app = express();
 const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: ["http://localhost:5173", "https://knightsbridge.vercel.app"],
+    methods: ["GET", "POST"]
+  }
+});
+
+// Test database connection on startup
+testConnection().then(success => {
+  if (success) {
+    console.log('✅ Database connection established');
+  } else {
+    console.error('❌ Database connection failed');
+  }
+});
 
 // CORS configuration
 app.use(cors({
@@ -27,17 +40,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Socket.io setup
-const io = new Server(server, {
-  cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app']
-      : '*',
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
-});
-
+// Socket.io setup (already configured above)
 console.log('🚀 Socket.io server initialized with CORS origins:', process.env.NODE_ENV === 'production' 
   ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app']
   : '*');
@@ -131,6 +134,43 @@ app.get('/debug/clear', (req, res) => {
     clearedRooms: roomCount,
     currentRooms: 0
   });
+});
+
+// Deploy database schema
+app.get('/deploy-schema', async (req, res) => {
+  try {
+    console.log('🏗️ Deploying database schema...');
+    
+    // Read the schema file
+    const fs = require('fs');
+    const path = require('path');
+    const schemaPath = path.join(__dirname, '../database_schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    
+    // Split into individual statements
+    const statements = schema.split(';').filter(stmt => stmt.trim());
+    
+    // Execute each statement
+    for (const statement of statements) {
+      if (statement.trim()) {
+        await pool.query(statement);
+        console.log('✅ Executed schema statement');
+      }
+    }
+    
+    console.log('✅ Database schema deployed successfully');
+    res.json({ 
+      success: true, 
+      message: 'Database schema deployed successfully',
+      statementsExecuted: statements.length
+    });
+  } catch (error) {
+    console.error('❌ Error deploying schema:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
 });
 
 // Game state management
