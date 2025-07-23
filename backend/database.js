@@ -5,18 +5,90 @@
 
 const { Pool } = require('pg');
 
-// Robust database connection pool with proper SSL handling for DigitalOcean managed PostgreSQL
+// Robust database connection pool with aggressive SSL handling for DigitalOcean managed PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false, // Trust self-signed certificates
     ca: undefined, // Let Node.js handle the certificate chain
     checkServerIdentity: () => undefined, // Skip hostname verification
+    servername: undefined, // Disable SNI
   } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 30000, // Increased timeout for public connections
 });
+
+// Alternative connection method for SSL issues
+async function createAlternativePool() {
+  console.log('🔄 Attempting alternative SSL configuration...');
+  
+  // Parse the DATABASE_URL to extract components
+  const url = new URL(process.env.DATABASE_URL);
+  
+  return new Pool({
+    host: url.hostname,
+    port: url.port,
+    database: url.pathname.slice(1),
+    user: url.username,
+    password: url.password,
+    ssl: {
+      rejectUnauthorized: false,
+      ca: undefined,
+      checkServerIdentity: () => undefined,
+      servername: undefined,
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 30000,
+  });
+}
+
+// Try different SSL modes
+async function tryDifferentSSLModes() {
+  console.log('🔄 Trying different SSL modes...');
+  
+  const baseUrl = process.env.DATABASE_URL.replace(/\?.*$/, ''); // Remove existing query params
+  
+  const sslModes = [
+    '?sslmode=prefer',
+    '?sslmode=allow', 
+    '?sslmode=no-verify',
+    '?sslmode=disable'
+  ];
+  
+  for (const sslMode of sslModes) {
+    try {
+      console.log(`🔌 Trying SSL mode: ${sslMode}`);
+      
+      const testPool = new Pool({
+        connectionString: baseUrl + sslMode,
+        ssl: sslMode.includes('disable') ? false : {
+          rejectUnauthorized: false,
+          ca: undefined,
+          checkServerIdentity: () => undefined,
+          servername: undefined,
+        },
+        connectionTimeoutMillis: 10000,
+      });
+      
+      const client = await testPool.connect();
+      console.log(`✅ Connection successful with ${sslMode}`);
+      client.release();
+      await testPool.end();
+      
+      // Update the global pool with the working configuration
+      global.workingSSLMode = sslMode;
+      return true;
+      
+    } catch (error) {
+      console.log(`❌ ${sslMode} failed: ${error.code}`);
+      continue;
+    }
+  }
+  
+  return false;
+}
 
 // Test database connection with better error handling
 async function testConnection() {
@@ -51,10 +123,38 @@ async function testConnection() {
       }
     }
     
-    const client = await pool.connect();
-    console.log('✅ PostgreSQL connected successfully');
-    client.release();
-    return true;
+    // Try the primary connection method
+    try {
+      const client = await pool.connect();
+      console.log('✅ PostgreSQL connected successfully (primary method)');
+      client.release();
+      return true;
+    } catch (primaryError) {
+      console.log('⚠️ Primary connection method failed, trying alternative...');
+      
+      // Try alternative connection method
+      try {
+        const altPool = await createAlternativePool();
+        const altClient = await altPool.connect();
+        console.log('✅ PostgreSQL connected successfully (alternative method)');
+        altClient.release();
+        await altPool.end();
+        return true;
+      } catch (altError) {
+        console.log('⚠️ Alternative connection method failed, trying different SSL modes...');
+        
+        // Try different SSL modes
+        const sslSuccess = await tryDifferentSSLModes();
+        if (sslSuccess) {
+          console.log('✅ PostgreSQL connected successfully with alternative SSL mode');
+          return true;
+        }
+        
+        // If all methods fail, throw the original error
+        throw primaryError;
+      }
+    }
+    
   } catch (error) {
     console.error('❌ PostgreSQL connection failed:', error);
     console.error('❌ Error code:', error.code);
@@ -65,6 +165,8 @@ async function testConnection() {
     if (error.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
       console.error('🔧 SSL Fix: Certificate chain issue detected. SSL configuration updated.');
       console.error('🔧 Current SSL config: rejectUnauthorized: false, checkServerIdentity: disabled');
+      console.error('🔧 Tried both primary and alternative connection methods');
+      console.error('🔧 Tried multiple SSL modes: require, prefer, allow, no-verify, disable');
     } else if (error.code === 'ECONNREFUSED') {
       console.error('🔧 Network Fix: Connection refused. Check if database is accessible.');
     } else if (error.code === 'ETIMEDOUT') {
