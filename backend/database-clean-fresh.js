@@ -1,48 +1,33 @@
 /**
  * Database Connection and Services
  * PostgreSQL integration for Knightsbridge Chess
- * Updated for DigitalOcean App Platform with proper CA certificate handling
+ * Clean setup for DigitalOcean App Platform
  */
 
 const { Pool } = require('pg');
 
-// Load the CA cert from environment variable (set in DO App Platform)
-let caCert = process.env.DATABASE_CA_CERT;
-
-// Handle unresolved bindable variable
-if (caCert && caCert.startsWith('${') && caCert.endsWith('}')) {
-  console.log('⚠️ DATABASE_CA_CERT bindable variable not resolved, using fallback');
-  caCert = undefined;
-}
+// Load the CA cert from environment variable (automatically set by DigitalOcean)
+const caCert = process.env.DATABASE_CA_CERT;
 
 if (!caCert) {
-  console.error('❌ DATABASE_CA_CERT environment variable is not set. Cannot establish secure DB connection.');
-  console.log('⚠️ Will attempt connection without CA certificate');
+  console.log('⚠️ DATABASE_CA_CERT not set, using default SSL configuration');
 } else {
-  console.log('✅ CA certificate loaded from environment variable.');
-}
-
-// Handle unresolved DATABASE_URL bindable variable
-let databaseUrl = process.env.DATABASE_URL;
-if (databaseUrl && databaseUrl.startsWith('${') && databaseUrl.endsWith('}')) {
-  console.log('⚠️ DATABASE_URL bindable variable not resolved, using fallback');
-  // Use the actual database URL as fallback
-  databaseUrl = 'postgresql://doadmin:AVNS_fRXUfSA9O-17TDkW1-G@db-postgresql-nyc3-28092-do-user-24118504-0.f.db.ondigitalocean.com:25060/defaultdb';
+  console.log('✅ CA certificate loaded from environment variable');
 }
 
 // Create the connection pool with SSL config
 const pool = new Pool({
-  connectionString: databaseUrl,  // Already set with sslmode=require
+  connectionString: process.env.DATABASE_URL,  // Automatically set by DigitalOcean
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: true,  // Enforce verification for security
-    ca: caCert  // Use the env var content directly (it's the full cert string)
+    ca: caCert  // Use the CA certificate if available
   } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 30000,
 });
 
-// Test connection function (as referenced in server.js)
+// Test connection function
 async function testConnection() {
   try {
     console.log('🔌 Attempting to connect to PostgreSQL...');
@@ -62,11 +47,7 @@ async function testConnection() {
     // Provide specific guidance for SSL errors
     if (error.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
       console.error('🔧 SSL Fix: Certificate chain issue detected.');
-      console.error('🔧 Solution: Set DATABASE_CA_CERT environment variable in DigitalOcean App Platform.');
-      console.error('🔧 Steps:');
-      console.error('   1. Go to App Platform > Settings > Environment Variables');
-      console.error('   2. Add DATABASE_CA_CERT with value from your database bindable variables');
-      console.error('   3. Redeploy the application');
+      console.error('🔧 Solution: Ensure DATABASE_CA_CERT is set in environment variables');
     }
     
     return false;

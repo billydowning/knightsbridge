@@ -3,8 +3,7 @@
 // Optimized for stable WebSocket connections
 require('dotenv').config();
 
-// Debug environment variables at startup
-require('./debug-env.js');
+
 
 const express = require('express');
 const http = require('http');
