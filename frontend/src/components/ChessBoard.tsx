@@ -3,8 +3,10 @@
  * Displays an interactive chess board with legal move highlighting, animations, and improved UX
  */
 
-import React, { useState } from 'react';
-import ChessEngine from '../engine/chessEngine';
+import React, { useMemo, useCallback } from 'react';
+import { ChessEngine } from '../engine/chessEngine';
+import { useChessOptimizations } from '../hooks/useChessOptimizations';
+import { useRenderPerformance } from '../utils/performance';
 import type { GameState, Position } from '../types';
 
 export interface ChessBoardProps {
@@ -33,7 +35,7 @@ interface SquareProps {
 /**
  * Individual chess square component with enhanced styling
  */
-const ChessSquare: React.FC<SquareProps> = ({
+const ChessSquare: React.FC<SquareProps> = React.memo(({
   square,
   piece,
   isLight,
@@ -44,23 +46,23 @@ const ChessSquare: React.FC<SquareProps> = ({
   onClick,
   disabled = false
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
 
-  const getBackgroundColor = (): string => {
+  const getBackgroundColor = useCallback((): string => {
     if (isInCheck) return '#ff6b6b';
     if (isSelected) return '#ffd700';
     if (isLastMove) return '#ffeb3b';
     if (isLegalMove) return isHovered ? '#7cb342' : '#90EE90';
     if (isHovered) return isLight ? '#e8d5b5' : '#a67c53';
     return isLight ? '#f0d9b5' : '#b58863';
-  };
+  }, [isInCheck, isSelected, isLastMove, isLegalMove, isHovered, isLight]);
 
-  const getCursor = (): string => {
+  const getCursor = useCallback((): string => {
     if (disabled) return 'not-allowed';
     return 'pointer';
-  };
+  }, [disabled]);
 
-  const getPieceStyle = (): React.CSSProperties => {
+  const getPieceStyle = useCallback((): React.CSSProperties => {
     const baseStyle: React.CSSProperties = {
       fontSize: '2.5rem',
       fontWeight: 'bold',
@@ -74,7 +76,7 @@ const ChessSquare: React.FC<SquareProps> = ({
     }
 
     return baseStyle;
-  };
+  }, [isHovered, disabled]);
 
   return (
     <div
@@ -99,154 +101,138 @@ const ChessSquare: React.FC<SquareProps> = ({
       }}
       title={`${square}${piece ? ` - ${piece}` : ''}`}
       role="button"
-      aria-label={`${square}${piece ? ` with ${piece}` : ' empty'}`}
       tabIndex={disabled ? -1 : 0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      }}
+      aria-label={`${square}${piece ? ` - ${piece}` : ' - empty square'}`}
+      aria-pressed={isSelected}
     >
-      <span style={getPieceStyle()}>
-        {piece}
-      </span>
-      
-      {/* Legal move indicator for empty squares */}
+      {piece && (
+        <span style={getPieceStyle()}>
+          {piece}
+        </span>
+      )}
       {isLegalMove && !piece && (
-        <div 
+        <div
           style={{
-            position: 'absolute',
             width: '20px',
             height: '20px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(0, 128, 0, 0.6)',
-            border: '2px solid rgba(0, 128, 0, 0.8)',
-            animation: 'pulse 1.5s infinite',
-          }} 
-          aria-label="Legal move"
-        />
-      )}
-      
-      {/* Capture indicator for occupied squares */}
-      {isLegalMove && piece && (
-        <div 
-          style={{
-            position: 'absolute',
-            top: '2px',
-            right: '2px',
-            width: '15px',
-            height: '15px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(255, 0, 0, 0.6)',
-            border: '2px solid rgba(255, 0, 0, 0.8)',
-            animation: 'pulse 1.5s infinite',
+            backgroundColor: 'rgba(0, 255, 0, 0.5)',
+            border: '2px solid rgba(0, 255, 0, 0.8)',
           }}
-          aria-label="Capture move"
         />
       )}
-
-      {/* Square label for accessibility */}
-      <span 
-        style={{
-          position: 'absolute',
-          bottom: '2px',
-          right: '2px',
-          fontSize: '8px',
-          color: isLight ? '#b58863' : '#f0d9b5',
-          fontWeight: 'bold',
-        }}
-      >
-        {square}
-      </span>
     </div>
   );
-};
+});
+
+ChessSquare.displayName = 'ChessSquare';
 
 /**
- * Chess Board Component with Move Hints
- * Displays a complete chess board with legal move highlighting
+ * Main chess board component with performance optimizations
  */
-export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({ 
-  position, 
-  onSquareClick, 
-  selectedSquare, 
-  orientation = 'white', 
-  gameState, 
+export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
+  position,
+  onSquareClick,
+  selectedSquare,
+  orientation = 'white',
+  gameState,
   playerRole,
-  disabled = false
+  disabled = false,
+  lastMove
 }) => {
-  const files = orientation === 'white' 
-    ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];
-  const ranks = orientation === 'white' 
-    ? ['8', '7', '6', '5', '4', '3', '2', '1'] 
-    : ['1', '2', '3', '4', '5', '6', '7', '8'];
-  
-  // Get legal moves for selected piece
-  const legalMoves = selectedSquare && gameState ? 
-    ChessEngine.getLegalMoves(position, gameState.currentPlayer, gameState)
-      .filter(move => move.from === selectedSquare)
-      .map(move => move.to) : [];
+  // Performance monitoring
+  useRenderPerformance('ChessBoard');
 
-  /**
-   * Render all squares of the chess board
-   */
-  const renderBoard = (): React.ReactElement[] => {
-    const squares: React.ReactElement[] = [];
-    const kingSquare = ChessEngine.findKing(position, gameState?.currentPlayer || 'white');
-    const isKingInCheck = gameState?.inCheck && kingSquare;
+  // Chess optimizations
+  const { validateMove, getLegalMovesForSquare } = useChessOptimizations(gameState);
+
+  // Memoize the board squares to prevent unnecessary re-renders
+  const boardSquares = useMemo(() => {
+    const squares = [];
+    const files = orientation === 'white' 
+      ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+      : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];
+    const ranks = orientation === 'white' 
+      ? ['8', '7', '6', '5', '4', '3', '2', '1'] 
+      : ['1', '2', '3', '4', '5', '6', '7', '8'];
     
-    // Render squares in the correct order for the orientation
-    for (let rank of ranks) {
-      for (let file of files) {
-        const square = file + rank;
-        const piece = position[square] || '';
-        const isLight = (files.indexOf(file) + parseInt(rank)) % 2 === 0;
-        const isSelected = selectedSquare === square;
-        const isLegalMove = legalMoves.includes(square);
-        const isInCheck = Boolean(isKingInCheck && square === kingSquare);
-        const isLastMove: boolean = gameState?.lastMove ? (gameState.lastMove.from === square || gameState.lastMove.to === square) : false;
+    for (let rankIndex = 0; rankIndex < 8; rankIndex++) {
+      const rank = ranks[rankIndex];
+      for (let fileIndex = 0; fileIndex < 8; fileIndex++) {
+        const file = files[fileIndex];
+        const square = `${file}${rank}`;
+        const piece = position[square];
         
-        squares.push(
-          <ChessSquare
-            key={square}
-            square={square}
-            piece={piece}
-            isLight={isLight}
-            isSelected={isSelected}
-            isLegalMove={isLegalMove}
-            isInCheck={isInCheck}
-            isLastMove={isLastMove}
-            onClick={() => onSquareClick(square)}
-            disabled={disabled}
-          />
-        );
+        // Determine square color
+        const isLightSquare = (fileIndex + rankIndex) % 2 === 0;
+        
+        // Determine if square is selected, legal move, or last move
+        const isSelected = selectedSquare === square;
+        const isLegalMove = getLegalMovesForSquare(selectedSquare || '').some(move => move.to === square);
+        const isLastMove = lastMove ? (lastMove.from === square || lastMove.to === square) : false;
+        const isInCheck = gameState.inCheck && ChessEngine.isKing(piece);
+        
+        squares.push({
+          square,
+          piece,
+          isLight: isLightSquare,
+          isSelected,
+          isLegalMove,
+          isInCheck,
+          isLastMove
+        });
       }
     }
-    
     return squares;
-  };
+  }, [position, selectedSquare, orientation, lastMove, gameState.inCheck, getLegalMovesForSquare]);
+
+  // Memoize click handler to prevent unnecessary re-renders
+  const handleSquareClick = useCallback((square: string) => {
+    if (!disabled) {
+      onSquareClick(square);
+    }
+  }, [onSquareClick, disabled]);
+
+  const renderBoard = useCallback((): React.ReactElement[] => {
+    return boardSquares.map(({ square, piece, isLight, isSelected, isLegalMove, isInCheck, isLastMove }) => (
+      <ChessSquare
+        key={square}
+        square={square}
+        piece={piece}
+        isLight={isLight}
+        isSelected={isSelected}
+        isLegalMove={isLegalMove}
+        isInCheck={isInCheck}
+        isLastMove={isLastMove}
+        onClick={() => handleSquareClick(square)}
+        disabled={disabled}
+      />
+    ));
+  }, [boardSquares, handleSquareClick, disabled]);
 
   return (
-    <div 
-      style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(8, 60px)', 
-        gridTemplateRows: 'repeat(8, 60px)',
-        border: '4px solid #333',
-        margin: '20px 0',
+    <div
+      className="chess-board"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(8, 1fr)',
+        width: '480px',
+        height: '480px',
+        border: '3px solid #333',
         borderRadius: '8px',
         overflow: 'hidden',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+        backgroundColor: '#333',
       }}
       role="grid"
-      aria-label={`Chess board, ${orientation} perspective`}
+      aria-label="Chess board"
     >
       {renderBoard()}
     </div>
   );
 });
+
+ChessBoard.displayName = 'ChessBoard';
 
 /**
  * Board with rank and file labels

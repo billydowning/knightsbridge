@@ -3,5 +3,15 @@
  * Exports all custom hooks for easy importing
  */
 
-export { useGameState, type GameStateHook, type MoveResult } from './useGameState';
-export { useSolanaWallet, type SolanaWalletHook } from './useSolanaWallet';
+// Core hooks
+export { useTheme } from './useTheme';
+export { useSolanaWallet } from './useSolanaWallet';
+export { useGameState } from './useGameState';
+export { useWebSocket } from './useWebSocket';
+
+// Performance optimization hooks
+export { 
+  useChessOptimizations, 
+  useDebounce, 
+  useThrottle 
+} from './useChessOptimizations';

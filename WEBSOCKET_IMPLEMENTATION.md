@@ -59,153 +59,14 @@ socket.on('chatError', { error: string })
 ### **Game Control Events**
 ```typescript
 // Client → Server
-socket.emit('playerReady', { gameId, playerId, color })
-socket.emit('resignGame', { gameId, playerId, color })
-socket.emit('offerDraw', { gameId, playerId, color })
-socket.emit('respondToDraw', { gameId, accepted })
+socket.emit('resignGame', { gameId, playerId })
+socket.emit('offerDraw', { gameId, playerId })
+socket.emit('respondToDraw', { gameId, playerId, accept: boolean })
 
 // Server → Client
-socket.on('gameResigned', { playerId, color, winner })
-socket.on('drawOffered', { playerId, color })
-socket.on('drawResponse', { accepted })
-```
-
-## 🎮 Features Implemented
-
-### **1. Real-Time Chat System**
-- ✅ **Message persistence** in PostgreSQL database
-- ✅ **Message validation** (length, content)
-- ✅ **Message types** (chat, system, draw_offer, resignation)
-- ✅ **Real-time delivery** to all players in game
-- ✅ **Chat history** loading on game join
-- ✅ **Message timestamps** and player identification
-
-### **2. Live Move Synchronization**
-- ✅ **Turn validation** (prevents out-of-turn moves)
-- ✅ **Move broadcasting** to opponent
-- ✅ **Move confirmation** to sender
-- ✅ **Move persistence** in database
-- ✅ **Game state management** with turn tracking
-- ✅ **Move history** with timestamps
-
-### **3. Player Management**
-- ✅ **Automatic color assignment** (first = white, second = black)
-- ✅ **Player ready status** tracking
-- ✅ **Disconnection detection** and notification
-- ✅ **Session management** with cleanup
-- ✅ **Game start** when both players join
-
-### **4. Game Controls**
-- ✅ **Resignation** with winner determination
-- ✅ **Draw offers** with accept/decline
-- ✅ **Game state requests** and synchronization
-- ✅ **Connection status** monitoring
-- ✅ **Error handling** and user feedback
-
-## 🗄️ Database Schema
-
-### **Chat Messages Table**
-```sql
-CREATE TABLE chat_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    game_id UUID REFERENCES games(id) ON DELETE CASCADE,
-    player_id VARCHAR(255) NOT NULL,
-    player_name VARCHAR(100),
-    message TEXT NOT NULL,
-    message_type VARCHAR(50) DEFAULT 'chat',
-    is_deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-### **Database Service Methods**
-```typescript
-// Add chat message
-async addChatMessage(gameId: string, messageData: {
-  playerId: string;
-  playerName: string;
-  message: string;
-  messageType?: string;
-})
-
-// Get chat history
-async getChatMessages(gameId: string, limit?: number)
-
-// Add move to database
-async addMove(gameId: string, moveData: {
-  from: string;
-  to: string;
-  piece: string;
-  playerId: string;
-  color: string;
-  moveNumber?: number;
-})
-```
-
-## 🎯 Frontend Integration
-
-### **React Hook** (`useWebSocket`)
-```typescript
-const {
-  isConnected,
-  messages,
-  gameState,
-  assignedColor,
-  isMyTurn,
-  error,
-  sendMessage,
-  makeMove,
-  playerReady,
-  resignGame,
-  offerDraw,
-  respondToDraw
-} = useWebSocket({
-  gameId: roomId,
-  playerId,
-  playerName,
-  onMoveReceived: (move) => {
-    // Handle incoming move
-  },
-  onChatMessage: (message) => {
-    // Handle new chat message
-  }
-});
-```
-
-### **Chat Component** (`GameChat`)
-- ✅ **Real-time message display**
-- ✅ **Message input** with validation
-- ✅ **Auto-scroll** to latest messages
-- ✅ **Message types** with different styling
-- ✅ **Connection status** indicator
-- ✅ **Error handling** and display
-
-### **Enhanced Game View** (`GameViewEnhanced`)
-- ✅ **WebSocket integration** with chat sidebar
-- ✅ **Connection status** display
-- ✅ **Player color** assignment display
-- ✅ **Opponent disconnection** alerts
-- ✅ **Draw offer** handling
-- ✅ **Real-time game controls**
-
-## 🔧 Configuration
-
-### **Backend Environment Variables**
-```env
-# WebSocket Server
-PORT=3001
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=knightsbridge_chess
-DB_USER=postgres
-DB_PASSWORD=password
-```
-
-### **Frontend Environment Variables**
-```env
-# WebSocket Client
-REACT_APP_WEBSOCKET_URL=http://localhost:3001
+socket.on('gameResigned', { winner: string, reason: string })
+socket.on('drawOffered', { offeredBy: string })
+socket.on('drawResponse', { accepted: boolean })
 ```
 
 ## 🚀 Usage Examples
@@ -342,8 +203,8 @@ The WebSocket implementation provides a **robust, scalable foundation** for real
 - ✅ **Real-time move synchronization**
 - ✅ **Live chat communication**
 - ✅ **Player management** and session handling
-- ✅ **Game state** persistence and validation
-- ✅ **Error handling** and user feedback
-- ✅ **Scalable architecture** for future enhancements
+- ✅ **Error recovery** and reconnection
+- ✅ **Security** and input validation
+- ✅ **Performance optimization** for smooth gameplay
 
-This implementation creates a **seamless multiplayer experience** that rivals modern chess platforms while maintaining the blockchain integration for secure, trustless gameplay. 
+The system is now deployed on **DigitalOcean App Platform** with **managed PostgreSQL database**, providing reliable and scalable infrastructure for the chess application. 

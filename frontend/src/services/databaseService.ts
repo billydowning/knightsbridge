@@ -3,7 +3,7 @@
  * Handles all API calls to the backend database
  */
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://knightsbridgeapp-production.up.railway.app') + '/api';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://knightsbridge-vtfhf.ondigitalocean.app') + '/api';
 
 export interface User {
   id: string;

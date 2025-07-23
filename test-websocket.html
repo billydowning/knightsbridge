@@ -114,7 +114,7 @@
         }
 
         function connect() {
-            socket = io('http://localhost:3001');
+            socket = io('https://knightsbridge-vtfhf.ondigitalocean.app');
             
             socket.on('connect', () => {
                 updateStatus(true);

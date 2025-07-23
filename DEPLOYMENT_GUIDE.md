@@ -1,7 +1,24 @@
 # 🚀 Knightsbridge Chess - Deployment Guide
 
 ## Overview
-This guide covers deploying the Knightsbridge Chess game with WebSocket functionality for real-time multiplayer gameplay.
+This guide covers the deployment of Knightsbridge Chess on DigitalOcean App Platform (backend) and Vercel (frontend).
+
+## 🔗 **Current Deployment URLs**
+
+### **Backend (DigitalOcean App Platform)**
+- **URL**: `https://knightsbridge-vtfhf.ondigitalocean.app`
+- **Health Check**: `https://knightsbridge-vtfhf.ondigitalocean.app/health`
+- **Database Schema**: `https://knightsbridge-vtfhf.ondigitalocean.app/deploy-schema`
+
+### **Frontend (Vercel)**
+- **URL**: `https://knightsbridge-chess.vercel.app`
+- **Environment**: Production
+
+### **Database (DigitalOcean Managed PostgreSQL)**
+- **Type**: Managed PostgreSQL
+- **Region**: NYC3
+- **Version**: PostgreSQL 15
+- **SSL**: Required (VPC networking)
 
 ## 🏗️ Architecture
 
@@ -10,55 +27,50 @@ This guide covers deploying the Knightsbridge Chess game with WebSocket function
 - Vite build system
 - WebSocket client for real-time communication
 
-### Backend (Railway/Render)
+### Backend (DigitalOcean)
 - Node.js + Express
 - Socket.io for WebSocket server
-- PostgreSQL database
+- PostgreSQL database (DigitalOcean managed)
 
 ## 📋 Prerequisites
 
 1. **Vercel Account** - for frontend deployment
-2. **Railway/Render Account** - for backend deployment
-3. **PostgreSQL Database** - for game data persistence
+2. **DigitalOcean Account** - for backend deployment
+3. **PostgreSQL Database** - DigitalOcean managed database
 4. **Environment Variables** - configured for production
 
 ## 🚀 Deployment Steps
 
-### Step 1: Backend Deployment (Railway)
+### Step 1: Backend Deployment (DigitalOcean)
 
-1. **Create Railway Account**
-   ```bash
-   # Install Railway CLI
-   npm install -g @railway/cli
-   railway login
-   ```
+1. **Create DigitalOcean App Platform**
+   - Connect your GitHub repository
+   - Choose Node.js buildpack
+   - Configure environment variables
 
 2. **Deploy Backend**
    ```bash
-   cd backend
-   railway init
-   railway up
+   # The app will auto-deploy from GitHub
+   git push origin main
    ```
 
 3. **Configure Environment Variables**
    ```bash
-   railway variables set NODE_ENV=production
-   railway variables set DATABASE_URL=your_postgresql_url
-   railway variables set PORT=3001
+   # In DigitalOcean App Platform dashboard
+   DATABASE_URL=postgresql://doadmin:password@private-host:port/database?sslmode=require
+   NODE_ENV=production
+   PORT=8080
    ```
 
 4. **Get Backend URL**
-   ```bash
-   railway domain
-   # Copy the URL (e.g., https://your-app.railway.app)
-   ```
+   - DigitalOcean provides: `https://your-app.ondigitalocean.app`
 
 ### Step 2: Frontend Deployment (Vercel)
 
 1. **Update WebSocket URL**
    ```typescript
    // frontend/src/hooks/useWebSocket.ts
-   const newSocket = io('https://your-backend-url.railway.app', {
+   const newSocket = io('https://your-app.ondigitalocean.app', {
      transports: ['websocket', 'polling']
    });
    ```
@@ -72,19 +84,19 @@ This guide covers deploying the Knightsbridge Chess game with WebSocket function
 
 3. **Configure Environment Variables**
    ```bash
-   vercel env add REACT_APP_BACKEND_URL https://your-backend-url.railway.app
+   vercel env add VITE_BACKEND_URL https://your-app.ondigitalocean.app
    ```
 
 ### Step 3: Database Setup
 
 1. **Create PostgreSQL Database**
-   - Use Railway's PostgreSQL service
-   - Or use Supabase/Neon for external database
+   - Use DigitalOcean's managed PostgreSQL service
+   - Enable VPC networking for security
+   - Configure trusted sources
 
 2. **Run Database Migrations**
    ```bash
-   cd backend
-   npm run migrate
+   # Database tables are created automatically on first deployment
    ```
 
 ## 🔧 Configuration
@@ -94,15 +106,16 @@ This guide covers deploying the Knightsbridge Chess game with WebSocket function
 #### Backend (.env)
 ```env
 NODE_ENV=production
-DATABASE_URL=postgresql://user:password@host:port/database
-PORT=3001
+DATABASE_URL=postgresql://doadmin:password@private-host:port/database?sslmode=require
+PORT=8080
 CORS_ORIGIN=https://your-frontend-domain.vercel.app
 ```
 
 #### Frontend (.env)
 ```env
-REACT_APP_BACKEND_URL=https://your-backend-url.railway.app
-REACT_APP_SOLANA_NETWORK=devnet
+VITE_BACKEND_URL=https://your-app.ondigitalocean.app
+VITE_WS_URL=wss://your-app.ondigitalocean.app
+VITE_SOLANA_NETWORK=devnet
 ```
 
 ### WebSocket Configuration
@@ -110,11 +123,13 @@ REACT_APP_SOLANA_NETWORK=devnet
 Update the WebSocket connection in `frontend/src/hooks/useWebSocket.ts`:
 
 ```typescript
-const newSocket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001', {
-  transports: ['websocket', 'polling'],
+const newSocket = io(process.env.VITE_BACKEND_URL || 'https://your-app.ondigitalocean.app', {
+  transports: ['websocket'], // WebSocket only - no polling
   timeout: 20000,
   reconnection: true,
-  reconnectionAttempts: 5
+  reconnectionAttempts: 5,
+  upgrade: false, // Disable upgrade to prevent connection issues
+  rememberUpgrade: false
 });
 ```
 
@@ -122,13 +137,13 @@ const newSocket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001
 
 ### 1. Test Backend Connection
 ```bash
-curl https://your-backend-url.railway.app/api/health
+curl https://your-app.ondigitalocean.app/api/health
 ```
 
 ### 2. Test WebSocket Connection
 ```javascript
 // In browser console
-const socket = io('https://your-backend-url.railway.app');
+const socket = io('https://your-app.ondigitalocean.app');
 socket.on('connect', () => console.log('Connected!'));
 ```
 
@@ -139,7 +154,7 @@ socket.on('connect', () => console.log('Connected!'));
 
 ## 🔍 Monitoring
 
-### Railway Dashboard
+### DigitalOcean Dashboard
 - Monitor backend logs
 - Check database connections
 - View deployment status
@@ -161,7 +176,7 @@ socket.on('connect', () => console.log('Connected!'));
 2. **Database Connection Issues**
    - Verify DATABASE_URL format
    - Check database permissions
-   - Ensure database is accessible
+   - Ensure VPC networking is configured
 
 3. **Build Failures**
    - Check TypeScript errors
@@ -172,13 +187,13 @@ socket.on('connect', () => console.log('Connected!'));
 
 ```bash
 # Check backend logs
-railway logs
+# Use DigitalOcean App Platform dashboard
 
 # Check frontend build
 vercel logs
 
 # Test database connection
-railway run node test-db.js
+# Use the test-db-connection.js script
 ```
 
 ## 🔄 CI/CD Setup
@@ -199,10 +214,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Deploy to Railway
+      - name: Deploy to DigitalOcean
         run: |
-          cd backend
-          railway up
+          # DigitalOcean auto-deploys from GitHub
+          echo "Deployment triggered"
 
   deploy-frontend:
     runs-on: ubuntu-latest
@@ -267,7 +282,7 @@ jobs:
 ## 📞 Support
 
 For deployment issues:
-1. Check Railway/Vercel documentation
+1. Check DigitalOcean/Vercel documentation
 2. Review application logs
 3. Test locally with production environment variables
 4. Contact support with specific error messages

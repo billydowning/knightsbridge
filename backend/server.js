@@ -23,7 +23,7 @@ const io = socketIo(server, {
     origin: ["http://localhost:5173", "https://knightsbridge.vercel.app"],
     methods: ["GET", "POST"]
   },
-  transports: ['websocket', 'polling'], // Support both for better compatibility
+  transports: ['websocket'], // WebSocket only - no polling
   pingTimeout: 60000, // 60 seconds
   pingInterval: 25000, // 25 seconds
   upgradeTimeout: 10000, // 10 seconds

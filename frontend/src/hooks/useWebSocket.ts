@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-
-
+import { useWebSocketPerformance } from '../utils/performance';
+import { useMemoryCleanup } from '../utils/memoryManager';
 
 interface UseWebSocketProps {
   gameId: string;
@@ -33,16 +33,32 @@ export const useWebSocket = ({
   const [error, setError] = useState<string | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
+  const connectionStartTime = useRef<number>(0);
+  const reconnectAttempts = useRef<number>(0);
+
+  // Performance monitoring
+  const { measureConnection, measureMessageLatency, measureReconnection } = useWebSocketPerformance();
+
+  // Memory cleanup
+  useMemoryCleanup(() => {
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+  }, []);
 
   // Initialize WebSocket connection
   useEffect(() => {
     if (!gameId) return;
 
-    const newSocket = io(import.meta.env.VITE_BACKEND_URL || 'wss://knightsbridge-production.up.railway.app', {
-      transports: ['websocket', 'polling'],
+    connectionStartTime.current = Date.now();
+    const newSocket = io(import.meta.env.VITE_BACKEND_URL || 'wss://knightsbridge-vtfhf.ondigitalocean.app', {
+      transports: ['websocket'], // WebSocket only - no polling
       timeout: 20000,
       reconnection: true,
-      reconnectionAttempts: 5
+      reconnectionAttempts: 5,
+      upgrade: false, // Disable upgrade to prevent connection issues
+      rememberUpgrade: false
     });
 
     socketRef.current = newSocket;
@@ -53,6 +69,10 @@ export const useWebSocket = ({
       console.log('WebSocket connected');
       setIsConnected(true);
       setError(null);
+      
+      // Measure connection time
+      const connectionTime = Date.now() - connectionStartTime.current;
+      measureConnection(connectionTime);
       
       // Join the game room
       newSocket.emit('joinGame', gameId, {
@@ -69,6 +89,12 @@ export const useWebSocket = ({
     newSocket.on('connect_error', (error) => {
       console.error('WebSocket connection error:', error);
       setError('Failed to connect to game server');
+      
+      // Track reconnection attempts
+      reconnectAttempts.current += 1;
+      if (reconnectAttempts.current > 5) {
+        measureReconnection(reconnectAttempts.current, Date.now() - connectionStartTime.current);
+      }
     });
 
     // Game events
@@ -90,8 +116,15 @@ export const useWebSocket = ({
 
     newSocket.on('moveMade', (moveData) => {
       console.log('Move received:', moveData);
+      const messageTime = Date.now();
       onMoveReceived?.(moveData);
       setIsMyTurn(moveData.nextTurn === assignedColor);
+      
+      // Measure message latency
+      if (moveData.timestamp) {
+        const latency = messageTime - moveData.timestamp;
+        measureMessageLatency(latency);
+      }
     });
 
     newSocket.on('moveConfirmed', (moveData) => {
@@ -148,89 +181,64 @@ export const useWebSocket = ({
 
     return () => {
       newSocket.close();
+      socketRef.current = null;
     };
-  }, [gameId, playerId, playerName]);
+  }, [gameId, playerId, playerName, onMoveReceived, onChatMessageReceived, onGameStateUpdate, onPlayerJoined, onGameStarted, onPlayerDisconnected, assignedColor, measureConnection, measureMessageLatency, measureReconnection]);
 
-  // Send move
-  const sendMove = useCallback((move: any) => {
+  // Optimized send functions
+  const sendMove = useCallback((from: string, to: string, piece: string) => {
     if (socket && isConnected) {
-      socket.emit('makeMove', {
-        gameId,
-        move,
-        playerId,
-        color: assignedColor
-      });
+      const moveData = {
+        from,
+        to,
+        piece,
+        timestamp: Date.now()
+      };
+      socket.emit('makeMove', moveData);
     }
-  }, [socket, isConnected, gameId, playerId, assignedColor]);
+  }, [socket, isConnected]);
 
-  // Send chat message
   const sendChatMessage = useCallback((message: string) => {
     if (socket && isConnected) {
-      socket.emit('sendMessage', {
-        gameId,
+      const chatData = {
         message,
+        timestamp: Date.now(),
         playerId,
         playerName
-      });
+      };
+      socket.emit('sendMessage', chatData);
     }
-  }, [socket, isConnected, gameId, playerId, playerName]);
+  }, [socket, isConnected, playerId, playerName]);
 
-  // Get game state
-  const getGameState = useCallback(() => {
-    if (socket && isConnected) {
-      socket.emit('getGameState', gameId);
-    }
-  }, [socket, isConnected, gameId]);
-
-  // Get chat history
   const getChatHistory = useCallback(() => {
     if (socket && isConnected) {
-      socket.emit('getChatHistory', gameId);
+      socket.emit('getChatHistory');
     }
-  }, [socket, isConnected, gameId]);
+  }, [socket, isConnected]);
 
-  // Player ready
   const setPlayerReady = useCallback(() => {
     if (socket && isConnected) {
-      socket.emit('playerReady', {
-        gameId,
-        playerId,
-        color: assignedColor
-      });
+      socket.emit('playerReady');
     }
-  }, [socket, isConnected, gameId, playerId, assignedColor]);
+  }, [socket, isConnected]);
 
-  // Resign game
   const resignGame = useCallback(() => {
     if (socket && isConnected) {
-      socket.emit('resignGame', {
-        gameId,
-        playerId,
-        color: assignedColor
-      });
+      socket.emit('resignGame');
     }
-  }, [socket, isConnected, gameId, playerId, assignedColor]);
+  }, [socket, isConnected]);
 
-  // Offer draw
   const offerDraw = useCallback(() => {
     if (socket && isConnected) {
-      socket.emit('offerDraw', {
-        gameId,
-        playerId,
-        color: assignedColor
-      });
+      socket.emit('offerDraw');
     }
-  }, [socket, isConnected, gameId, playerId, assignedColor]);
+  }, [socket, isConnected]);
 
-  // Respond to draw
   const respondToDraw = useCallback((accepted: boolean) => {
     if (socket && isConnected) {
-      socket.emit('respondToDraw', {
-        gameId,
-        accepted
-      });
+      socket.emit('drawResponse', { accepted });
     }
-  }, [socket, isConnected, gameId]);
+  }, [socket, isConnected]);
 
   return {
     socket,
@@ -240,7 +248,6 @@ export const useWebSocket = ({
     error,
     sendMove,
     sendChatMessage,
-    getGameState,
     getChatHistory,
     setPlayerReady,
     resignGame,

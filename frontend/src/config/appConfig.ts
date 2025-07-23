@@ -33,9 +33,9 @@ export const ENV_CONFIG = {
   IS_DEVELOPMENT: import.meta.env.MODE === 'development',
   IS_TEST: import.meta.env.MODE === 'test',
   
-  // API endpoints (if you add a backend later)
-  API_BASE_URL: import.meta.env.VITE_API_URL || 'https://knightsbridgeapp-production.up.railway.app',
-  WEBSOCKET_URL: import.meta.env.VITE_WS_URL || 'wss://knightsbridgeapp-production.up.railway.app',
+  // API endpoints (DigitalOcean backend)
+  API_BASE_URL: import.meta.env.VITE_API_URL || 'https://knightsbridge-vtfhf.ondigitalocean.app',
+  WEBSOCKET_URL: import.meta.env.VITE_WS_URL || 'wss://knightsbridge-vtfhf.ondigitalocean.app',
   
   // Feature flags
   ENABLE_ANALYTICS: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',

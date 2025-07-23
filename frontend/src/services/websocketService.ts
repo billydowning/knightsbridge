@@ -74,14 +74,16 @@ class WebSocketService {
   }
 
   private setupSocket() {
-    const serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridgeapp-production.up.railway.app';
+    const serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridge-vtfhf.ondigitalocean.app';
     
     this.socket = io(serverUrl, {
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'], // WebSocket only - no polling
       timeout: 20000,
       reconnection: true,
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: this.reconnectDelay,
+      upgrade: false, // Disable upgrade to prevent connection issues
+      rememberUpgrade: false
     });
 
     this.setupEventListeners();

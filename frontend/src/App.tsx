@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
@@ -17,6 +17,12 @@ import databaseMultiplayerState from './services/databaseMultiplayerState';
 import type { ChatMessage } from './components/ChatBox';
 import { ENV_CONFIG } from './config/appConfig';
 import { ChessEngine } from './engine/chessEngine';
+import { useChessOptimizations, useDebounce, useThrottle } from './hooks/useChessOptimizations';
+import { useRenderPerformance } from './utils/performance';
+import { useMemoryCleanup } from './utils/memoryManager';
+import { performanceMonitor } from './utils/performance';
+import { memoryManager } from './utils/memoryManager';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Theme context
 interface ThemeContextType {
@@ -167,6 +173,9 @@ const DarkModeToggle: React.FC = () => {
 };
 
 function ChessApp() {
+  // Performance monitoring
+  useRenderPerformance('ChessApp');
+
   // Get theme
   const { theme } = useTheme();
   
@@ -225,8 +234,32 @@ function ChessApp() {
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
-  // Helper functions for WebSocket integration
-  const handleOpponentMove = (moveData: any) => {
+  // Performance optimizations
+  const {
+    legalMoves,
+    isInCheck,
+    isCheckmate,
+    isStalemate,
+    validateMove,
+    getLegalMovesForSquare,
+    hasMoveChanged,
+    gameStatus: chessGameStatus
+  } = useChessOptimizations(gameState);
+
+  // Debounced and throttled values
+  const debouncedGameState = useDebounce(gameState, 300);
+  const throttledRoomStatus = useThrottle(roomStatus, 100);
+
+  // Memory cleanup
+  useMemoryCleanup(() => {
+    // Cleanup game state references
+    setGameState(null as any);
+    setChatMessages([]);
+    setRoomStatus(null);
+  }, []);
+
+  // Memoized helper functions
+  const handleOpponentMove = useCallback((moveData: any) => {
     console.log('Handling opponent move:', moveData);
     // Apply the opponent's move to the local game state
     const { from, to, piece } = moveData.move;
@@ -244,9 +277,9 @@ function ChessApp() {
         lastUpdated: Date.now()
       };
     });
-  };
+  }, []);
 
-  const applyMovesToGameState = (moves: any[]) => {
+  const applyMovesToGameState = useCallback((moves: any[]) => {
     console.log('Applying moves to game state:', moves);
     // Reset to initial position
     const initialPosition = {
@@ -276,7 +309,7 @@ function ChessApp() {
       moveHistory: moves,
       lastUpdated: Date.now()
     }));
-  };
+  }, []);
 
   // WebSocket hook for real-time game communication
   const {
@@ -286,11 +319,7 @@ function ChessApp() {
     gameId: roomId,
     playerId: publicKey?.toString(),
     playerName: publicKey?.toString().slice(0, 6) + '...' + publicKey?.toString().slice(-4),
-    onMoveReceived: (moveData) => {
-      console.log('Move received via WebSocket:', moveData);
-      // Handle move received from opponent
-      handleOpponentMove(moveData);
-    },
+    onMoveReceived: handleOpponentMove,
     onChatMessageReceived: (message) => {
       console.log('Chat message received via WebSocket:', message);
       setChatMessages(prev => [...prev, {
@@ -300,14 +329,7 @@ function ChessApp() {
         timestamp: new Date(message.timestamp)
       }]);
     },
-    onGameStateUpdate: (gameState) => {
-      console.log('Game state updated via WebSocket:', gameState);
-      // Update local game state with server state
-      if (gameState.moves && gameState.moves.length > 0) {
-        // Apply moves to local game state
-        applyMovesToGameState(gameState.moves);
-      }
-    },
+    onGameStateUpdate: applyMovesToGameState,
     onPlayerJoined: (player) => {
       console.log('Player joined via WebSocket:', player);
       setGameStatus(`Opponent joined! Game starting...`);
@@ -319,7 +341,7 @@ function ChessApp() {
     },
     onPlayerDisconnected: (player) => {
       console.log('Player disconnected via WebSocket:', player);
-      setGameStatus('Opponent disconnected');
+      setGameStatus('Opponent disconnected. Game paused.');
     }
   });
 
@@ -1652,34 +1674,36 @@ function ChessApp() {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      backgroundColor: theme.background,
-      fontFamily: 'Arial, sans-serif',
-      color: theme.text
-    }}>
-      {/* Header */}
-      <div style={{
-        backgroundColor: theme.surface,
+    <ErrorBoundary>
+      <div className="App" style={{ 
+        backgroundColor: theme.background, 
         color: theme.text,
-        padding: '1rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderBottom: `1px solid ${theme.border}`
+        minHeight: '100vh',
+        fontFamily: 'Arial, sans-serif'
       }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem' }}>♟️ Knightsbridge Chess</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <DarkModeToggle />
-          <WalletMultiButton />
+        {/* Header */}
+        <div style={{
+          backgroundColor: theme.surface,
+          color: theme.text,
+          padding: '1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: `1px solid ${theme.border}`
+        }}>
+          <h1 style={{ margin: 0, fontSize: '1.5rem' }}>♟️ Knightsbridge Chess</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <DarkModeToggle />
+            <WalletMultiButton />
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div style={{ padding: '2rem' }}>
+          {renderContent()}
         </div>
       </div>
-
-      {/* Main Content */}
-      <div style={{ padding: '2rem' }}>
-        {renderContent()}
-      </div>
-    </div>
+    </ErrorBoundary>
   );
 }
 
