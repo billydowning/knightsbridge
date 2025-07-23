@@ -364,9 +364,17 @@ function ChessApp() {
 
   // Watch for room status changes and set bothEscrowsReady when both escrows are present
   useEffect(() => {
-    if (roomStatus && roomStatus.escrowCount >= 2 && gameMode === 'lobby') {
-      console.log('💰 Room status shows both escrows ready, setting bothEscrowsReady to true');
-      setBothEscrowsReady(true);
+    if (roomStatus && gameMode === 'lobby') {
+      console.log('🔍 DEBUG - Room status received:', roomStatus);
+      console.log('🔍 DEBUG - Escrow count:', roomStatus.escrowCount);
+      console.log('🔍 DEBUG - Player count:', roomStatus.playerCount);
+      console.log('🔍 DEBUG - Players:', roomStatus.players);
+      console.log('🔍 DEBUG - Escrows:', roomStatus.escrows);
+      
+      if (roomStatus.escrowCount >= 2) {
+        console.log('💰 Room status shows both escrows ready, setting bothEscrowsReady to true');
+        setBothEscrowsReady(true);
+      }
     }
   }, [roomStatus, gameMode]);
 
@@ -1436,6 +1444,7 @@ function ChessApp() {
       try {
         const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
         if (roomStatus) {
+          console.log('🔍 DEBUG - fetchRoomStatus returned:', roomStatus);
           setRoomStatus(roomStatus);
           console.log('✅ Room status updated:', roomStatus);
         }

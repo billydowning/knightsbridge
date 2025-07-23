@@ -1,7 +1,6 @@
 // Knightsbridge Chess Backend Server
-// Updated: 2025-07-21 - Database-based multiplayer system
-// Force redeploy for WebSocket fixes - Additional debugging
-// Manual Railway redeploy required - Test endpoints added
+// Updated: 2025-07-23 - DigitalOcean App Platform migration
+// Optimized for stable WebSocket connections
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -13,14 +12,23 @@ const { pool, testConnection, roomService, chatService } = require('./database')
 console.log('🚀 Starting Knightsbridge Chess Backend Server...');
 console.log('📋 Environment:', process.env.NODE_ENV);
 console.log('🔧 Debug mode:', process.env.DEBUG);
+console.log('🌊 Platform: DigitalOcean App Platform');
 
 const app = express();
 const server = http.createServer(app);
+
+// DigitalOcean App Platform optimized Socket.IO configuration
 const io = socketIo(server, {
   cors: {
     origin: ["http://localhost:5173", "https://knightsbridge.vercel.app"],
     methods: ["GET", "POST"]
-  }
+  },
+  transports: ['websocket', 'polling'], // Support both for better compatibility
+  pingTimeout: 60000, // 60 seconds
+  pingInterval: 25000, // 25 seconds
+  upgradeTimeout: 10000, // 10 seconds
+  allowEIO3: true, // Allow Engine.IO v3 clients
+  maxHttpBufferSize: 1e6 // 1MB max message size
 });
 
 // Initialize database connection and create tables
