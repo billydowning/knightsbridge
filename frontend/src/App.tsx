@@ -1520,46 +1520,13 @@ function ChessApp() {
   // Poll for game state changes when in lobby (fallback for missed WebSocket events)
   useEffect(() => {
     if (gameMode === 'lobby' && roomId) {
-      const pollInterval = setInterval(async () => {
-        try {
-          // Check if game has started by polling the database
-          const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-          if (roomStatus && roomStatus.gameStarted) {
-            console.log('🎮 Game started detected via polling, switching to game mode');
-            setGameMode('game');
-            // Reset game state for new game
-            setGameState({
-              position: {
-                'a1': 'white-rook', 'b1': 'white-knight', 'c1': 'white-bishop', 'd1': 'white-queen',
-                'e1': 'white-king', 'f1': 'white-bishop', 'g1': 'white-knight', 'h1': 'white-rook',
-                'a2': 'white-pawn', 'b2': 'white-pawn', 'c2': 'white-pawn', 'd2': 'white-pawn',
-                'e2': 'white-pawn', 'f2': 'white-pawn', 'g2': 'white-pawn', 'h2': 'white-pawn',
-                'a7': 'black-pawn', 'b7': 'black-pawn', 'c7': 'black-pawn', 'd7': 'black-pawn',
-                'e7': 'black-pawn', 'f7': 'black-pawn', 'g7': 'black-pawn', 'h7': 'black-pawn',
-                'a8': 'black-rook', 'b8': 'black-knight', 'c8': 'black-bishop', 'd8': 'black-queen',
-                'e8': 'black-king', 'f8': 'black-bishop', 'g8': 'black-knight', 'h8': 'black-rook'
-              },
-              currentPlayer: 'white',
-              selectedSquare: null,
-              gameActive: true,
-              winner: null,
-              draw: false,
-              moveHistory: [],
-              lastUpdated: Date.now(),
-              castlingRights: 'KQkq',
-              enPassantTarget: null,
-              halfmoveClock: 0,
-              fullmoveNumber: 1,
-              inCheck: false,
-              inCheckmate: false
-            });
-          }
-        } catch (error) {
-          console.error('Error polling game state:', error);
-        }
-      }, 2000); // Poll every 2 seconds
-
-      return () => clearInterval(pollInterval);
+      // Disable polling to prevent connection issues - rely only on WebSocket events
+      console.log('⏳ Polling disabled to prevent connection issues');
+      
+      // Only use WebSocket events for game state updates
+      return () => {
+        // Cleanup if needed
+      };
     }
   }, [gameMode, roomId]);
 

@@ -62,6 +62,8 @@ class DatabaseMultiplayerStateManager {
   private rooms: Map<string, GameRoom> = new Map();
   private serverUrl: string;
   private isConnecting: boolean = false; // Add connection state tracking
+  private connectionAttempts: number = 0; // Track connection attempts
+  private maxConnectionAttempts: number = 3; // Limit connection attempts
 
   constructor() {
     this.serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridge-production.up.railway.app';
@@ -85,10 +87,18 @@ class DatabaseMultiplayerStateManager {
       return;
     }
 
+    // Check if we've exceeded max connection attempts
+    if (this.connectionAttempts >= this.maxConnectionAttempts) {
+      console.log('❌ Max connection attempts reached, waiting before retry...');
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+      this.connectionAttempts = 0; // Reset attempts
+    }
+
     this.isConnecting = true;
+    this.connectionAttempts++;
 
     try {
-      console.log('🔌 Connecting to server:', this.serverUrl);
+      console.log('🔌 Connecting to server:', this.serverUrl, `(attempt ${this.connectionAttempts}/${this.maxConnectionAttempts})`);
       
       // Clean up any existing socket
       if (this.socket) {
@@ -98,18 +108,21 @@ class DatabaseMultiplayerStateManager {
 
       this.socket = io(this.serverUrl, {
         transports: ['websocket'], // Only use websocket, not polling
-        timeout: 15000, // Increase timeout
+        timeout: 20000, // Increase timeout
         reconnection: true,
-        reconnectionAttempts: 3, // Reduce attempts
-        reconnectionDelay: 2000, // Increase delay
-        reconnectionDelayMax: 10000, // Increase max delay
+        reconnectionAttempts: 3, // Reduce attempts to prevent spam
+        reconnectionDelay: 2000, // Increase initial delay
+        reconnectionDelayMax: 8000, // Increase max delay
         forceNew: false, // Don't force new connections
-        autoConnect: true
+        autoConnect: true,
+        upgrade: false, // Disable upgrade to prevent connection issues
+        rememberUpgrade: false
       });
 
       this.socket.on('connect', () => {
         console.log('✅ Connected to server with ID:', this.socket?.id);
         this.isConnecting = false;
+        this.connectionAttempts = 0; // Reset on successful connection
       });
 
       this.socket.on('disconnect', (reason) => {
@@ -121,6 +134,7 @@ class DatabaseMultiplayerStateManager {
       this.socket.on('reconnect', (attemptNumber) => {
         console.log('🔄 Reconnected to server after', attemptNumber, 'attempts');
         this.isConnecting = false;
+        this.connectionAttempts = 0; // Reset on successful reconnection
       });
 
       this.socket.on('reconnect_attempt', (attemptNumber) => {
@@ -161,11 +175,22 @@ class DatabaseMultiplayerStateManager {
         this.notifyCallbacks('escrowUpdated', data);
       });
 
-      // Wait for connection
+      // Wait for connection with timeout
       await new Promise<void>((resolve, reject) => {
         if (this.socket) {
-          this.socket.once('connect', () => resolve());
-          this.socket.once('connect_error', (error) => reject(error));
+          const timeout = setTimeout(() => {
+            reject(new Error('Connection timeout'));
+          }, 15000); // 15 second timeout
+
+          this.socket.once('connect', () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+          
+          this.socket.once('connect_error', (error) => {
+            clearTimeout(timeout);
+            reject(error);
+          });
         }
       });
 
@@ -174,9 +199,8 @@ class DatabaseMultiplayerStateManager {
 
     } catch (error) {
       console.error('❌ Failed to connect to server:', error);
-      throw error;
-    } finally {
       this.isConnecting = false;
+      throw error;
     }
   }
 
@@ -185,6 +209,11 @@ class DatabaseMultiplayerStateManager {
    */
   private startHeartbeat(): void {
     if (!this.socket) return;
+
+    // Clear any existing heartbeat
+    if ((this.socket as any).heartbeatInterval) {
+      clearInterval((this.socket as any).heartbeatInterval);
+    }
 
     const heartbeat = setInterval(() => {
       if (this.socket?.connected) {
@@ -197,7 +226,7 @@ class DatabaseMultiplayerStateManager {
         console.log('💓 Heartbeat skipped - not connected');
         clearInterval(heartbeat);
       }
-    }, 30000); // Send heartbeat every 30 seconds
+    }, 60000); // Send heartbeat every 60 seconds (reduced frequency)
 
     // Store the interval ID for cleanup
     (this.socket as any).heartbeatInterval = heartbeat;
