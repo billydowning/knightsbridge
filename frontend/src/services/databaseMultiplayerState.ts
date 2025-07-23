@@ -68,7 +68,9 @@ class DatabaseMultiplayerStateManager {
   private httpPollingInterval: NodeJS.Timeout | null = null; // HTTP polling interval
 
   constructor() {
-    this.serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridge-production.up.railway.app';
+    // Use DigitalOcean URL for better WebSocket stability
+    this.serverUrl = 'wss://knightsbridge-a2w27.ondigitalocean.app';
+    console.log('🔌 Initializing multiplayer state with server:', this.serverUrl);
   }
 
   /**
@@ -105,7 +107,7 @@ class DatabaseMultiplayerStateManager {
       
       // First, check if server is healthy via HTTP
       try {
-        const healthResponse = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/health`);
+        const healthResponse = await fetch(`https://knightsbridge-a2w27.ondigitalocean.app/health`);
         if (!healthResponse.ok) {
           console.log('⚠️ Server health check failed, switching to HTTP fallback');
           this.useHttpFallback = true;
@@ -387,7 +389,7 @@ class DatabaseMultiplayerStateManager {
     // If using HTTP fallback, use HTTP API
     if (this.useHttpFallback) {
       try {
-        const response = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/api/rooms`, {
+        const response = await fetch(`https://knightsbridge-a2w27.ondigitalocean.app/api/rooms`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ roomId, playerWallet })
@@ -436,7 +438,7 @@ class DatabaseMultiplayerStateManager {
     // If using HTTP fallback, use HTTP API
     if (this.useHttpFallback) {
       try {
-        const response = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/api/rooms/${roomId}/join`, {
+        const response = await fetch(`https://knightsbridge-a2w27.ondigitalocean.app/api/rooms/${roomId}/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ playerWallet })
@@ -506,7 +508,7 @@ class DatabaseMultiplayerStateManager {
     // If using HTTP fallback, use HTTP API
     if (this.useHttpFallback) {
       try {
-        const response = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/api/rooms/${roomId}/status`);
+        const response = await fetch(`https://knightsbridge-a2w27.ondigitalocean.app/api/rooms/${roomId}/status`);
         
         if (response.ok) {
           const data = await response.json();
@@ -547,7 +549,7 @@ class DatabaseMultiplayerStateManager {
     // If using HTTP fallback, use HTTP API
     if (this.useHttpFallback) {
       try {
-        const response = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/api/rooms/${roomId}/escrow`, {
+        const response = await fetch(`https://knightsbridge-a2w27.ondigitalocean.app/api/rooms/${roomId}/escrow`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ playerWallet, amount })

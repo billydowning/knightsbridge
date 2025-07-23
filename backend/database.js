@@ -8,7 +8,7 @@ const { Pool } = require('pg');
 // Database connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: false, // Temporarily disable SSL for DigitalOcean
+  ssl: false, // Disable SSL for DigitalOcean
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -20,7 +20,7 @@ async function testConnection() {
     console.log('🔌 Attempting to connect to PostgreSQL...');
     console.log('🔌 DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
     console.log('🔌 NODE_ENV:', process.env.NODE_ENV);
-    console.log('🔌 SSL Config:', process.env.NODE_ENV === 'production' ? 'Enabled with relaxed settings' : 'Disabled');
+    console.log('🔌 SSL Config: Disabled (for DigitalOcean)');
     
     const client = await pool.connect();
     console.log('✅ PostgreSQL connected successfully');
