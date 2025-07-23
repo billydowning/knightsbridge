@@ -402,6 +402,8 @@ function ChessApp() {
   useEffect(() => {
     if (gameMode === 'game') {
       console.log('🎮 Game mode changed to game, resetting game state...');
+      console.log('🎮 Player role:', playerRole);
+      console.log('🎮 Room ID:', roomId);
       
       // Set up the board with standard chess piece positions
       // Both players see the same board layout, but the orientation flips the view
@@ -418,7 +420,7 @@ function ChessApp() {
       
       const newGameState = {
         position,
-        currentPlayer: 'white',
+        currentPlayer: 'white' as 'white' | 'black',
         selectedSquare: null,
         gameActive: true,
         winner: null,
@@ -435,9 +437,18 @@ function ChessApp() {
       };
       
       setGameState(newGameState);
-      console.log('Game started with player role:', playerRole, 'initial currentPlayer:', newGameState.currentPlayer);
+      console.log('🎮 Game started with player role:', playerRole, 'initial currentPlayer:', newGameState.currentPlayer);
+      console.log('🎮 Initial game state set:', newGameState);
+      
+      // Save initial game state to database
+      if (roomId) {
+        console.log('💾 Saving initial game state to database');
+        databaseMultiplayerState.saveGameState(roomId, newGameState).catch(error => {
+          console.error('❌ Error saving initial game state:', error);
+        });
+      }
     }
-  }, [gameMode, playerRole]);
+  }, [gameMode, playerRole, roomId]);
 
   const handleCreateEscrow = async () => {
     if (!connected || !publicKey) {
@@ -474,17 +485,40 @@ function ChessApp() {
   };
 
   const handleSquareClick = (square: string) => {
-    if (!roomId || gameMode !== 'game') return;
+    console.log('🎯 Square clicked:', square);
+    console.log('🎯 Game mode:', gameMode);
+    console.log('🎯 Room ID:', roomId);
+    console.log('🎯 Current player:', gameState.currentPlayer);
+    console.log('🎯 Player role:', playerRole);
+    console.log('🎯 Selected square:', gameState.selectedSquare);
+    
+    if (!roomId || gameMode !== 'game') {
+      console.log('❌ Cannot make move - no room ID or not in game mode');
+      return;
+    }
+    
+    // Check if it's the player's turn
+    if (gameState.currentPlayer !== playerRole) {
+      console.log('❌ Not your turn - current player:', gameState.currentPlayer, 'your role:', playerRole);
+      return;
+    }
     
     // If no square is selected, select this square if it has a piece
     if (!gameState.selectedSquare) {
       const piece = gameState.position[square];
+      console.log('🎯 Piece on square:', piece);
       if (piece) {
         const pieceColor = ChessEngine.getPieceColor(piece);
+        console.log('🎯 Piece color:', pieceColor, 'current player:', gameState.currentPlayer);
         if (pieceColor === gameState.currentPlayer) {
+          console.log('✅ Selecting square:', square);
           setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
           return;
+        } else {
+          console.log('❌ Cannot select opponent piece');
         }
+      } else {
+        console.log('❌ No piece on square');
       }
       return;
     }
@@ -492,9 +526,12 @@ function ChessApp() {
     // If a square is selected, try to move
     const fromSquare = gameState.selectedSquare;
     const toSquare = square;
+    console.log('🎯 Attempting move from', fromSquare, 'to', toSquare);
     
     // Validate move using existing function
     if (validateMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer)) {
+      console.log('✅ Move is valid, executing...');
+      
       // Create new position by making the move
       const newPosition = { ...gameState.position };
       newPosition[toSquare] = newPosition[fromSquare];
@@ -552,16 +589,20 @@ function ChessApp() {
           setGameStatus('Error saving move. Please try again.');
         });
     } else {
+      console.log('❌ Move is invalid');
       // Invalid move - just update selection
       const piece = gameState.position[square];
       if (piece) {
         const pieceColor = ChessEngine.getPieceColor(piece);
         if (pieceColor === gameState.currentPlayer) {
+          console.log('✅ Selecting new square:', square);
           setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
         } else {
+          console.log('❌ Cannot select opponent piece, clearing selection');
           setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
         }
       } else {
+        console.log('❌ No piece on square, clearing selection');
         setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
       }
     }

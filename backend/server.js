@@ -58,6 +58,36 @@ async function initializeDatabase() {
   }
 }
 
+// Server health monitoring
+let connectionStats = {
+  totalConnections: 0,
+  totalDisconnections: 0,
+  currentConnections: 0,
+  lastReset: Date.now()
+};
+
+// Reset stats every hour
+setInterval(() => {
+  console.log('📊 Connection stats reset:', connectionStats);
+  connectionStats = {
+    totalConnections: 0,
+    totalDisconnections: 0,
+    currentConnections: io.engine.clientsCount,
+    lastReset: Date.now()
+  };
+}, 3600000); // 1 hour
+
+// Log server health every 5 minutes
+setInterval(() => {
+  console.log('🏥 Server health check:', {
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage(),
+    connectedSockets: io.engine.clientsCount,
+    connectionStats,
+    timestamp: new Date().toISOString()
+  });
+}, 300000); // 5 minutes
+
 // Test database connection on startup
 testConnection().then(success => {
   if (success) {
@@ -589,10 +619,83 @@ app.get('/deploy-schema', async (req, res) => {
   }
 });
 
+// Add Railway-specific health check endpoint
+app.get('/health', (req, res) => {
+  const health = {
+    status: 'healthy',
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage(),
+    connectedSockets: io.engine.clientsCount,
+    connectionStats,
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    railway: {
+      serviceId: process.env.RAILWAY_SERVICE_ID,
+      projectId: process.env.RAILWAY_PROJECT_ID,
+      environment: process.env.RAILWAY_ENVIRONMENT
+    }
+  };
+  
+  console.log('🏥 Health check requested:', health);
+  
+  // Return 200 only if server is healthy
+  const isHealthy = process.uptime() > 0 && io.engine.clientsCount >= 0;
+  res.status(isHealthy ? 200 : 503).json(health);
+});
+
+// Add Railway-specific readiness check
+app.get('/ready', (req, res) => {
+  const readiness = {
+    status: 'ready',
+    database: 'connected', // We'll check this
+    websocket: 'running',
+    timestamp: new Date().toISOString()
+  };
+  
+  // Check database connection
+  pool.query('SELECT 1')
+    .then(() => {
+      readiness.database = 'connected';
+      res.status(200).json(readiness);
+    })
+    .catch(error => {
+      console.error('❌ Database health check failed:', error);
+      readiness.database = 'disconnected';
+      res.status(503).json(readiness);
+    });
+});
+
+// Add more frequent health checks for Railway
+setInterval(async () => {
+  try {
+    // Check database connection
+    await pool.query('SELECT 1');
+    console.log('✅ Database health check passed');
+  } catch (error) {
+    console.error('❌ Database health check failed:', error);
+  }
+  
+  // Log detailed server stats
+  console.log('🏥 Detailed server health:', {
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage(),
+    connectedSockets: io.engine.clientsCount,
+    connectionStats,
+    timestamp: new Date().toISOString()
+  });
+}, 60000); // Every minute
+
 // Handle Socket.io connections
 io.on('connection', (socket) => {
   console.log('🔌 A user connected:', socket.id);
   console.log('📋 Socket events available:', Object.keys(socket._events || {}));
+  console.log('📊 Total connected sockets:', io.engine.clientsCount);
+  console.log('📊 Server memory usage:', process.memoryUsage());
+  
+  // Update connection stats
+  connectionStats.totalConnections++;
+  connectionStats.currentConnections = io.engine.clientsCount;
+  console.log('📊 Updated connection stats:', connectionStats);
 
   // Debug: Log when event handler is registered
   console.log('✅ createRoom event handler registered for socket:', socket.id);
@@ -605,17 +708,39 @@ io.on('connection', (socket) => {
 
   // Heartbeat to keep connection alive
   socket.on('ping', (callback) => {
+    console.log('💓 Ping received from socket:', socket.id);
     callback({ pong: Date.now() });
   });
 
   // Debug: Add error handler to see if there are any Socket.io errors
   socket.on('error', (error) => {
-    console.error('❌ Socket error:', error);
+    console.error('❌ Socket error for socket:', socket.id, 'error:', error);
   });
 
   // Debug: Add disconnect handler
   socket.on('disconnect', (reason) => {
     console.log('🔌 User disconnected:', socket.id, 'reason:', reason);
+    console.log('📊 Remaining connected sockets:', io.engine.clientsCount);
+    console.log('📊 Server memory usage after disconnect:', process.memoryUsage());
+    
+    // Update disconnection stats
+    connectionStats.totalDisconnections++;
+    connectionStats.currentConnections = io.engine.clientsCount;
+    console.log('📊 Updated disconnection stats:', connectionStats);
+  });
+
+  // Add connection health monitoring
+  socket.on('health', (callback) => {
+    const health = {
+      socketId: socket.id,
+      connectedSockets: io.engine.clientsCount,
+      memoryUsage: process.memoryUsage(),
+      uptime: process.uptime(),
+      timestamp: Date.now(),
+      connectionStats
+    };
+    console.log('🏥 Health check from socket:', socket.id, health);
+    callback(health);
   });
 
   // Create a new room

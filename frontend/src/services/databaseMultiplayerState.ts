@@ -64,6 +64,8 @@ class DatabaseMultiplayerStateManager {
   private isConnecting: boolean = false; // Add connection state tracking
   private connectionAttempts: number = 0; // Track connection attempts
   private maxConnectionAttempts: number = 3; // Limit connection attempts
+  private useHttpFallback: boolean = false; // Flag to use HTTP fallback
+  private httpPollingInterval: NodeJS.Timeout | null = null; // HTTP polling interval
 
   constructor() {
     this.serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridge-production.up.railway.app';
@@ -89,9 +91,10 @@ class DatabaseMultiplayerStateManager {
 
     // Check if we've exceeded max connection attempts
     if (this.connectionAttempts >= this.maxConnectionAttempts) {
-      console.log('❌ Max connection attempts reached, waiting before retry...');
-      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
-      this.connectionAttempts = 0; // Reset attempts
+      console.log('❌ Max WebSocket connection attempts reached, switching to HTTP fallback');
+      this.useHttpFallback = true;
+      this.startHttpPolling();
+      return;
     }
 
     this.isConnecting = true;
@@ -99,6 +102,23 @@ class DatabaseMultiplayerStateManager {
 
     try {
       console.log('🔌 Connecting to server:', this.serverUrl, `(attempt ${this.connectionAttempts}/${this.maxConnectionAttempts})`);
+      
+      // First, check if server is healthy via HTTP
+      try {
+        const healthResponse = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/health`);
+        if (!healthResponse.ok) {
+          console.log('⚠️ Server health check failed, switching to HTTP fallback');
+          this.useHttpFallback = true;
+          this.startHttpPolling();
+          return;
+        }
+        console.log('✅ Server health check passed');
+      } catch (error) {
+        console.log('⚠️ Server health check failed, switching to HTTP fallback');
+        this.useHttpFallback = true;
+        this.startHttpPolling();
+        return;
+      }
       
       // Clean up any existing socket
       if (this.socket) {
@@ -108,11 +128,11 @@ class DatabaseMultiplayerStateManager {
 
       this.socket = io(this.serverUrl, {
         transports: ['websocket'], // Only use websocket, not polling
-        timeout: 20000, // Increase timeout
+        timeout: 10000, // Reduce timeout for faster failure detection
         reconnection: true,
-        reconnectionAttempts: 3, // Reduce attempts to prevent spam
-        reconnectionDelay: 2000, // Increase initial delay
-        reconnectionDelayMax: 8000, // Increase max delay
+        reconnectionAttempts: 1, // Reduce attempts to fail faster
+        reconnectionDelay: 500, // Faster initial delay
+        reconnectionDelayMax: 2000, // Faster max delay
         forceNew: false, // Don't force new connections
         autoConnect: true,
         upgrade: false, // Disable upgrade to prevent connection issues
@@ -123,18 +143,34 @@ class DatabaseMultiplayerStateManager {
         console.log('✅ Connected to server with ID:', this.socket?.id);
         this.isConnecting = false;
         this.connectionAttempts = 0; // Reset on successful connection
+        this.useHttpFallback = false; // Disable HTTP fallback
+        if (this.httpPollingInterval) {
+          clearInterval(this.httpPollingInterval);
+          this.httpPollingInterval = null;
+        }
       });
 
       this.socket.on('disconnect', (reason) => {
         console.log('❌ Disconnected from server:', reason);
         this.isConnecting = false;
-        // Don't manually reconnect, let Socket.io handle it
+        
+        // If disconnection happens frequently, switch to HTTP fallback
+        if (reason === 'transport close' || reason === 'ping timeout' || reason === 'io server disconnect') {
+          console.log('🔄 Frequent disconnections detected, switching to HTTP fallback');
+          this.useHttpFallback = true;
+          this.startHttpPolling();
+        }
       });
 
       this.socket.on('reconnect', (attemptNumber) => {
         console.log('🔄 Reconnected to server after', attemptNumber, 'attempts');
         this.isConnecting = false;
         this.connectionAttempts = 0; // Reset on successful reconnection
+        this.useHttpFallback = false; // Disable HTTP fallback
+        if (this.httpPollingInterval) {
+          clearInterval(this.httpPollingInterval);
+          this.httpPollingInterval = null;
+        }
       });
 
       this.socket.on('reconnect_attempt', (attemptNumber) => {
@@ -149,6 +185,9 @@ class DatabaseMultiplayerStateManager {
       this.socket.on('reconnect_failed', () => {
         console.error('❌ Reconnection failed after all attempts');
         this.isConnecting = false;
+        // Switch to HTTP fallback
+        this.useHttpFallback = true;
+        this.startHttpPolling();
       });
 
       this.socket.on('error', (error) => {
@@ -175,12 +214,12 @@ class DatabaseMultiplayerStateManager {
         this.notifyCallbacks('escrowUpdated', data);
       });
 
-      // Wait for connection with timeout
+      // Wait for connection with shorter timeout
       await new Promise<void>((resolve, reject) => {
         if (this.socket) {
           const timeout = setTimeout(() => {
             reject(new Error('Connection timeout'));
-          }, 15000); // 15 second timeout
+          }, 8000); // 8 second timeout
 
           this.socket.once('connect', () => {
             clearTimeout(timeout);
@@ -200,6 +239,12 @@ class DatabaseMultiplayerStateManager {
     } catch (error) {
       console.error('❌ Failed to connect to server:', error);
       this.isConnecting = false;
+      
+      // If WebSocket fails, switch to HTTP fallback immediately
+      console.log('🔄 Switching to HTTP fallback mode');
+      this.useHttpFallback = true;
+      this.startHttpPolling();
+      
       throw error;
     }
   }
@@ -233,6 +278,42 @@ class DatabaseMultiplayerStateManager {
   }
 
   /**
+   * Start HTTP polling as fallback when WebSocket fails
+   */
+  private startHttpPolling(): void {
+    if (this.httpPollingInterval) {
+      clearInterval(this.httpPollingInterval);
+    }
+
+    console.log('🔄 Starting HTTP polling fallback');
+    this.httpPollingInterval = setInterval(async () => {
+      try {
+        // Only poll if we have active rooms
+        if (this.rooms.size === 0) {
+          return;
+        }
+
+        console.log('🔄 HTTP polling for', this.rooms.size, 'rooms');
+        
+        // Poll for room updates every 3 seconds (faster than before)
+        for (const [roomId, room] of this.rooms.entries()) {
+          try {
+            const roomStatus = await this.getRoomStatus(roomId);
+            if (roomStatus) {
+              console.log('🔄 HTTP poll updated room:', roomId);
+              this.notifyCallbacks('roomUpdated', { roomId, room: roomStatus });
+            }
+          } catch (error) {
+            console.error('❌ HTTP polling error for room', roomId, ':', error);
+          }
+        }
+      } catch (error) {
+        console.error('❌ HTTP polling error:', error);
+      }
+    }, 3000); // Poll every 3 seconds (faster for better responsiveness)
+  }
+
+  /**
    * Disconnect from the server
    */
   disconnect(): void {
@@ -242,13 +323,19 @@ class DatabaseMultiplayerStateManager {
       this.socket = null;
     }
     this.isConnecting = false; // Reset connection state
+    if (this.httpPollingInterval) {
+      clearInterval(this.httpPollingInterval);
+      this.httpPollingInterval = null;
+    }
   }
 
   /**
-   * Check if connected to server
+   * Check if connected to server (including HTTP fallback)
    */
   isConnected(): boolean {
-    return this.socket?.connected || false;
+    const connected = this.socket?.connected || this.useHttpFallback;
+    console.log('🔍 Connection status - WebSocket:', this.socket?.connected, 'HTTP fallback:', this.useHttpFallback, 'Total:', connected);
+    return connected;
   }
 
   /**
@@ -293,8 +380,33 @@ class DatabaseMultiplayerStateManager {
    * Create a new room
    */
   async createRoom(roomId: string, playerWallet: string): Promise<'white' | null> {
-    await this.ensureConnected();
+    if (!this.isConnected()) {
+      await this.connect();
+    }
 
+    // If using HTTP fallback, use HTTP API
+    if (this.useHttpFallback) {
+      try {
+        const response = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/api/rooms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId, playerWallet })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Room created via HTTP:', roomId);
+          return 'white';
+        } else {
+          throw new Error('Failed to create room via HTTP');
+        }
+      } catch (error) {
+        console.error('❌ HTTP createRoom failed:', error);
+        throw error;
+      }
+    }
+
+    // Use WebSocket if available
     return new Promise((resolve, reject) => {
       if (!this.socket) {
         reject(new Error('Not connected to server'));
@@ -319,6 +431,28 @@ class DatabaseMultiplayerStateManager {
   async joinRoom(roomId: string, playerWallet: string): Promise<'white' | 'black' | null> {
     if (!this.isConnected()) {
       await this.connect();
+    }
+
+    // If using HTTP fallback, use HTTP API
+    if (this.useHttpFallback) {
+      try {
+        const response = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/api/rooms/${roomId}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerWallet })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Player joined room via HTTP:', roomId, 'player:', playerWallet, 'role:', data.role);
+          return data.role;
+        } else {
+          throw new Error('Failed to join room via HTTP');
+        }
+      } catch (error) {
+        console.error('❌ HTTP joinRoom failed:', error);
+        throw error;
+      }
     }
 
     // Add retry mechanism for timing issues
@@ -369,6 +503,24 @@ class DatabaseMultiplayerStateManager {
       await this.connect();
     }
 
+    // If using HTTP fallback, use HTTP API
+    if (this.useHttpFallback) {
+      try {
+        const response = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/api/rooms/${roomId}/status`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          return data.roomStatus;
+        } else {
+          console.error('❌ Failed to get room status via HTTP:', response.status);
+          return null;
+        }
+      } catch (error) {
+        console.error('❌ HTTP getRoomStatus failed:', error);
+        return null;
+      }
+    }
+
     return new Promise((resolve, reject) => {
       if (!this.socket) {
         reject(new Error('Not connected to server'));
@@ -392,13 +544,36 @@ class DatabaseMultiplayerStateManager {
   async addEscrow(roomId: string, playerWallet: string, amount: number): Promise<void> {
     await this.ensureConnected();
 
+    // If using HTTP fallback, use HTTP API
+    if (this.useHttpFallback) {
+      try {
+        const response = await fetch(`${this.serverUrl.replace('wss://', 'https://')}/api/rooms/${roomId}/escrow`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerWallet, amount })
+        });
+        
+        if (response.ok) {
+          console.log('✅ Escrow added via HTTP:', roomId, 'player:', playerWallet, 'amount:', amount);
+          return;
+        } else {
+          throw new Error('Failed to add escrow via HTTP');
+        }
+      } catch (error) {
+        console.error('❌ HTTP addEscrow failed:', error);
+        throw error;
+      }
+    }
+
     return new Promise((resolve, reject) => {
       if (!this.socket) {
         reject(new Error('Not connected to server'));
         return;
       }
 
+      console.log('📤 Sending addEscrow event to server...');
       this.socket.emit('addEscrow', { roomId, playerWallet, amount }, (response: any) => {
+        console.log('📨 Received addEscrow response:', response);
         if (response.success) {
           console.log('✅ Escrow added successfully');
           resolve();
@@ -644,6 +819,32 @@ class DatabaseMultiplayerStateManager {
         }
       });
     });
+  }
+
+  /**
+   * Force HTTP fallback mode (for testing)
+   */
+  forceHttpFallback(): void {
+    console.log('🔄 Forcing HTTP fallback mode');
+    this.useHttpFallback = true;
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+    this.startHttpPolling();
+  }
+
+  /**
+   * Get connection mode for debugging
+   */
+  getConnectionMode(): string {
+    if (this.useHttpFallback) {
+      return 'HTTP_FALLBACK';
+    } else if (this.socket?.connected) {
+      return 'WEBSOCKET';
+    } else {
+      return 'DISCONNECTED';
+    }
   }
 }
 
