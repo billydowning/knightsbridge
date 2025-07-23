@@ -46,13 +46,11 @@ const io = socketIo(server, {
 async function initializeDatabase() {
   try {
     console.log('🔌 Connecting to PostgreSQL database...');
+    const connected = await testConnection();
+    if (!connected) throw new Error('Database connection test failed');
     
-    // Test connection
-    const client = await pool.connect();
     console.log('✅ Database connection successful');
-    client.release();
     
-    // Create escrows table if it doesn't exist
     console.log('🏗️ Creating escrows table...');
     const createEscrowsTable = `
       CREATE TABLE IF NOT EXISTS escrows (
@@ -70,10 +68,9 @@ async function initializeDatabase() {
     
     await pool.query(createEscrowsTable);
     console.log('✅ Escrows table created/verified successfully');
-    
   } catch (error) {
-    console.error('❌ Database initialization error:', error);
-    process.exit(1);
+    console.error('❌ Database initialization error:', error.message, '- Code:', error.code);
+    // Continue running for health checks
   }
 }
 
@@ -107,14 +104,7 @@ setInterval(() => {
   });
 }, 300000); // 5 minutes
 
-// Test database connection on startup
-testConnection().then(success => {
-  if (success) {
-    console.log('✅ Database connection established');
-  } else {
-    console.error('❌ Database connection failed');
-  }
-});
+// Database connection will be tested in initializeDatabase()
 
 // CORS configuration
 app.use(cors({
