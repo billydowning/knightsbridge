@@ -340,28 +340,34 @@ function ChessApp() {
     }
   }, [balance, connected]);
 
-  // Auto-start game when both escrows are ready
+  // Check if both escrows are ready and start game
   useEffect(() => {
     if (bothEscrowsReady && gameMode === 'lobby') {
+      console.log('💰 Both escrows ready!');
       console.log('🎮 Both escrows ready, starting game automatically...');
-      console.log('🔍 Debug - Room status:', databaseMultiplayerState.getRoomStatus(roomId));
-      console.log('🔍 Debug - Both escrows ready:', bothEscrowsReady);
-      console.log('🔍 Debug - Game mode:', gameMode);
-      console.log('🔍 Debug - Player role:', playerRole);
       
-      setTimeout(() => {
-        setGameMode('game');
-        setGameStatus(`Game started! You are ${playerRole}. ${playerRole === 'white' ? 'Your turn!' : 'White goes first.'}`);
-      }, 2000);
+      // Check room status to confirm game should start
+      fetchRoomStatus().then(() => {
+        console.log('🔍 Debug - Room status:', roomStatus);
+        console.log('🔍 Debug - Both escrows ready:', bothEscrowsReady);
+        console.log('🔍 Debug - Game mode:', gameMode);
+        console.log('🔍 Debug - Player role:', playerRole);
+        
+        // Set a small delay to ensure all state updates are processed
+        setTimeout(() => {
+          setGameMode('game');
+          setGameStatus(`Game started! You are ${playerRole}. ${playerRole === 'white' ? 'Your turn!' : 'White goes first.'}`);
+        }, 1000); // Reduced delay
+      });
     }
   }, [bothEscrowsReady, gameMode, playerRole, roomId]);
 
   // Set up multiplayer sync when room ID or game mode changes
   useEffect(() => {
-    if (roomId && (gameMode === 'lobby' || gameMode === 'game')) {
+    if (roomId && gameMode === 'lobby') {
       console.log('🔄 Setting up multiplayer sync for room:', roomId, 'mode:', gameMode);
       
-      // Simple approach: just join the room for real-time updates
+      // Only join room when in lobby mode, not when transitioning to game mode
       if (databaseMultiplayerState.isConnected()) {
         const socket = (databaseMultiplayerState as any).socket;
         if (socket) {
@@ -1510,6 +1516,52 @@ function ChessApp() {
       }
     }
   }, [roomId]);
+
+  // Poll for game state changes when in lobby (fallback for missed WebSocket events)
+  useEffect(() => {
+    if (gameMode === 'lobby' && roomId) {
+      const pollInterval = setInterval(async () => {
+        try {
+          // Check if game has started by polling the database
+          const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+          if (roomStatus && roomStatus.gameStarted) {
+            console.log('🎮 Game started detected via polling, switching to game mode');
+            setGameMode('game');
+            // Reset game state for new game
+            setGameState({
+              position: {
+                'a1': 'white-rook', 'b1': 'white-knight', 'c1': 'white-bishop', 'd1': 'white-queen',
+                'e1': 'white-king', 'f1': 'white-bishop', 'g1': 'white-knight', 'h1': 'white-rook',
+                'a2': 'white-pawn', 'b2': 'white-pawn', 'c2': 'white-pawn', 'd2': 'white-pawn',
+                'e2': 'white-pawn', 'f2': 'white-pawn', 'g2': 'white-pawn', 'h2': 'white-pawn',
+                'a7': 'black-pawn', 'b7': 'black-pawn', 'c7': 'black-pawn', 'd7': 'black-pawn',
+                'e7': 'black-pawn', 'f7': 'black-pawn', 'g7': 'black-pawn', 'h7': 'black-pawn',
+                'a8': 'black-rook', 'b8': 'black-knight', 'c8': 'black-bishop', 'd8': 'black-queen',
+                'e8': 'black-king', 'f8': 'black-bishop', 'g8': 'black-knight', 'h8': 'black-rook'
+              },
+              currentPlayer: 'white',
+              selectedSquare: null,
+              gameActive: true,
+              winner: null,
+              draw: false,
+              moveHistory: [],
+              lastUpdated: Date.now(),
+              castlingRights: 'KQkq',
+              enPassantTarget: null,
+              halfmoveClock: 0,
+              fullmoveNumber: 1,
+              inCheck: false,
+              inCheckmate: false
+            });
+          }
+        } catch (error) {
+          console.error('Error polling game state:', error);
+        }
+      }, 2000); // Poll every 2 seconds
+
+      return () => clearInterval(pollInterval);
+    }
+  }, [gameMode, roomId]);
 
   // Render based on game mode
   const renderContent = () => {

@@ -68,7 +68,7 @@ class DatabaseMultiplayerStateManager {
   }
 
   /**
-   * Connect to the WebSocket server
+   * Connect to the WebSocket server with retry logic
    */
   async connect(): Promise<void> {
     if (this.socket?.connected) {
@@ -89,6 +89,13 @@ class DatabaseMultiplayerStateManager {
 
     try {
       console.log('🔌 Connecting to server:', this.serverUrl);
+      
+      // Clean up any existing socket
+      if (this.socket) {
+        this.socket.disconnect();
+        this.socket = null;
+      }
+
       this.socket = io(this.serverUrl, {
         transports: ['websocket'], // Only use websocket, not polling
         timeout: 15000, // Increase timeout
@@ -102,15 +109,18 @@ class DatabaseMultiplayerStateManager {
 
       this.socket.on('connect', () => {
         console.log('✅ Connected to server with ID:', this.socket?.id);
+        this.isConnecting = false;
       });
 
       this.socket.on('disconnect', (reason) => {
         console.log('❌ Disconnected from server:', reason);
+        this.isConnecting = false;
         // Don't manually reconnect, let Socket.io handle it
       });
 
       this.socket.on('reconnect', (attemptNumber) => {
         console.log('🔄 Reconnected to server after', attemptNumber, 'attempts');
+        this.isConnecting = false;
       });
 
       this.socket.on('reconnect_attempt', (attemptNumber) => {
@@ -119,14 +129,17 @@ class DatabaseMultiplayerStateManager {
 
       this.socket.on('reconnect_error', (error) => {
         console.error('❌ Reconnection error:', error);
+        this.isConnecting = false;
       });
 
       this.socket.on('reconnect_failed', () => {
         console.error('❌ Reconnection failed after all attempts');
+        this.isConnecting = false;
       });
 
       this.socket.on('error', (error) => {
         console.error('❌ Socket error:', error);
+        this.isConnecting = false;
       });
 
       // Handle room updates
@@ -238,44 +251,34 @@ class DatabaseMultiplayerStateManager {
   }
 
   /**
+   * Check if connected and reconnect if needed
+   */
+  private async ensureConnected(): Promise<void> {
+    if (!this.socket?.connected) {
+      console.log('🔌 Not connected, attempting to connect...');
+      await this.connect();
+    }
+  }
+
+  /**
    * Create a new room
    */
   async createRoom(roomId: string, playerWallet: string): Promise<'white' | null> {
-    if (!this.isConnected()) {
-      console.log('🔌 Not connected, connecting first...');
-      await this.connect();
-    }
+    await this.ensureConnected();
 
-    console.log('📡 Emitting createRoom:', { roomId, playerWallet });
-    console.log('🔍 Socket connected:', this.socket?.connected);
-    console.log('🔍 Socket ID:', this.socket?.id);
-    
     return new Promise((resolve, reject) => {
       if (!this.socket) {
-        console.error('❌ No socket available');
         reject(new Error('Not connected to server'));
         return;
       }
 
-      // Add timeout to prevent hanging
-      const timeout = setTimeout(() => {
-        console.error('❌ createRoom timeout - no response from server');
-        reject(new Error('Request timeout - server not responding'));
-      }, 10000); // 10 second timeout
-
-      console.log('📤 Sending createRoom event to server...');
       this.socket.emit('createRoom', { roomId, playerWallet }, (response: any) => {
-        clearTimeout(timeout);
-        console.log('📨 Received createRoom response:', response);
-        console.log('📨 Response type:', typeof response);
-        console.log('📨 Response success:', response?.success);
-        
-        if (response && response.success) {
-          console.log('✅ Room created:', roomId, 'for player:', playerWallet);
-          resolve('white');
+        if (response.success) {
+          console.log('✅ Room created:', roomId);
+          resolve(response.role);
         } else {
-          console.error('❌ Failed to create room:', response?.error || 'No response');
-          reject(new Error(response?.error || 'Failed to create room'));
+          console.error('❌ Failed to create room:', response.error);
+          reject(new Error(response.error));
         }
       });
     });
@@ -355,15 +358,10 @@ class DatabaseMultiplayerStateManager {
   }
 
   /**
-   * Add escrow for a player in a room
+   * Add escrow for a player
    */
   async addEscrow(roomId: string, playerWallet: string, amount: number): Promise<void> {
-    if (!this.isConnected()) {
-      await this.connect();
-    }
-
-    console.log('💰 Adding escrow:', { roomId, playerWallet, amount });
-    console.log('🔍 Socket connected:', this.socket?.connected);
+    await this.ensureConnected();
 
     return new Promise((resolve, reject) => {
       if (!this.socket) {
@@ -371,16 +369,13 @@ class DatabaseMultiplayerStateManager {
         return;
       }
 
-      console.log('📤 Sending addEscrow event to server...');
       this.socket.emit('addEscrow', { roomId, playerWallet, amount }, (response: any) => {
-        console.log('📨 Received addEscrow response:', response);
-        
-        if (response && response.success) {
+        if (response.success) {
           console.log('✅ Escrow added successfully');
           resolve();
         } else {
-          console.error('❌ Failed to add escrow:', response?.error);
-          reject(new Error(response?.error || 'Failed to add escrow'));
+          console.error('❌ Failed to add escrow:', response.error);
+          reject(new Error(response.error));
         }
       });
     });
