@@ -2,6 +2,10 @@
 // Updated: 2025-07-23 - DigitalOcean App Platform migration
 // Optimized for stable WebSocket connections
 require('dotenv').config();
+
+// Debug environment variables at startup
+require('./debug-env.js');
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
