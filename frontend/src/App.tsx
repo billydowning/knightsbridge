@@ -362,6 +362,14 @@ function ChessApp() {
     }
   }, [bothEscrowsReady, gameMode, playerRole, roomId]);
 
+  // Watch for room status changes and set bothEscrowsReady when both escrows are present
+  useEffect(() => {
+    if (roomStatus && roomStatus.escrowCount >= 2 && gameMode === 'lobby') {
+      console.log('💰 Room status shows both escrows ready, setting bothEscrowsReady to true');
+      setBothEscrowsReady(true);
+    }
+  }, [roomStatus, gameMode]);
+
   // Set up multiplayer sync when room ID or game mode changes
   useEffect(() => {
     if (roomId && gameMode === 'lobby') {
