@@ -1,7 +1,7 @@
 name: knightsbridge-chess
 services:
 - name: backend
-  source_dir: /
+  source_dir: /backend
   github:
     repo: your-username/knightsbridge
     branch: main
