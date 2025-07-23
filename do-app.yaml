@@ -20,7 +20,7 @@ services:
     value: "https://knightsbridge.vercel.app"
     scope: RUN_AND_BUILD_TIME
   - key: DATABASE_URL
-    value: "postgresql://doadmin:AVNS_fRXUfSA9O-17TDkW1-G@private-db-postgresql-nyc3-28092-do-user-24118504-0.f.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
+    value: "${DATABASE_URL}"
     scope: RUN_AND_BUILD_TIME
   - key: DEBUG
     value: "false"
