@@ -38,9 +38,15 @@ const caCertificate = loadCACertificate();
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false, // More permissive for production stability
-    ca: caCertificate, // Use the DigitalOcean CA certificate if available
-    checkServerIdentity: () => undefined, // Skip hostname verification for now
+    rejectUnauthorized: true, // Proper SSL verification
+    ca: caCertificate, // Use the DigitalOcean CA certificate
+    checkServerIdentity: (hostname, cert) => {
+      // Verify the certificate is for the correct hostname
+      if (cert.subject.CN !== hostname && !cert.subjectaltname?.includes(hostname)) {
+        throw new Error(`Certificate verification failed: hostname mismatch. Expected: ${hostname}, got: ${cert.subject.CN}`);
+      }
+      return undefined; // Certificate is valid
+    },
   } : false,
   max: 20,
   idleTimeoutMillis: 30000,
@@ -55,18 +61,29 @@ async function createAlternativePool() {
   const url = new URL(process.env.DATABASE_URL);
   
   const sslConfigs = [
-    // Primary: With CA certificate but relaxed verification
+    // Primary: With CA certificate and proper verification
+    {
+      rejectUnauthorized: true,
+      ca: caCertificate,
+      checkServerIdentity: (hostname, cert) => {
+        if (cert.subject.CN !== hostname && !cert.subjectaltname?.includes(hostname)) {
+          throw new Error(`Certificate verification failed: hostname mismatch. Expected: ${hostname}, got: ${cert.subject.CN}`);
+        }
+        return undefined;
+      },
+    },
+    // Fallback 1: With CA certificate but relaxed verification
     {
       rejectUnauthorized: false,
       ca: caCertificate,
       checkServerIdentity: () => undefined,
     },
-    // Fallback 1: Without CA certificate but relaxed verification
+    // Fallback 2: Without CA certificate but relaxed verification
     {
       rejectUnauthorized: false,
       checkServerIdentity: () => undefined,
     },
-    // Fallback 2: No SSL verification (last resort)
+    // Fallback 3: No SSL verification (last resort)
     false
   ];
   
