@@ -8,11 +8,10 @@ const { Pool } = require('pg');
 // Database connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-    ca: undefined,
-    checkServerIdentity: () => undefined
-  },
+  ssl: process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: true, // Proper SSL validation for managed database
+    ca: undefined, // Let Node.js use system CA certificates
+  } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -24,7 +23,7 @@ async function testConnection() {
     console.log('🔌 Attempting to connect to PostgreSQL...');
     console.log('🔌 DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
     console.log('🔌 NODE_ENV:', process.env.NODE_ENV);
-    console.log('🔌 SSL Config: Enabled with relaxed settings (for DigitalOcean)');
+    console.log('🔌 SSL Config: Proper validation (managed database)');
     
     // Debug: Show the connection string (without password)
     if (process.env.DATABASE_URL) {
