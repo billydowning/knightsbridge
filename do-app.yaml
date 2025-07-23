@@ -1,9 +1,9 @@
-name: knightsbridge-chess
+name: knightsbridge
 services:
 - name: backend
   source_dir: /backend
   github:
-    repo: your-username/knightsbridge
+    repo: williamdowning/knightsbridge
     branch: main
   run_command: npm start
   environment_slug: node-js
@@ -12,14 +12,19 @@ services:
   envs:
   - key: NODE_ENV
     value: production
+    scope: RUN_AND_BUILD_TIME
   - key: PORT
     value: "8080"
+    scope: RUN_AND_BUILD_TIME
   - key: CORS_ORIGIN
     value: "https://knightsbridge.vercel.app"
+    scope: RUN_AND_BUILD_TIME
   - key: DATABASE_URL
-    value: "${db.DATABASE_URL}"
+    value: "postgresql://doadmin:AVNS_fRXUfSA9O-17TDkW1-G@private-db-postgresql-nyc3-28092-do-user-24118504-0.f.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
+    scope: RUN_AND_BUILD_TIME
   - key: DEBUG
     value: "false"
+    scope: RUN_AND_BUILD_TIME
 
 databases:
 - name: db

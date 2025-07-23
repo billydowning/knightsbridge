@@ -7,7 +7,7 @@
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install && cd ../programs/escrow && yarn install",
     "dev": "./scripts/deploy.sh dev",
     "deploy": "./scripts/deploy.sh deploy",
-    "build": "./scripts/deploy.sh build",
+    "build": "cd backend && npm install",
     "cleanup": "./scripts/deploy.sh cleanup",
     "start": "cd backend && npm start",
     "start:backend": "cd backend && npm start",

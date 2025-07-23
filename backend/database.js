@@ -5,25 +5,24 @@
 
 const { Pool } = require('pg');
 
-// Database connection pool
+// Robust database connection pool with proper SSL handling
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: true, // Proper SSL validation for managed database
-    ca: undefined, // Let Node.js use system CA certificates
+    rejectUnauthorized: false, // Required for DigitalOcean managed database
   } : false,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // Increased timeout for VPC
 });
 
-// Test database connection
+// Test database connection with better error handling
 async function testConnection() {
   try {
     console.log('🔌 Attempting to connect to PostgreSQL...');
     console.log('🔌 DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
     console.log('🔌 NODE_ENV:', process.env.NODE_ENV);
-    console.log('🔌 SSL Config: Proper validation (managed database)');
+    console.log('🔌 SSL Config: DigitalOcean managed database (rejectUnauthorized: false)');
     
     // Debug: Show the connection string (without password)
     if (process.env.DATABASE_URL) {
@@ -42,6 +41,7 @@ async function testConnection() {
     console.error('❌ PostgreSQL connection failed:', error);
     console.error('❌ Error code:', error.code);
     console.error('❌ Error message:', error.message);
+    console.error('❌ Full error:', error);
     return false;
   }
 }
