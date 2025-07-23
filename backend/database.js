@@ -5,12 +5,13 @@
 
 const { Pool } = require('pg');
 
-// Robust database connection pool with proper SSL handling for both VPC and public connections
+// Robust database connection pool with proper SSL handling for DigitalOcean managed PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false, // Required for DigitalOcean managed database (both VPC and public)
+    rejectUnauthorized: false, // Trust self-signed certificates
     ca: undefined, // Let Node.js handle the certificate chain
+    checkServerIdentity: () => undefined, // Skip hostname verification
   } : false,
   max: 20,
   idleTimeoutMillis: 30000,
@@ -23,7 +24,7 @@ async function testConnection() {
     console.log('🔌 Attempting to connect to PostgreSQL...');
     console.log('🔌 DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
     console.log('🔌 NODE_ENV:', process.env.NODE_ENV);
-    console.log('🔌 SSL Config: DigitalOcean managed database (rejectUnauthorized: false)');
+    console.log('🔌 SSL Config: DigitalOcean managed database (rejectUnauthorized: false, checkServerIdentity: disabled)');
     
     // Debug: Show the connection string (without password)
     if (process.env.DATABASE_URL) {
@@ -37,6 +38,15 @@ async function testConnection() {
           console.log('🔌 Connection type: Public (SSL certificate handling enabled)');
         } else if (hostPart.includes('private-db-postgresql')) {
           console.log('🔌 Connection type: Private VPC');
+        }
+        
+        // Check SSL mode in connection string
+        if (process.env.DATABASE_URL.includes('sslmode=require')) {
+          console.log('🔌 SSL Mode: require (correct)');
+        } else if (process.env.DATABASE_URL.includes('sslmode=')) {
+          console.log('🔌 SSL Mode:', process.env.DATABASE_URL.match(/sslmode=([^&]+)/)?.[1] || 'unknown');
+        } else {
+          console.log('⚠️ SSL Mode: Not specified in connection string');
         }
       }
     }
@@ -54,6 +64,11 @@ async function testConnection() {
     // Provide specific guidance for SSL errors
     if (error.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
       console.error('🔧 SSL Fix: Certificate chain issue detected. SSL configuration updated.');
+      console.error('🔧 Current SSL config: rejectUnauthorized: false, checkServerIdentity: disabled');
+    } else if (error.code === 'ECONNREFUSED') {
+      console.error('🔧 Network Fix: Connection refused. Check if database is accessible.');
+    } else if (error.code === 'ETIMEDOUT') {
+      console.error('🔧 Timeout Fix: Connection timeout. Check network connectivity.');
     }
     
     return false;
