@@ -4,71 +4,177 @@
  */
 
 const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
 
-// Robust database connection pool with aggressive SSL handling for DigitalOcean managed PostgreSQL
+// Function to load CA certificate
+function loadCACertificate() {
+  try {
+    // Try to load the CA certificate from the certs directory
+    const caPath = path.join(__dirname, 'certs', 'ca-certificate.crt');
+    if (fs.existsSync(caPath)) {
+      console.log('✅ Loading CA certificate from:', caPath);
+      return fs.readFileSync(caPath);
+    }
+    
+    // Fallback: try environment variable
+    if (process.env.DIGITALOCEAN_CA_CERT) {
+      console.log('✅ Loading CA certificate from environment variable');
+      return process.env.DIGITALOCEAN_CA_CERT;
+    }
+    
+    console.log('⚠️ No CA certificate found, using default SSL configuration');
+    return undefined;
+  } catch (error) {
+    console.log('⚠️ Error loading CA certificate:', error.message);
+    return undefined;
+  }
+}
+
+// Load the CA certificate
+const caCertificate = loadCACertificate();
+
+// Robust database connection pool with proper SSL handling for DigitalOcean managed PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false, // Trust self-signed certificates
-    ca: undefined, // Let Node.js handle the certificate chain
-    checkServerIdentity: () => undefined, // Skip hostname verification
-    servername: undefined, // Disable SNI
+    rejectUnauthorized: true, // Now we can trust certificates properly
+    ca: caCertificate, // Use the DigitalOcean CA certificate
+    checkServerIdentity: (hostname, cert) => {
+      // Verify the certificate is for the correct hostname
+      if (cert.subject.CN !== hostname && !cert.subjectaltname?.includes(hostname)) {
+        throw new Error(`Certificate verification failed: hostname mismatch. Expected: ${hostname}, got: ${cert.subject.CN}`);
+      }
+      return undefined; // Certificate is valid
+    },
   } : false,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 30000, // Increased timeout for public connections
+  connectionTimeoutMillis: 30000,
 });
 
-// Alternative connection method for SSL issues
+// Alternative connection method with fallback SSL configurations
 async function createAlternativePool() {
   console.log('🔄 Attempting alternative SSL configuration...');
   
   // Parse the DATABASE_URL to extract components
   const url = new URL(process.env.DATABASE_URL);
   
-  return new Pool({
-    host: url.hostname,
-    port: url.port,
-    database: url.pathname.slice(1),
-    user: url.username,
-    password: url.password,
-    ssl: {
-      rejectUnauthorized: false,
-      ca: undefined,
-      checkServerIdentity: () => undefined,
-      servername: undefined,
+  const sslConfigs = [
+    // Primary: With CA certificate and proper verification
+    {
+      rejectUnauthorized: true,
+      ca: caCertificate,
+      checkServerIdentity: (hostname, cert) => {
+        if (cert.subject.CN !== hostname && !cert.subjectaltname?.includes(hostname)) {
+          throw new Error(`Certificate verification failed: hostname mismatch. Expected: ${hostname}, got: ${cert.subject.CN}`);
+        }
+        return undefined;
+      },
     },
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 30000,
-  });
+    // Fallback 1: With CA certificate but relaxed verification
+    {
+      rejectUnauthorized: false,
+      ca: caCertificate,
+      checkServerIdentity: () => undefined,
+    },
+    // Fallback 2: Without CA certificate but relaxed verification
+    {
+      rejectUnauthorized: false,
+      checkServerIdentity: () => undefined,
+    },
+    // Fallback 3: No SSL verification (last resort)
+    false
+  ];
+  
+  for (let i = 0; i < sslConfigs.length; i++) {
+    try {
+      console.log(`🔌 Trying SSL configuration ${i + 1}/${sslConfigs.length}`);
+      
+      const testPool = new Pool({
+        host: url.hostname,
+        port: url.port,
+        database: url.pathname.slice(1),
+        user: url.username,
+        password: url.password,
+        ssl: sslConfigs[i],
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 30000,
+      });
+      
+      const client = await testPool.connect();
+      console.log(`✅ Connection successful with SSL config ${i + 1}`);
+      client.release();
+      await testPool.end();
+      
+      // Return the working configuration
+      return new Pool({
+        host: url.hostname,
+        port: url.port,
+        database: url.pathname.slice(1),
+        user: url.username,
+        password: url.password,
+        ssl: sslConfigs[i],
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 30000,
+      });
+      
+    } catch (error) {
+      console.log(`❌ SSL config ${i + 1} failed: ${error.code} - ${error.message}`);
+      continue;
+    }
+  }
+  
+  throw new Error('All SSL configurations failed');
 }
 
-// Try different SSL modes
+// Try different SSL modes with proper CA certificate handling
 async function tryDifferentSSLModes() {
-  console.log('🔄 Trying different SSL modes...');
+  console.log('🔄 Trying different SSL modes with CA certificate...');
   
   const baseUrl = process.env.DATABASE_URL.replace(/\?.*$/, ''); // Remove existing query params
   
   const sslModes = [
-    '?sslmode=prefer',
-    '?sslmode=allow', 
-    '?sslmode=no-verify',
-    '?sslmode=disable'
+    '?sslmode=verify-full', // Full verification with CA certificate
+    '?sslmode=verify-ca',   // Verify CA certificate
+    '?sslmode=require',     // Require SSL
+    '?sslmode=prefer',      // Prefer SSL
+    '?sslmode=allow',       // Allow SSL
+    '?sslmode=no-verify',   // No verification
+    '?sslmode=disable'      // Disable SSL
   ];
   
   for (const sslMode of sslModes) {
     try {
       console.log(`🔌 Trying SSL mode: ${sslMode}`);
       
+      let sslConfig;
+      if (sslMode.includes('disable')) {
+        sslConfig = false;
+      } else if (sslMode.includes('verify-full') || sslMode.includes('verify-ca')) {
+        sslConfig = {
+          rejectUnauthorized: true,
+          ca: caCertificate,
+          checkServerIdentity: (hostname, cert) => {
+            if (cert.subject.CN !== hostname && !cert.subjectaltname?.includes(hostname)) {
+              throw new Error(`Certificate verification failed: hostname mismatch. Expected: ${hostname}, got: ${cert.subject.CN}`);
+            }
+            return undefined;
+          },
+        };
+      } else {
+        sslConfig = {
+          rejectUnauthorized: false,
+          ca: caCertificate,
+          checkServerIdentity: () => undefined,
+        };
+      }
+      
       const testPool = new Pool({
         connectionString: baseUrl + sslMode,
-        ssl: sslMode.includes('disable') ? false : {
-          rejectUnauthorized: false,
-          ca: undefined,
-          checkServerIdentity: () => undefined,
-          servername: undefined,
-        },
+        ssl: sslConfig,
         connectionTimeoutMillis: 10000,
       });
       
@@ -82,7 +188,7 @@ async function tryDifferentSSLModes() {
       return true;
       
     } catch (error) {
-      console.log(`❌ ${sslMode} failed: ${error.code}`);
+      console.log(`❌ ${sslMode} failed: ${error.code} - ${error.message}`);
       continue;
     }
   }
@@ -96,7 +202,8 @@ async function testConnection() {
     console.log('🔌 Attempting to connect to PostgreSQL...');
     console.log('🔌 DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
     console.log('🔌 NODE_ENV:', process.env.NODE_ENV);
-    console.log('🔌 SSL Config: DigitalOcean managed database (rejectUnauthorized: false, checkServerIdentity: disabled)');
+    console.log('🔌 CA Certificate:', caCertificate ? 'Loaded' : 'Not found');
+    console.log('🔌 SSL Config: DigitalOcean managed database with CA certificate');
     
     // Debug: Show the connection string (without password)
     if (process.env.DATABASE_URL) {
@@ -126,11 +233,12 @@ async function testConnection() {
     // Try the primary connection method
     try {
       const client = await pool.connect();
-      console.log('✅ PostgreSQL connected successfully (primary method)');
+      console.log('✅ PostgreSQL connected successfully (primary method with CA certificate)');
       client.release();
       return true;
     } catch (primaryError) {
       console.log('⚠️ Primary connection method failed, trying alternative...');
+      console.log('⚠️ Error:', primaryError.code, '-', primaryError.message);
       
       // Try alternative connection method
       try {
@@ -142,6 +250,7 @@ async function testConnection() {
         return true;
       } catch (altError) {
         console.log('⚠️ Alternative connection method failed, trying different SSL modes...');
+        console.log('⚠️ Error:', altError.code, '-', altError.message);
         
         // Try different SSL modes
         const sslSuccess = await tryDifferentSSLModes();
@@ -163,14 +272,18 @@ async function testConnection() {
     
     // Provide specific guidance for SSL errors
     if (error.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
-      console.error('🔧 SSL Fix: Certificate chain issue detected. SSL configuration updated.');
-      console.error('🔧 Current SSL config: rejectUnauthorized: false, checkServerIdentity: disabled');
-      console.error('🔧 Tried both primary and alternative connection methods');
-      console.error('🔧 Tried multiple SSL modes: require, prefer, allow, no-verify, disable');
+      console.error('🔧 SSL Fix: Certificate chain issue detected.');
+      console.error('🔧 Solution: Download and use the DigitalOcean CA certificate.');
+      console.error('🔧 Steps:');
+      console.error('   1. Download CA certificate from DigitalOcean dashboard');
+      console.error('   2. Save as backend/certs/ca-certificate.crt');
+      console.error('   3. Redeploy the application');
     } else if (error.code === 'ECONNREFUSED') {
       console.error('🔧 Network Fix: Connection refused. Check if database is accessible.');
     } else if (error.code === 'ETIMEDOUT') {
       console.error('🔧 Timeout Fix: Connection timeout. Check network connectivity.');
+    } else if (error.code === 'ENOTFOUND') {
+      console.error('🔧 DNS Fix: Hostname not found. Check DATABASE_URL format.');
     }
     
     return false;
