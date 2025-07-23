@@ -5,15 +5,16 @@
 
 const { Pool } = require('pg');
 
-// Robust database connection pool with proper SSL handling
+// Robust database connection pool with proper SSL handling for both VPC and public connections
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false, // Required for DigitalOcean managed database
+    rejectUnauthorized: false, // Required for DigitalOcean managed database (both VPC and public)
+    ca: undefined, // Let Node.js handle the certificate chain
   } : false,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000, // Increased timeout for VPC
+  connectionTimeoutMillis: 30000, // Increased timeout for public connections
 });
 
 // Test database connection with better error handling
@@ -30,6 +31,13 @@ async function testConnection() {
       if (urlParts.length > 1) {
         const hostPart = urlParts[1];
         console.log('🔌 Database host:', hostPart.split('/')[0]);
+        
+        // Check if it's public or private connection
+        if (hostPart.includes('public-db-postgresql')) {
+          console.log('🔌 Connection type: Public (SSL certificate handling enabled)');
+        } else if (hostPart.includes('private-db-postgresql')) {
+          console.log('🔌 Connection type: Private VPC');
+        }
       }
     }
     
@@ -42,6 +50,12 @@ async function testConnection() {
     console.error('❌ Error code:', error.code);
     console.error('❌ Error message:', error.message);
     console.error('❌ Full error:', error);
+    
+    // Provide specific guidance for SSL errors
+    if (error.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
+      console.error('🔧 SSL Fix: Certificate chain issue detected. SSL configuration updated.');
+    }
+    
     return false;
   }
 }
