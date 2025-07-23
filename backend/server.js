@@ -14,6 +14,14 @@ console.log('📋 Environment:', process.env.NODE_ENV);
 console.log('🔧 Debug mode:', process.env.DEBUG);
 console.log('🌊 Platform: DigitalOcean App Platform');
 
+// Check for DigitalOcean CA certificate environment variables
+const possibleCAVars = ['DATABASE_CA_CERT', 'DB_CA_CERT', 'CA_CERT', 'DIGITALOCEAN_CA_CERT', 'POSTGRES_CA_CERT'];
+for (const varName of possibleCAVars) {
+  if (process.env[varName]) {
+    console.log(`🔌 Found CA certificate in environment variable: ${varName}`);
+  }
+}
+
 const app = express();
 const server = http.createServer(app);
 
@@ -627,7 +635,7 @@ app.get('/deploy-schema', async (req, res) => {
   }
 });
 
-// Add Railway-specific health check endpoint
+// Health check endpoint for DigitalOcean App Platform
 app.get('/health', (req, res) => {
   const health = {
     status: 'healthy',
@@ -636,12 +644,7 @@ app.get('/health', (req, res) => {
     connectedSockets: io.engine.clientsCount,
     connectionStats,
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    railway: {
-      serviceId: process.env.RAILWAY_SERVICE_ID,
-      projectId: process.env.RAILWAY_PROJECT_ID,
-      environment: process.env.RAILWAY_ENVIRONMENT
-    }
+    environment: process.env.NODE_ENV
   };
   
   console.log('🏥 Health check requested:', health);
@@ -651,29 +654,32 @@ app.get('/health', (req, res) => {
   res.status(isHealthy ? 200 : 503).json(health);
 });
 
-// Add Railway-specific readiness check
-app.get('/ready', (req, res) => {
+// Readiness check endpoint for DigitalOcean App Platform
+app.get('/ready', async (req, res) => {
   const readiness = {
     status: 'ready',
-    database: 'connected', // We'll check this
+    database: 'disconnected',
     websocket: 'running',
     timestamp: new Date().toISOString()
   };
   
-  // Check database connection
-  pool.query('SELECT 1')
-    .then(() => {
+  // Check database connection with retry
+  for (let i = 0; i < 3; i++) {
+    try {
+      await pool.query('SELECT 1');
       readiness.database = 'connected';
       res.status(200).json(readiness);
-    })
-    .catch(error => {
-      console.error('❌ Database health check failed:', error);
-      readiness.database = 'disconnected';
-      res.status(503).json(readiness);
-    });
+      return;
+    } catch (error) {
+      console.error(`❌ Database health check attempt ${i + 1} failed:`, error);
+      if (i === 2) {
+        res.status(503).json(readiness);
+      }
+    }
+  }
 });
 
-// Add more frequent health checks for Railway
+// Add more frequent health checks for DigitalOcean App Platform
 setInterval(async () => {
   try {
     // Check database connection
