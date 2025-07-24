@@ -10,7 +10,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const { pool, testConnection, roomService, chatService } = require('./database');
+const { initializePool, testConnection, roomService, chatService } = require('./database');
 
 console.log('🚀 Starting Knightsbridge Chess Backend Server...');
 console.log('📋 Environment:', process.env.NODE_ENV);
@@ -148,9 +148,9 @@ app.use(limiter);
 const apiRoutes = require('./routes/api');
 app.use('/api', apiRoutes);
 
-// Test endpoint to verify backend is working
-app.get('/test', async (req, res) => {
-  console.log('🧪 Test endpoint called');
+// Test endpoint to verify backend is working (with database check)
+app.get('/test-db', async (req, res) => {
+  console.log('🧪 Test endpoint with database called');
   
   try {
     // Test database connection
@@ -178,7 +178,8 @@ app.get('/debug', async (req, res) => {
   
   try {
     // Get room count from database
-    const result = await pool.query('SELECT COUNT(*) as room_count FROM games');
+    const poolInstance = initializePool();
+    const result = await poolInstance.query('SELECT COUNT(*) as room_count FROM games');
     const roomCount = result.rows[0].room_count;
     
     const debugInfo = {
@@ -197,7 +198,8 @@ app.get('/debug', async (req, res) => {
 // Debug endpoint to list all rooms
 app.get('/debug/rooms', async (req, res) => {
   try {
-    const result = await pool.query('SELECT room_id, player_white_wallet, player_black_wallet, game_state FROM games');
+    const poolInstance = initializePool();
+    const result = await poolInstance.query('SELECT room_id, player_white_wallet, player_black_wallet, game_state FROM games');
     const rooms = result.rows.map(row => row.room_id);
     
     res.json({
@@ -217,7 +219,8 @@ app.get('/debug/room/:roomId', async (req, res) => {
   const roomId = req.params.roomId;
   
   try {
-    const result = await pool.query('SELECT room_id, player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
+    const poolInstance = initializePool();
+    const result = await poolInstance.query('SELECT room_id, player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
     const room = result.rows[0];
 
     if (!room) {
@@ -241,9 +244,10 @@ app.get('/debug/room/:roomId', async (req, res) => {
 // Debug endpoint to clear all rooms
 app.get('/debug/clear', async (req, res) => {
   try {
-    await pool.query('DELETE FROM games');
-    await pool.query('DELETE FROM moves');
-    await pool.query('DELETE FROM chat_messages');
+    const poolInstance = initializePool();
+    await poolInstance.query('DELETE FROM games');
+    await poolInstance.query('DELETE FROM moves');
+    await poolInstance.query('DELETE FROM chat_messages');
     console.log('🧹 All rooms cleared from database');
     res.json({ 
       message: 'All rooms cleared from database', 
@@ -695,7 +699,8 @@ app.get('/ready', async (req, res) => {
   // Check database connection with retry
   for (let i = 0; i < 3; i++) {
     try {
-      await pool.query('SELECT 1');
+      const poolInstance = initializePool();
+      await poolInstance.query('SELECT 1');
       readiness.database = 'connected';
       res.status(200).json(readiness);
       return;
@@ -712,7 +717,8 @@ app.get('/ready', async (req, res) => {
 setInterval(async () => {
   try {
     // Check database connection
-    await pool.query('SELECT 1');
+    const poolInstance = initializePool();
+    await poolInstance.query('SELECT 1');
     console.log('✅ Database health check passed');
   } catch (error) {
     console.error('❌ Database health check failed:', error);

@@ -6,34 +6,49 @@
 
 const { Pool } = require('pg');
 
-// Remove the sslmode from the connection string if it exists
-let dbUrl = process.env.DATABASE_URL;
-if (dbUrl.includes('?sslmode=')) {
-  dbUrl = dbUrl.split('?')[0];
-  console.log('🔧 Removed sslmode from DATABASE_URL for DigitalOcean SSL handling');
-}
+let pool = null;
 
-if (!dbUrl || !dbUrl.startsWith('postgresql://')) {
-  console.error('❌ Invalid DATABASE_URL - must start with postgresql://');
-  process.exit(1);
-}
-console.log('✅ DATABASE_URL loaded:', dbUrl.replace(/:([^@]+)@/, ':***@'));
-
-// Create the pool configuration with DigitalOcean's recommended SSL handling
-const poolConfig = {
-  connectionString: dbUrl,
-  ssl: {
-    rejectUnauthorized: false  // Recommended for DigitalOcean managed databases
+function initializePool() {
+  if (pool) return pool; // Already initialized
+  
+  // Remove the sslmode from the connection string if it exists
+  let dbUrl = process.env.DATABASE_URL;
+  
+  if (!dbUrl) {
+    console.error('❌ DATABASE_URL environment variable is not set');
+    throw new Error('DATABASE_URL not configured');
   }
-};
+  
+  if (dbUrl.includes('?sslmode=')) {
+    dbUrl = dbUrl.split('?')[0];
+    console.log('🔧 Removed sslmode from DATABASE_URL for DigitalOcean SSL handling');
+  }
 
-console.log('🔧 SSL configuration: Using DigitalOcean managed database SSL (encrypted but relaxed verification)');
+  if (!dbUrl.startsWith('postgresql://')) {
+    console.error('❌ Invalid DATABASE_URL - must start with postgresql://');
+    throw new Error('Invalid DATABASE_URL format');
+  }
+  
+  console.log('✅ DATABASE_URL loaded:', dbUrl.replace(/:([^@]+)@/, ':***@'));
 
-const pool = new Pool(poolConfig);
+  // Create the pool configuration with DigitalOcean's recommended SSL handling
+  const poolConfig = {
+    connectionString: dbUrl,
+    ssl: {
+      rejectUnauthorized: false  // Recommended for DigitalOcean managed databases
+    }
+  };
+
+  console.log('🔧 SSL configuration: Using DigitalOcean managed database SSL (encrypted but relaxed verification)');
+
+  pool = new Pool(poolConfig);
+  return pool;
+}
 
 async function testConnection() {
   try {
-    const client = await pool.connect();
+    const poolInstance = initializePool();
+    const client = await poolInstance.connect();
     console.log('✅ Test connection successful');
     client.release();
     return true;
@@ -46,21 +61,22 @@ async function testConnection() {
 // Room service functions
 async function roomService(action, data) {
   try {
+    const poolInstance = initializePool();
     switch (action) {
       case 'create':
-        return await pool.query(
+        return await poolInstance.query(
           'INSERT INTO rooms (room_id, player1, status) VALUES ($1, $2, $3) RETURNING *',
           [data.roomId, data.player1, 'waiting']
         );
       case 'join':
-        return await pool.query(
+        return await poolInstance.query(
           'UPDATE rooms SET player2 = $1, status = $2 WHERE room_id = $3 RETURNING *',
           [data.player2, 'active', data.roomId]
         );
       case 'get':
-        return await pool.query('SELECT * FROM rooms WHERE room_id = $1', [data.roomId]);
+        return await poolInstance.query('SELECT * FROM rooms WHERE room_id = $1', [data.roomId]);
       case 'update':
-        return await pool.query(
+        return await poolInstance.query(
           'UPDATE rooms SET status = $1, game_state = $2 WHERE room_id = $3 RETURNING *',
           [data.status, data.gameState, data.roomId]
         );
@@ -76,14 +92,15 @@ async function roomService(action, data) {
 // Chat service functions
 async function chatService(action, data) {
   try {
+    const poolInstance = initializePool();
     switch (action) {
       case 'save':
-        return await pool.query(
+        return await poolInstance.query(
           'INSERT INTO chat_messages (room_id, player, message, timestamp) VALUES ($1, $2, $3, $4) RETURNING *',
           [data.roomId, data.player, data.message, new Date()]
         );
       case 'get':
-        return await pool.query(
+        return await poolInstance.query(
           'SELECT * FROM chat_messages WHERE room_id = $1 ORDER BY timestamp ASC',
           [data.roomId]
         );
@@ -96,4 +113,4 @@ async function chatService(action, data) {
   }
 }
 
-module.exports = { pool, testConnection, roomService, chatService }; 
+module.exports = { pool: () => pool, initializePool, testConnection, roomService, chatService }; 
