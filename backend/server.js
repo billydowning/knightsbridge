@@ -39,7 +39,8 @@ const io = socketIo(server, {
   pingInterval: 25000, // 25 seconds
   upgradeTimeout: 10000, // 10 seconds
   allowEIO3: true, // Allow Engine.IO v3 clients
-  maxHttpBufferSize: 1e6 // 1MB max message size
+  maxHttpBufferSize: 1e6, // 1MB max message size
+  path: '/knightsbridge2/socket.io' // Serve Socket.IO on the correct path
 });
 
 // Initialize database connection and create tables
