@@ -41,7 +41,7 @@ interface GameState {
 
 interface DatabaseMultiplayerStateHook {
   // Room management
-  createRoom: (roomId: string, playerWallet: string) => Promise<'white' | null>;
+  createRoom: (playerWallet: string) => Promise<{ role: 'white' | null; roomId: string | null }>;
   joinRoom: (roomId: string, playerWallet: string) => Promise<'white' | 'black' | null>;
   getRoomStatus: (roomId: string) => Promise<RoomStatus | null>;
   
@@ -87,6 +87,7 @@ class DatabaseMultiplayerStateManager {
     console.log('🔍 Environment check - VITE_WS_URL:', import.meta.env.VITE_WS_URL);
     console.log('🔍 Environment check - VITE_API_URL:', import.meta.env.VITE_API_URL);
     console.log('🔍 Environment check - VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
+    console.log('🔍 All env vars:', import.meta.env);
     console.log('🔍 Using hardcoded URL to bypass env var issues');
   }
 
@@ -125,16 +126,17 @@ class DatabaseMultiplayerStateManager {
       }
 
       this.socket = io(this.serverUrl, {
-        transports: ['websocket', 'polling'], // Allow fallback to polling
-        timeout: 15000,
+        transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
+        timeout: 20000, // Increased timeout as recommended
         reconnection: true,
-        reconnectionAttempts: 3,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        forceNew: false,
+        reconnectionAttempts: 5, // Increased attempts as recommended
+        reconnectionDelay: 1000, // Faster initial delay
+        reconnectionDelayMax: 10000, // Reasonable max delay
+        forceNew: true, // Force new connection as recommended
         autoConnect: true,
-        upgrade: false,
-        rememberUpgrade: false,
+        upgrade: true, // Enable upgrade for better compatibility
+        rememberUpgrade: true, // Remember successful upgrades
+        withCredentials: true, // Enable credentials for auth
         // Remove custom path - use default Socket.IO path
       });
 
@@ -143,6 +145,12 @@ class DatabaseMultiplayerStateManager {
         this.isConnecting = false;
         this.connectionAttempts = 0;
         this.startHeartbeat();
+        
+        // Notify UI about successful connection
+        this.notifyCallbacks('connected', {
+          socketId: this.socket?.id,
+          timestamp: Date.now()
+        });
       });
 
       this.socket.on('disconnect', (reason) => {
@@ -150,10 +158,20 @@ class DatabaseMultiplayerStateManager {
         this.isConnecting = false;
         this.stopHeartbeat();
         
-        // Attempt reconnection for certain disconnect reasons
+        // Notify UI about disconnection
+        this.notifyCallbacks('disconnected', {
+          reason,
+          timestamp: Date.now()
+        });
+        
+        // Only attempt reconnection for certain disconnect reasons
         if (reason === 'io server disconnect' || reason === 'transport close') {
           console.log('🔄 Attempting to reconnect...');
-          setTimeout(() => this.connect(), 2000);
+          // Use exponential backoff: 2s, 4s, 8s
+          const backoffDelay = Math.min(2000 * Math.pow(2, this.connectionAttempts), 8000);
+          setTimeout(() => this.connect(), backoffDelay);
+        } else {
+          console.log('🛑 Not attempting reconnection for reason:', reason);
         }
       });
 
@@ -162,19 +180,63 @@ class DatabaseMultiplayerStateManager {
         this.isConnecting = false;
         this.connectionAttempts = 0;
         this.startHeartbeat();
+        
+        // Notify UI about successful reconnection
+        this.notifyCallbacks('reconnected', {
+          attemptNumber,
+          socketId: this.socket?.id,
+          timestamp: Date.now()
+        });
       });
 
       this.socket.on('reconnect_attempt', (attemptNumber) => {
         console.log('🔄 Reconnection attempt:', attemptNumber);
+        
+        // Notify UI about reconnection attempt
+        this.notifyCallbacks('reconnectAttempt', {
+          attemptNumber,
+          timestamp: Date.now()
+        });
       });
 
       this.socket.on('reconnect_error', (error) => {
         console.error('❌ Reconnection error:', error);
+        
+        // Notify UI about reconnection error
+        this.notifyCallbacks('reconnectError', {
+          error: error.message,
+          timestamp: Date.now()
+        });
+        
+        // Don't throw here - let Socket.IO handle retries
+      });
+
+      this.socket.on('connect_error', (error) => {
+        console.error('❌ Connection error:', error);
+        console.error('❌ Connection error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+        this.isConnecting = false;
+        
+        // Add UI feedback - you can emit this to your React components
+        this.notifyCallbacks('connectionError', {
+          error: error.message,
+          timestamp: Date.now()
+        });
+        
+        // Don't throw here - let Socket.IO handle retries
       });
 
       this.socket.on('reconnect_failed', () => {
         console.error('❌ Reconnection failed after all attempts');
         this.isConnecting = false;
+        
+        // Notify UI about reconnection failure
+        this.notifyCallbacks('reconnectFailed', {
+          timestamp: Date.now()
+        });
       });
 
       // Game events
@@ -259,7 +321,7 @@ class DatabaseMultiplayerStateManager {
     }
   }
 
-  async createRoom(roomId: string, playerWallet: string): Promise<'white' | null> {
+  async createRoom(playerWallet: string): Promise<{ role: 'white' | null; roomId: string | null }> {
     try {
       await this.ensureConnected();
       
@@ -274,11 +336,11 @@ class DatabaseMultiplayerStateManager {
           reject(new Error('Create room request timed out'));
         }, 10000); // 10 second timeout
 
-        this.socket.emit('createRoom', { roomId, playerWallet }, (response: any) => {
+        this.socket.emit('createRoom', { playerWallet }, (response: any) => {
           clearTimeout(timeout);
           if (response.success) {
             console.log('✅ Room created:', response);
-            resolve('white');
+            resolve({ role: 'white', roomId: response.roomId });
           } else {
             console.error('❌ Failed to create room:', response.error);
             reject(new Error(response.error));

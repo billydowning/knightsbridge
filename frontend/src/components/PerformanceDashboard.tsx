@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { performanceMonitor } from '../utils/performance';
-import { memoryManager } from '../utils/memoryManager';
+// import { memoryManager } from '../utils/memoryManager';
 
 interface PerformanceDashboardProps {
   isVisible?: boolean;
@@ -23,7 +23,8 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
       const recentMetrics = allMetrics.slice(-20); // Last 20 metrics
       setMetrics(recentMetrics);
       
-      const currentMemory = memoryManager.getCurrentMemoryUsage();
+      // const currentMemory = memoryManager.getCurrentMemoryUsage();
+  const currentMemory = null;
       setMemoryUsage(currentMemory);
     };
 
@@ -205,7 +206,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
           Clear Metrics
         </button>
         <button
-          onClick={() => memoryManager.cleanup()}
+          onClick={() => {/* memoryManager.cleanup() */}}
           style={{
             backgroundColor: '#444',
             border: 'none',

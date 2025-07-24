@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Debug</title>
+</head>
+<body>
+    <h1>Frontend Debug Test</h1>
+    <div id="output"></div>
+
+    <script type="module">
+        const output = document.getElementById('output');
+        
+        try {
+            console.log('🧪 Starting debug test...');
+            
+            // Test 1: Basic environment check
+            console.log('📋 Testing environment variables...');
+            const envVars = {
+                VITE_API_URL: import.meta.env.VITE_API_URL,
+                VITE_WS_URL: import.meta.env.VITE_WS_URL,
+                VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
+                MODE: import.meta.env.MODE,
+                DEV: import.meta.env.DEV,
+                PROD: import.meta.env.PROD
+            };
+            
+            console.log('Environment variables:', envVars);
+            
+            // Test 2: Check for undefined variables
+            const undefinedVars = Object.entries(envVars).filter(([key, value]) => !value);
+            const definedVars = Object.entries(envVars).filter(([key, value]) => value);
+            
+            console.log('✅ Defined variables:', definedVars);
+            console.log('❌ Undefined variables:', undefinedVars);
+            
+            // Test 3: Test backend connection
+            console.log('🔗 Testing backend connection...');
+            const backendUrl = envVars.VITE_API_URL || 'https://knightsbridge-app-35xls.ondigitalocean.app';
+            
+            fetch(`${backendUrl}/health`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('✅ Backend connection successful:', data);
+                    output.innerHTML += '<p style="color: green;">✅ Backend connection successful</p>';
+                })
+                .catch(error => {
+                    console.error('❌ Backend connection failed:', error);
+                    output.innerHTML += '<p style="color: red;">❌ Backend connection failed: ' + error.message + '</p>';
+                });
+            
+            // Test 4: Check for regex issues
+            console.log('🔍 Checking for potential regex issues...');
+            
+            // Test if any environment variables contain problematic characters
+            Object.entries(envVars).forEach(([key, value]) => {
+                if (value && typeof value === 'string') {
+                    try {
+                        // Test if the value can be used in a regex
+                        new RegExp(value);
+                        console.log(`✅ ${key} value is regex-safe`);
+                    } catch (e) {
+                        console.error(`❌ ${key} value contains invalid regex characters:`, value);
+                        output.innerHTML += `<p style="color: red;">❌ ${key} has invalid regex characters: ${value}</p>`;
+                    }
+                }
+            });
+            
+            output.innerHTML += '<p style="color: green;">✅ Debug test completed successfully</p>';
+            
+        } catch (error) {
+            console.error('❌ Debug test failed:', error);
+            output.innerHTML += '<p style="color: red;">❌ Debug test failed: ' + error.message + '</p>';
+        }
+    </script>
+</body>
+</html> 

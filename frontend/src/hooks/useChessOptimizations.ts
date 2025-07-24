@@ -5,12 +5,12 @@ import type { GameState, Position } from '../types';
 /**
  * Custom hook for chess-specific performance optimizations
  */
-export const useChessOptimizations = (gameState: GameState) => {
+export const useChessOptimizations = (gameState: GameState | null) => {
   const lastMoveRef = useRef<{ from: string; to: string } | null>(null);
 
   // Memoize legal moves to prevent recalculation on every render
   const legalMoves = useMemo(() => {
-    if (!gameState.gameActive || !gameState.currentPlayer) {
+    if (!gameState || !gameState.gameActive || !gameState.currentPlayer) {
       return [];
     }
     
@@ -19,22 +19,25 @@ export const useChessOptimizations = (gameState: GameState) => {
       gameState.currentPlayer, 
       gameState
     );
-  }, [gameState.position, gameState.currentPlayer, gameState.gameActive, gameState]);
+  }, [gameState?.position, gameState?.currentPlayer, gameState?.gameActive, gameState]);
 
   // Memoize check status
   const isInCheck = useMemo(() => {
+    if (!gameState || !gameState.currentPlayer) return false;
     return ChessEngine.isInCheck(gameState.position, gameState.currentPlayer);
-  }, [gameState.position, gameState.currentPlayer]);
+  }, [gameState?.position, gameState?.currentPlayer]);
 
   // Memoize checkmate status
   const isCheckmate = useMemo(() => {
+    if (!gameState || !gameState.currentPlayer) return false;
     return ChessEngine.isCheckmate(gameState.position, gameState.currentPlayer, gameState);
-  }, [gameState.position, gameState.currentPlayer, gameState]);
+  }, [gameState?.position, gameState?.currentPlayer, gameState]);
 
   // Memoize stalemate status
   const isStalemate = useMemo(() => {
+    if (!gameState || !gameState.currentPlayer) return false;
     return ChessEngine.isStalemate(gameState.position, gameState.currentPlayer, gameState);
-  }, [gameState.position, gameState.currentPlayer, gameState]);
+  }, [gameState?.position, gameState?.currentPlayer, gameState]);
 
   // Optimized move validation
   const validateMove = useCallback((from: string, to: string): boolean => {
@@ -48,6 +51,7 @@ export const useChessOptimizations = (gameState: GameState) => {
 
   // Track move changes for animations
   const hasMoveChanged = useMemo(() => {
+    if (!gameState) return false;
     const currentMove = gameState.lastMove;
     const hasChanged = !lastMoveRef.current || 
       lastMoveRef.current.from !== currentMove?.from || 
@@ -58,7 +62,7 @@ export const useChessOptimizations = (gameState: GameState) => {
     }
     
     return hasChanged;
-  }, [gameState.lastMove]);
+  }, [gameState?.lastMove]);
 
   // Memoize game status
   const gameStatus = useMemo(() => {

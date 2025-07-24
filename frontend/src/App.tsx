@@ -12,16 +12,16 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 import { MenuView, LobbyView, GameView } from './components';
 import { SOLANA_RPC_ENDPOINT } from './config';
 import { useSolanaWallet } from './hooks/useSolanaWallet';
-import { useWebSocket } from './hooks/useWebSocket';
+// import { useWebSocket } from './hooks/useWebSocket';
 import { databaseMultiplayerState } from './services/databaseMultiplayerState';
 import type { ChatMessage } from './components/ChatBox';
 import { ENV_CONFIG } from './config/appConfig';
 import { ChessEngine } from './engine/chessEngine';
 import { useChessOptimizations, useDebounce, useThrottle } from './hooks/useChessOptimizations';
 import { useRenderPerformance } from './utils/performance';
-import { useMemoryCleanup } from './utils/memoryManager';
+// import { useMemoryCleanup } from './utils/memoryManager';
 import { performanceMonitor } from './utils/performance';
-import { memoryManager } from './utils/memoryManager';
+// import { memoryManager } from './utils/memoryManager';
 // ErrorBoundary is defined locally in this file
 
 // Theme context
@@ -251,12 +251,12 @@ function ChessApp() {
   const throttledRoomStatus = useThrottle(roomStatus, 100);
 
   // Memory cleanup
-  useMemoryCleanup(() => {
-    // Cleanup game state references
-    setGameState(null as any);
-    setChatMessages([]);
-    setRoomStatus(null);
-  }, []);
+  // useMemoryCleanup(() => {
+  //   // Cleanup game state references
+  //   setGameState(null as any);
+  //   setChatMessages([]);
+  //   setRoomStatus(null);
+  // }, []);
 
   // Memoized helper functions
   const handleOpponentMove = useCallback((moveData: any) => {
@@ -311,39 +311,48 @@ function ChessApp() {
     }));
   }, []);
 
-  // WebSocket hook for real-time game communication
-  const {
-    sendMove,
-    sendChatMessage: wsSendChatMessage
-  } = useWebSocket({
-    gameId: roomId,
-    playerId: publicKey?.toString(),
-    playerName: publicKey?.toString().slice(0, 6) + '...' + publicKey?.toString().slice(-4),
-    onMoveReceived: handleOpponentMove,
-    onChatMessageReceived: (message) => {
-      console.log('Chat message received via WebSocket:', message);
-      setChatMessages(prev => [...prev, {
-        id: message.id,
-        player: message.playerName,
-        message: message.message,
-        timestamp: new Date(message.timestamp)
-      }]);
-    },
-    onGameStateUpdate: applyMovesToGameState,
-    onPlayerJoined: (player) => {
-      console.log('Player joined via WebSocket:', player);
-      setGameStatus(`Opponent joined! Game starting...`);
-    },
-    onGameStarted: (gameData) => {
-      console.log('Game started via WebSocket:', gameData);
-      setGameMode('game');
-      setGameStatus('Game started!');
-    },
-    onPlayerDisconnected: (player) => {
-      console.log('Player disconnected via WebSocket:', player);
-      setGameStatus('Opponent disconnected. Game paused.');
-    }
-  });
+  // WebSocket hook for real-time game communication (DISABLED - using databaseMultiplayerState instead)
+  // const {
+  //   sendMove,
+  //   sendChatMessage: wsSendChatMessage
+  // } = useWebSocket({
+  //   gameId: roomId,
+  //   playerId: publicKey?.toString(),
+  //   playerName: publicKey?.toString().slice(0, 6) + '...' + publicKey?.toString().slice(-4),
+  //   onMoveReceived: handleOpponentMove,
+  //   onChatMessageReceived: (message) => {
+  //     console.log('Chat message received via WebSocket:', message);
+  //     setChatMessages(prev => [...prev, {
+  //       id: message.id,
+  //       player: message.playerName,
+  //       message: message.message,
+  //       timestamp: new Date(message.timestamp)
+  //     }]);
+  //   },
+  //   onGameStateUpdate: applyMovesToGameState,
+  //   onPlayerJoined: (player) => {
+  //     console.log('Player joined via WebSocket:', player);
+  //     setGameStatus(`Opponent joined! Game starting...`);
+  //   },
+  //   onGameStarted: (gameData) => {
+  //     console.log('Game started via WebSocket:', gameData);
+  //     setGameMode('game');
+  //     setGameStatus('Game started!');
+  //   },
+  //   onPlayerDisconnected: (player) => {
+  //     console.log('Player disconnected via WebSocket:', player);
+  //     setGameStatus('Opponent disconnected. Game paused.');
+  //   }
+  // });
+  
+  // Placeholder functions for sendMove and wsSendChatMessage
+  const sendMove = () => {
+    console.log('sendMove called - using databaseMultiplayerState instead');
+  };
+  
+  const wsSendChatMessage = () => {
+    console.log('wsSendChatMessage called - using databaseMultiplayerState instead');
+  };
 
   // Update game status when wallet connects/disconnects
   useEffect(() => {
@@ -680,17 +689,15 @@ function ChessApp() {
 
       // If roomId is empty, we're creating a new room
       if (!roomId.trim()) {
-        // Generate a new room ID
-        const newRoomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-        console.log('🏗️ Creating new room with ID:', newRoomId);
-        setRoomId(newRoomId);
+        console.log('🏗️ Creating new room...');
         
-        // Create the room
-        const role = await databaseMultiplayerState.createRoom(newRoomId, playerWallet);
-        if (role) {
-          setPlayerRole(role);
+        // Create the room (backend will generate room ID)
+        const result = await databaseMultiplayerState.createRoom(playerWallet);
+        if (result.role && result.roomId) {
+          setPlayerRole(result.role);
+          setRoomId(result.roomId);
           setGameMode('lobby');
-          setGameStatus(`Room created! Share Room ID: ${newRoomId} with your opponent`);
+          setGameStatus(`Room created! Share Room ID: ${result.roomId} with your opponent`);
         } else {
           setGameStatus('Failed to create room');
         }

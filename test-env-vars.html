@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environment Variables Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Environment Variables Test</h1>
+        
+        <div class="status info">
+            <strong>Testing environment variables in local frontend...</strong>
+        </div>
+
+        <h2>📋 Environment Variables:</h2>
+        <div id="envVars"></div>
+
+        <h2>🔗 Backend Connection Test:</h2>
+        <div id="backendTest"></div>
+
+        <h2>🌐 Frontend URLs:</h2>
+        <div id="frontendUrls"></div>
+    </div>
+
+    <script type="module">
+        // Test environment variables
+        function testEnvVars() {
+            const envDiv = document.getElementById('envVars');
+            
+            const envVars = {
+                'VITE_API_URL': import.meta.env.VITE_API_URL,
+                'VITE_WS_URL': import.meta.env.VITE_WS_URL,
+                'VITE_BACKEND_URL': import.meta.env.VITE_BACKEND_URL,
+                'MODE': import.meta.env.MODE,
+                'DEV': import.meta.env.DEV,
+                'PROD': import.meta.env.PROD
+            };
+
+            let html = '';
+            for (const [key, value] of Object.entries(envVars)) {
+                const status = value ? 'success' : 'error';
+                const icon = value ? '✅' : '❌';
+                html += `<div class="status ${status}">${icon} ${key}: ${value || 'undefined'}</div>`;
+            }
+            
+            envDiv.innerHTML = html;
+        }
+
+        // Test backend connection
+        async function testBackend() {
+            const testDiv = document.getElementById('backendTest');
+            
+            try {
+                const response = await fetch('https://knightsbridge-app-35xls.ondigitalocean.app/health');
+                const data = await response.json();
+                
+                testDiv.innerHTML = `
+                    <div class="status success">✅ Backend is accessible</div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                testDiv.innerHTML = `
+                    <div class="status error">❌ Backend connection failed</div>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        // Test frontend URLs
+        function testFrontendUrls() {
+            const urlsDiv = document.getElementById('frontendUrls');
+            
+            const urls = {
+                'Current URL': window.location.href,
+                'Origin': window.location.origin,
+                'Protocol': window.location.protocol,
+                'Host': window.location.host
+            };
+
+            let html = '';
+            for (const [key, value] of Object.entries(urls)) {
+                html += `<div class="status info">📋 ${key}: ${value}</div>`;
+            }
+            
+            urlsDiv.innerHTML = html;
+        }
+
+        // Run tests
+        testEnvVars();
+        testBackend();
+        testFrontendUrls();
+    </script>
+</body>
+</html> 

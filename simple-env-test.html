@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Environment Test</title>
+</head>
+<body>
+    <h1>Environment Variables Test</h1>
+    <div id="output"></div>
+
+    <script type="module">
+        const output = document.getElementById('output');
+        
+        // Check if we're in a Vite environment
+        if (typeof import.meta !== 'undefined' && import.meta.env) {
+            output.innerHTML = `
+                <h2>✅ Vite Environment Detected</h2>
+                <p><strong>VITE_API_URL:</strong> ${import.meta.env.VITE_API_URL || 'undefined'}</p>
+                <p><strong>VITE_WS_URL:</strong> ${import.meta.env.VITE_WS_URL || 'undefined'}</p>
+                <p><strong>VITE_BACKEND_URL:</strong> ${import.meta.env.VITE_BACKEND_URL || 'undefined'}</p>
+                <p><strong>MODE:</strong> ${import.meta.env.MODE || 'undefined'}</p>
+                <p><strong>DEV:</strong> ${import.meta.env.DEV || 'undefined'}</p>
+                <p><strong>PROD:</strong> ${import.meta.env.PROD || 'undefined'}</p>
+            `;
+        } else {
+            output.innerHTML = `
+                <h2>❌ Not in Vite Environment</h2>
+                <p>This page needs to be served by Vite to access environment variables.</p>
+                <p>Open: <a href="http://localhost:5173/simple-env-test.html">http://localhost:5173/simple-env-test.html</a></p>
+            `;
+        }
+    </script>
+</body>
+</html> 

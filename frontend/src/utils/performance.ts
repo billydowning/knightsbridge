@@ -88,10 +88,10 @@ class PerformanceMonitor {
       this.metrics = this.metrics.slice(-1000);
     }
 
-    // Log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`📊 Performance Metric: ${name} = ${value}`, metadata);
-    }
+    // Log in development (disabled to reduce console spam)
+    // if (process.env.NODE_ENV === 'development') {
+    //   console.log(`📊 Performance Metric: ${name} = ${value}`, metadata);
+    // }
   }
 
   measureAsync<T>(name: string, fn: () => Promise<T>): Promise<T> {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useWebSocketPerformance } from '../utils/performance';
-import { useMemoryCleanup } from '../utils/memoryManager';
+// import { useMemoryCleanup } from '../utils/memoryManager';
 
 interface UseWebSocketProps {
   gameId: string;
@@ -35,17 +35,35 @@ export const useWebSocket = ({
   const socketRef = useRef<Socket | null>(null);
   const connectionStartTime = useRef<number>(0);
   const reconnectAttempts = useRef<number>(0);
+  
+  // Store callback functions in refs to avoid dependency issues
+  const onMoveReceivedRef = useRef(onMoveReceived);
+  const onChatMessageReceivedRef = useRef(onChatMessageReceived);
+  const onGameStateUpdateRef = useRef(onGameStateUpdate);
+  const onPlayerJoinedRef = useRef(onPlayerJoined);
+  const onGameStartedRef = useRef(onGameStarted);
+  const onPlayerDisconnectedRef = useRef(onPlayerDisconnected);
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    onMoveReceivedRef.current = onMoveReceived;
+    onChatMessageReceivedRef.current = onChatMessageReceived;
+    onGameStateUpdateRef.current = onGameStateUpdate;
+    onPlayerJoinedRef.current = onPlayerJoined;
+    onGameStartedRef.current = onGameStarted;
+    onPlayerDisconnectedRef.current = onPlayerDisconnected;
+  }, [onMoveReceived, onChatMessageReceived, onGameStateUpdate, onPlayerJoined, onGameStarted, onPlayerDisconnected]);
 
   // Performance monitoring
   const { measureConnection, measureMessageLatency, measureReconnection } = useWebSocketPerformance();
 
   // Memory cleanup
-  useMemoryCleanup(() => {
-    if (socketRef.current) {
-      socketRef.current.close();
-      socketRef.current = null;
-    }
-  }, []);
+  // useMemoryCleanup(() => {
+  //   if (socketRef.current) {
+  //     socketRef.current.close();
+  //     socketRef.current = null;
+  //   }
+  // }, []);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -108,18 +126,18 @@ export const useWebSocket = ({
 
     newSocket.on('playerJoined', (player) => {
       console.log('Player joined:', player);
-      onPlayerJoined?.(player);
+      onPlayerJoinedRef.current?.(player);
     });
 
     newSocket.on('gameStarted', (gameData) => {
       console.log('Game started:', gameData);
-      onGameStarted?.(gameData);
+      onGameStartedRef.current?.(gameData);
     });
 
     newSocket.on('moveMade', (moveData) => {
       console.log('Move received:', moveData);
       const messageTime = Date.now();
-      onMoveReceived?.(moveData);
+      onMoveReceivedRef.current?.(moveData);
       setIsMyTurn(moveData.nextTurn === assignedColor);
       
       // Measure message latency
@@ -142,7 +160,7 @@ export const useWebSocket = ({
     // Chat events
     newSocket.on('newMessage', (message) => {
       console.log('Chat message received:', message);
-      onChatMessageReceived?.(message);
+      onChatMessageReceivedRef.current?.(message);
     });
 
     newSocket.on('chatHistory', (messages) => {
@@ -158,12 +176,12 @@ export const useWebSocket = ({
     // Game state events
     newSocket.on('gameState', (gameState) => {
       console.log('Game state received:', gameState);
-      onGameStateUpdate?.(gameState);
+      onGameStateUpdateRef.current?.(gameState);
     });
 
     newSocket.on('playerDisconnected', (player) => {
       console.log('Player disconnected:', player);
-      onPlayerDisconnected?.(player);
+      onPlayerDisconnectedRef.current?.(player);
     });
 
     newSocket.on('gameResigned', (data) => {
@@ -185,7 +203,7 @@ export const useWebSocket = ({
       newSocket.close();
       socketRef.current = null;
     };
-  }, [gameId, playerId, playerName, onMoveReceived, onChatMessageReceived, onGameStateUpdate, onPlayerJoined, onGameStarted, onPlayerDisconnected, measureConnection, measureMessageLatency, measureReconnection]); // Removed assignedColor from dependencies to prevent infinite loops
+  }, [gameId, playerId, playerName, measureConnection, measureMessageLatency, measureReconnection]); // Removed callback functions from dependencies to prevent infinite loops
 
   // Optimized send functions
   const sendMove = useCallback((from: string, to: string, piece: string) => {
