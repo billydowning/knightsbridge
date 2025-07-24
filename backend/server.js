@@ -628,6 +628,16 @@ app.get('/deploy-schema', async (req, res) => {
   }
 });
 
+// Root endpoint for debugging
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Knightsbridge Chess Backend is running!',
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
 // Health check endpoint for DigitalOcean App Platform
 app.get('/health', (req, res) => {
   const health = {

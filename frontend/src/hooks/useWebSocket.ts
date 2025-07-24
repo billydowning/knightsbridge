@@ -184,7 +184,7 @@ export const useWebSocket = ({
       newSocket.close();
       socketRef.current = null;
     };
-  }, [gameId, playerId, playerName, onMoveReceived, onChatMessageReceived, onGameStateUpdate, onPlayerJoined, onGameStarted, onPlayerDisconnected, assignedColor, measureConnection, measureMessageLatency, measureReconnection]);
+  }, [gameId, playerId, playerName, onMoveReceived, onChatMessageReceived, onGameStateUpdate, onPlayerJoined, onGameStarted, onPlayerDisconnected, measureConnection, measureMessageLatency, measureReconnection]); // Removed assignedColor from dependencies to prevent infinite loops
 
   // Optimized send functions
   const sendMove = useCallback((from: string, to: string, piece: string) => {

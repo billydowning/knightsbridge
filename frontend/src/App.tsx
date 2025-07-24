@@ -349,11 +349,14 @@ function ChessApp() {
   useEffect(() => {
     if (connected && publicKey) {
       setGameStatus(`Wallet connected: ${publicKey.toString().slice(0, 6)}...${publicKey.toString().slice(-4)}`);
-      checkBalance();
+      // Only call checkBalance if it's available and not already in progress
+      if (checkBalance && typeof checkBalance === 'function') {
+        checkBalance();
+      }
     } else if (!connected) {
       setGameStatus('Please connect your wallet to start');
     }
-  }, [connected, publicKey, checkBalance]);
+  }, [connected, publicKey]); // Removed checkBalance from dependencies to prevent infinite loops
 
   // Update game status when balance changes
   useEffect(() => {
@@ -1461,7 +1464,7 @@ function ChessApp() {
   }, [roomId]);
 
   // Fetch room status
-  const fetchRoomStatus = async () => {
+  const fetchRoomStatus = useCallback(async () => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       try {
         const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
@@ -1474,14 +1477,14 @@ function ChessApp() {
         console.error('Error fetching room status:', error);
       }
     }
-  };
+  }, [roomId]);
 
   // Fetch room status when entering lobby
   useEffect(() => {
     if (gameMode === 'lobby' && roomId) {
       fetchRoomStatus();
     }
-  }, [gameMode, roomId]);
+  }, [gameMode, roomId, fetchRoomStatus]);
 
   // Listen for real-time chat messages
   useEffect(() => {
@@ -1523,7 +1526,7 @@ function ChessApp() {
         };
       }
     }
-  }, [roomId]);
+  }, [roomId, fetchRoomStatus]);
 
   // Listen for game started event
   useEffect(() => {
