@@ -34,6 +34,7 @@ export const ChessEngine = {
   // Helper functions
   isWhitePiece: (piece: string): boolean => ChessEngine.PIECES.WHITE.includes(piece),
   isBlackPiece: (piece: string): boolean => ChessEngine.PIECES.BLACK.includes(piece),
+  isKing: (piece: string): boolean => ChessEngine.PIECES.KINGS.includes(piece),
   
   getPieceColor: (piece: string): 'white' | 'black' | null => {
     if (ChessEngine.PIECES.WHITE.includes(piece)) return 'white';

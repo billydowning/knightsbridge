@@ -26,8 +26,8 @@ class PerformanceMonitor {
       try {
         const lcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
-          const lastEntry = entries[entries.length - 1];
-          this.recordMetric('LCP', lastEntry.startTime, { element: lastEntry.element?.tagName });
+          const lastEntry = entries[entries.length - 1] as PerformanceEntry;
+          this.recordMetric('LCP', lastEntry.startTime, { element: (lastEntry as any).element?.tagName });
         });
         lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
         this.observers.set('lcp', lcpObserver);
@@ -40,7 +40,8 @@ class PerformanceMonitor {
         const fidObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           entries.forEach((entry) => {
-            this.recordMetric('FID', entry.processingStart - entry.startTime, { 
+            const fidEntry = entry as any;
+            this.recordMetric('FID', fidEntry.processingStart - entry.startTime, { 
               name: entry.name,
               duration: entry.duration 
             });
