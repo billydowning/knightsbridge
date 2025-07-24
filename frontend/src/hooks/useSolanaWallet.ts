@@ -21,6 +21,7 @@ export interface SolanaWalletHook {
   
   // Wallet operations
   checkBalance: () => Promise<void>;
+  refreshBalance: () => Promise<void>;
   createEscrow: (roomId: string, betAmount: number) => Promise<boolean>;
   joinAndDepositStake: (roomId: string, betAmount: number) => Promise<boolean>;
   claimWinnings: (roomId: string, playerRole: string, gameWinner: string | null, isDraw: boolean) => Promise<string>;
@@ -47,10 +48,17 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Check balance when wallet connects
+    // Check balance when wallet connects (with retry limit)
+    const [balanceCheckAttempts, setBalanceCheckAttempts] = useState<number>(0);
+    const maxBalanceCheckAttempts = 3;
+
     useEffect(() => {
       if (connected && publicKey) {
-        checkBalance();
+        // Reset attempts when wallet reconnects
+        setBalanceCheckAttempts(0);
+        if (balanceCheckAttempts < maxBalanceCheckAttempts) {
+          checkBalance();
+        }
       }
     }, [connected, publicKey]);
 
@@ -80,6 +88,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     };
 
     /**
+     * Manual balance refresh (resets attempts)
+     */
+    const refreshBalance = async (): Promise<void> => {
+      setBalanceCheckAttempts(0);
+      await checkBalance();
+    };
+
+    /**
      * Check wallet balance
      */
     const checkBalance = async (): Promise<void> => {
@@ -88,14 +104,29 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return;
       }
 
+      // Prevent infinite retries
+      if (balanceCheckAttempts >= maxBalanceCheckAttempts) {
+        console.log('⚠️ Max balance check attempts reached, skipping balance check');
+        return;
+      }
+
       try {
         setError(null);
+        setBalanceCheckAttempts(prev => prev + 1);
+        
         const walletBalance = await connection.getBalance(publicKey);
         setBalance(walletBalance / LAMPORTS_PER_SOL);
+        console.log('✅ Balance check successful:', walletBalance / LAMPORTS_PER_SOL, 'SOL');
       } catch (err) {
         const errorMessage = `Error checking balance: ${(err as Error).message}`;
         setError(errorMessage);
         console.error('❌ Balance check error:', err);
+        
+        // If it's a network error, don't retry immediately
+        if (err.message?.includes('Failed to fetch') || err.message?.includes('ERR_INSUFFICIENT_RESOURCES')) {
+          console.log('⚠️ Network error detected, stopping balance checks');
+          setBalanceCheckAttempts(maxBalanceCheckAttempts); // Prevent further attempts
+        }
       }
     };
 
@@ -707,6 +738,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       
       // Wallet operations
       checkBalance,
+      refreshBalance,
       createEscrow,
       joinAndDepositStake,
       claimWinnings,
@@ -727,6 +759,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       connected: false,
       balance: 0,
       checkBalance: async () => {},
+      refreshBalance: async () => {},
       createEscrow: async () => false,
       joinAndDepositStake: async () => false,
       claimWinnings: async () => 'Error',
