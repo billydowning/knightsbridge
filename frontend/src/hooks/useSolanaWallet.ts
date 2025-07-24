@@ -56,11 +56,9 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       if (connected && publicKey) {
         // Reset attempts when wallet reconnects
         setBalanceCheckAttempts(0);
-        if (balanceCheckAttempts < maxBalanceCheckAttempts) {
-          checkBalance();
-        }
+        checkBalance();
       }
-    }, [connected, publicKey]);
+    }, [connected, publicKey]); // Only run when wallet connection changes, not on balanceCheckAttempts changes
 
     /**
      * Get Anchor program instance
@@ -110,7 +108,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return;
       }
 
+      // Prevent concurrent balance checks
+      if (isLoading) {
+        console.log('⚠️ Balance check already in progress, skipping');
+        return;
+      }
+
       try {
+        setIsLoading(true);
         setError(null);
         setBalanceCheckAttempts(prev => prev + 1);
         
@@ -127,6 +132,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           console.log('⚠️ Network error detected, stopping balance checks');
           setBalanceCheckAttempts(maxBalanceCheckAttempts); // Prevent further attempts
         }
+      } finally {
+        setIsLoading(false);
       }
     };
 
