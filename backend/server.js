@@ -279,7 +279,8 @@ app.get('/create-escrows-table', async (req, res) => {
       )
     `;
     
-    await pool.query(createEscrowsTable);
+    const poolInstance = initializePool();
+    await poolInstance.query(createEscrowsTable);
     console.log('✅ Escrows table created successfully');
     
     res.json({ 
@@ -297,7 +298,8 @@ app.get('/clear-escrows', async (req, res) => {
   try {
     console.log('🧹 Clearing escrows table...');
     
-    await pool.query('DELETE FROM escrows');
+    const poolInstance = initializePool();
+    await poolInstance.query('DELETE FROM escrows');
     console.log('✅ Escrows table cleared successfully');
     
     res.json({ 
@@ -335,8 +337,9 @@ app.get('/deploy-schema', async (req, res) => {
     ];
     
     console.log('🧹 Dropping existing tables...');
+    const poolInstance = initializePool();
     for (const statement of dropStatements) {
-      await pool.query(statement);
+      await poolInstance.query(statement);
       console.log('✅ Dropped table');
     }
     
@@ -628,7 +631,7 @@ app.get('/deploy-schema', async (req, res) => {
     
     // Execute each statement
     for (const statement of schemaStatements) {
-      await pool.query(statement);
+      await poolInstance.query(statement);
       console.log('✅ Executed schema statement');
     }
     
@@ -801,8 +804,10 @@ io.on('connection', (socket) => {
     try {
       const { roomId, playerWallet } = data;
       
+      const poolInstance = initializePool();
+      
       // Check if room already exists in database
-      const existingRoom = await pool.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
+      const existingRoom = await poolInstance.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
       if (existingRoom.rows.length > 0) {
         console.log('❌ Room already exists in database:', roomId);
         callback({ success: false, error: 'Room already exists' });
@@ -810,7 +815,7 @@ io.on('connection', (socket) => {
       }
 
       // Insert new room into database
-      await pool.query(
+      await poolInstance.query(
         'INSERT INTO games (room_id, player_white_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4)',
         [roomId, playerWallet, 'waiting', new Date()]
       );
@@ -854,8 +859,10 @@ io.on('connection', (socket) => {
       const { roomId, playerWallet } = data;
       console.log('📨 Received joinRoom event:', data);
       
+      const poolInstance = initializePool();
+      
       // Check if room exists in database
-      const existingRoom = await pool.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
+      const existingRoom = await poolInstance.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
       if (existingRoom.rows.length === 0) {
         console.log('❌ Room not found in database:', roomId);
         callback({ success: false, error: 'Room does not exist' });
@@ -863,7 +870,7 @@ io.on('connection', (socket) => {
       }
 
       // Get current players in the room from database
-      const result = await pool.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]);
+      const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]);
       const currentPlayers = result.rows;
 
       // Check if player is already in the room
@@ -877,7 +884,7 @@ io.on('connection', (socket) => {
 
       // Add new player to the room
       const newRole = currentPlayers.length === 0 ? 'white' : 'black'; // Assign role based on current players
-      await pool.query(
+      await poolInstance.query(
         'UPDATE games SET player_black_wallet = $1 WHERE room_id = $2',
         [playerWallet, roomId]
       );
@@ -904,8 +911,10 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
+      const poolInstance = initializePool();
+      
       // Get room details from database
-      const result = await pool.query('SELECT player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
+      const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
       const room = result.rows[0];
 
       if (!room) {
@@ -914,7 +923,7 @@ io.on('connection', (socket) => {
       }
 
       // Get escrows for this room
-      const escrowsResult = await pool.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]);
+      const escrowsResult = await poolInstance.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]);
       const escrows = escrowsResult.rows;
 
       // Calculate player count
@@ -958,8 +967,10 @@ io.on('connection', (socket) => {
       console.log('💰 Received addEscrow event:', data);
       const { roomId, playerWallet, amount } = data;
       
+      const poolInstance = initializePool();
+      
       // Get current escrows from database
-      const result = await pool.query('SELECT escrow_amount FROM escrows WHERE room_id = $1 AND player_wallet = $2', [roomId, playerWallet]);
+      const result = await poolInstance.query('SELECT escrow_amount FROM escrows WHERE room_id = $1 AND player_wallet = $2', [roomId, playerWallet]);
       if (result.rows.length > 0) {
         console.log('❌ Escrow already exists for player:', playerWallet, 'in room:', roomId);
         callback({ success: false, error: 'Escrow already exists' });
@@ -967,18 +978,18 @@ io.on('connection', (socket) => {
       }
 
       // Insert new escrow into database
-      await pool.query(
+      await poolInstance.query(
         'INSERT INTO escrows (room_id, player_wallet, escrow_amount) VALUES ($1, $2, $3)',
         [roomId, playerWallet, amount]
       );
       console.log('✅ Escrow added to database:', roomId, playerWallet, amount);
 
       // Broadcast escrow update
-      io.to(roomId).emit('escrowUpdated', { roomId, escrows: await pool.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows) });
+      io.to(roomId).emit('escrowUpdated', { roomId, escrows: await poolInstance.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows) });
       
       // Auto-start game if both escrows are created and both players are present
-      const currentPlayers = await pool.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]).then(r => r.rows[0]);
-      const escrows = await pool.query('SELECT player_wallet FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows);
+      const currentPlayers = await poolInstance.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]).then(r => r.rows[0]);
+      const escrows = await poolInstance.query('SELECT player_wallet FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows);
       
       console.log('🔍 Auto-start check:', {
         roomId,
@@ -996,7 +1007,7 @@ io.on('connection', (socket) => {
           escrows.length === 2) {
         
         console.log('🎮 Starting game automatically - both players and escrows ready');
-        await pool.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
+        await poolInstance.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
         
         // Broadcast game started event to ALL players in the room
         console.log('📢 Broadcasting gameStarted event to room:', roomId);
@@ -1035,8 +1046,10 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
+      const poolInstance = initializePool();
+      
       // Clear escrows from database
-      await pool.query('DELETE FROM escrows WHERE room_id = $1', [roomId]);
+      await poolInstance.query('DELETE FROM escrows WHERE room_id = $1', [roomId]);
       console.log('🔄 Cleared escrows for room:', roomId);
 
       // Broadcast room update
@@ -1053,8 +1066,10 @@ io.on('connection', (socket) => {
     try {
       const { roomId, gameState } = data;
       
+      const poolInstance = initializePool();
+      
       // Update game state in database
-      await pool.query(
+      await poolInstance.query(
         'UPDATE games SET game_state = $1, updated_at = $2 WHERE room_id = $3',
         [gameState, new Date(), roomId]
       );
@@ -1076,8 +1091,10 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
+      const poolInstance = initializePool();
+      
       // Get game state from database
-      const result = await pool.query('SELECT game_state FROM games WHERE room_id = $1', [roomId]);
+      const result = await poolInstance.query('SELECT game_state FROM games WHERE room_id = $1', [roomId]);
       const gameState = result.rows[0];
 
       if (gameState) {
@@ -1095,10 +1112,11 @@ io.on('connection', (socket) => {
   // Clear all rooms (for testing/debugging)
   socket.on('clearAllRooms', async (data, callback) => {
     try {
-      await pool.query('DELETE FROM games');
-      await pool.query('DELETE FROM escrows');
-      await pool.query('DELETE FROM moves');
-      await pool.query('DELETE FROM chat_messages');
+      const poolInstance = initializePool();
+      await poolInstance.query('DELETE FROM games');
+      await poolInstance.query('DELETE FROM escrows');
+      await poolInstance.query('DELETE FROM moves');
+      await poolInstance.query('DELETE FROM chat_messages');
       
       console.log('🧹 All rooms cleared from database');
       callback({ success: true });
@@ -1118,8 +1136,10 @@ io.on('connection', (socket) => {
         return;
       }
 
+      const poolInstance = initializePool();
+
       // Get current game state from database
-      const result = await pool.query('SELECT game_state, current_turn FROM games WHERE room_id = $1', [gameId]);
+      const result = await poolInstance.query('SELECT game_state, current_turn FROM games WHERE room_id = $1', [gameId]);
       const gameState = result.rows[0];
 
       if (!gameState) {
@@ -1134,14 +1154,14 @@ io.on('connection', (socket) => {
       }
 
       // Add move to database
-      await pool.query(
+      await poolInstance.query(
         'INSERT INTO moves (room_id, move_data, player_id, color, timestamp) VALUES ($1, $2, $3, $4, $5)',
         [gameId, JSON.stringify(move), playerId, color, new Date()]
       );
 
       // Switch turns
       const nextTurn = color === 'white' ? 'black' : 'white';
-      await pool.query('UPDATE games SET current_turn = $1 WHERE room_id = $2', [nextTurn, gameId]);
+      await poolInstance.query('UPDATE games SET current_turn = $1 WHERE room_id = $2', [nextTurn, gameId]);
 
       // Broadcast move to other player
       socket.to(gameId).emit('moveMade', {
@@ -1178,8 +1198,10 @@ io.on('connection', (socket) => {
         return;
       }
 
+      const poolInstance = initializePool();
+      
       // Insert new chat message into database
-      await pool.query(
+      await poolInstance.query(
         'INSERT INTO chat_messages (game_id, player_id, player_name, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
         [gameId, playerId, playerName, message.trim(), new Date()]
       );
@@ -1205,8 +1227,10 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
+      const poolInstance = initializePool();
+      
       // Get chat messages from database
-      const result = await pool.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [roomId]);
+      const result = await poolInstance.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [roomId]);
       const messages = result.rows.map(msg => ({
         id: msg.id, // Assuming msg.id is the unique ID from the DB
         gameId: msg.game_id,
@@ -1238,8 +1262,10 @@ io.on('connection', (socket) => {
         return;
       }
 
+      const poolInstance = initializePool();
+      
       // Insert new chat message into database
-      await pool.query(
+      await poolInstance.query(
         'INSERT INTO chat_messages (game_id, player_id, player_name, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
         [roomId, playerWallet, playerRole, message.trim(), new Date()]
       );
@@ -1273,7 +1299,8 @@ io.on('connection', (socket) => {
   // Handle game state requests
   socket.on('getGameState', async (gameId) => {
     try {
-      const result = await pool.query('SELECT game_state FROM games WHERE room_id = $1', [gameId]);
+      const poolInstance = initializePool();
+      const result = await poolInstance.query('SELECT game_state FROM games WHERE room_id = $1', [gameId]);
       const gameState = result.rows[0];
       if (gameState) {
         socket.emit('gameState', gameState.game_state);
@@ -1289,7 +1316,8 @@ io.on('connection', (socket) => {
   // Handle chat history requests
   socket.on('getChatHistory', async (gameId) => {
     try {
-      const result = await pool.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [gameId]);
+      const poolInstance = initializePool();
+      const result = await poolInstance.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [gameId]);
       const messages = result.rows.map(msg => ({
         id: msg.id, // Assuming msg.id is the unique ID from the DB
         gameId: msg.game_id,
