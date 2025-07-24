@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple WebSocket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Simple WebSocket Test</h1>
+    <p>Testing basic WebSocket connectivity to: <strong>wss://knightsbridge-app-35xls.ondigitalocean.app</strong></p>
+    
+    <button onclick="testWebSocket()">Test WebSocket</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <div id="log"></div>
+
+    <script>
+        const logDiv = document.getElementById('log');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+
+        function testWebSocket() {
+            log('🔌 Testing basic WebSocket connection...', 'info');
+            
+            try {
+                const ws = new WebSocket('wss://knightsbridge-app-35xls.ondigitalocean.app');
+                
+                ws.onopen = function(event) {
+                    log('✅ WebSocket connection opened!', 'success');
+                    log('📊 Connection details: ' + JSON.stringify(event), 'info');
+                };
+                
+                ws.onmessage = function(event) {
+                    log('📨 Received message: ' + event.data, 'info');
+                };
+                
+                ws.onerror = function(error) {
+                    log('❌ WebSocket error: ' + JSON.stringify(error), 'error');
+                };
+                
+                ws.onclose = function(event) {
+                    log('🔌 WebSocket closed: ' + event.code + ' - ' + event.reason, 'info');
+                };
+                
+                // Close after 5 seconds
+                setTimeout(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        log('🔄 Closing WebSocket connection...', 'info');
+                        ws.close();
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                log('❌ Failed to create WebSocket: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html> 

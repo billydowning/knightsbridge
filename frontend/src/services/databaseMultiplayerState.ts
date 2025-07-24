@@ -135,7 +135,7 @@ class DatabaseMultiplayerStateManager {
         autoConnect: true,
         upgrade: false,
         rememberUpgrade: false,
-        path: '/knightsbridge2/socket.io' // Specify the Socket.IO path
+        // Remove custom path - use default Socket.IO path
       });
 
       this.socket.on('connect', () => {

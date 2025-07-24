@@ -85,7 +85,7 @@ class WebSocketService {
       reconnectionDelay: this.reconnectDelay,
       upgrade: false, // Disable upgrade to prevent connection issues
       rememberUpgrade: false,
-      path: '/knightsbridge2/socket.io' // Specify the Socket.IO path
+      // Remove custom path - use default Socket.IO path
     });
 
     this.setupEventListeners();
