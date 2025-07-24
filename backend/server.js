@@ -76,7 +76,8 @@ async function initializeDatabase() {
       )
     `;
     
-    await pool.query(createEscrowsTable);
+    const poolInstance = initializePool();
+    await poolInstance.query(createEscrowsTable);
     console.log('✅ Escrows table created/verified successfully');
     
     return true;
