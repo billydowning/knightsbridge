@@ -80,12 +80,13 @@ class DatabaseMultiplayerStateManager {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    // Use environment variable or fallback to the correct URL
-    this.serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridge-app-35xls.ondigitalocean.app';
+    // Temporarily hardcode the correct URL to bypass environment variable issues
+    this.serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app';
     console.log('🔌 Initializing WebSocket-only multiplayer state with server:', this.serverUrl);
     console.log('🔍 Environment check - VITE_WS_URL:', import.meta.env.VITE_WS_URL);
     console.log('🔍 Environment check - VITE_API_URL:', import.meta.env.VITE_API_URL);
     console.log('🔍 Environment check - VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
+    console.log('🔍 Using hardcoded URL to bypass env var issues');
   }
 
   /**

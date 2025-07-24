@@ -74,7 +74,8 @@ class WebSocketService {
   }
 
   private setupSocket() {
-    const serverUrl = import.meta.env.VITE_WS_URL || 'wss://knightsbridge-app-35xls.ondigitalocean.app';
+    // Temporarily hardcode the correct URL to bypass environment variable issues
+    const serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app';
     
     this.socket = io(serverUrl, {
       transports: ['websocket'], // WebSocket only - no polling
