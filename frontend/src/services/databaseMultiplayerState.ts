@@ -80,7 +80,7 @@ class DatabaseMultiplayerStateManager {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.serverUrl = 'wss://knightsbridge-vtfhf.ondigitalocean.app';
+    this.serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app';
     console.log('🔌 Initializing WebSocket-only multiplayer state with server:', this.serverUrl);
   }
 

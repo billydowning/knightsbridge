@@ -109,14 +109,14 @@ setInterval(() => {
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app']
+    ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app', 'https://knightsbridge-app-35xls.ondigitalocean.app']
     : '*',
   credentials: true
 }));
 
 // Socket.io setup (already configured above)
 console.log('🚀 Socket.io server initialized with CORS origins:', process.env.NODE_ENV === 'production' 
-  ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app']
+  ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app', 'https://knightsbridge-app-35xls.ondigitalocean.app']
   : '*');
 
 // Rate limiting middleware

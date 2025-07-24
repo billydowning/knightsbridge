@@ -52,7 +52,7 @@ export const useWebSocket = ({
     if (!gameId) return;
 
     connectionStartTime.current = Date.now();
-    const newSocket = io(import.meta.env.VITE_BACKEND_URL || 'wss://knightsbridge-vtfhf.ondigitalocean.app', {
+    const newSocket = io(import.meta.env.VITE_BACKEND_URL || 'wss://knightsbridge-app-35xls.ondigitalocean.app', {
       transports: ['websocket'], // WebSocket only - no polling
       timeout: 20000,
       reconnection: true,

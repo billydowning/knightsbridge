@@ -4,7 +4,7 @@
 
 const https = require('https');
 
-const BACKEND_URL = 'https://knightsbridge-vtfhf.ondigitalocean.app';
+const BACKEND_URL = 'https://knightsbridge-app-35xls.ondigitalocean.app';
 
 console.log('🔍 Testing backend connectivity...');
 console.log('🔗 URL:', BACKEND_URL);

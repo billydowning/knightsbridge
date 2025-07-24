@@ -5,7 +5,7 @@
 
 const https = require('https');
 
-const BACKEND_URL = 'https://knightsbridge-vtfhf.ondigitalocean.app';
+const BACKEND_URL = 'https://knightsbridge-app-35xls.ondigitalocean.app';
 
 async function testBackendHealth() {
   console.log('🔍 Testing backend health...');
@@ -97,7 +97,7 @@ async function main() {
     
     console.log('🎉 Database setup complete! You can now test the game.');
     console.log('\n🔗 Test URLs:');
-    console.log('- Backend Health: https://knightsbridge-vtfhf.ondigitalocean.app/health');
+    console.log('- Backend Health: https://knightsbridge-app-35xls.ondigitalocean.app/health');
     console.log('- Frontend: https://knightsbridge-chess.vercel.app');
     
   } catch (error) {
@@ -107,7 +107,7 @@ async function main() {
     console.log('2. Verify the DATABASE_URL environment variable is set');
     console.log('3. Check DigitalOcean App Platform logs');
     console.log('4. Ensure the database is accessible from the app');
-    console.log('5. Try accessing the health endpoint manually: https://knightsbridge-vtfhf.ondigitalocean.app/health');
+    console.log('5. Try accessing the health endpoint manually: https://knightsbridge-app-35xls.ondigitalocean.app/health');
     
     process.exit(1);
   }
