@@ -31,8 +31,12 @@ const server = http.createServer(app);
 // DigitalOcean App Platform optimized Socket.IO configuration
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:5173", "https://knightsbridge.vercel.app"],
-    methods: ["GET", "POST"]
+    origin: process.env.NODE_ENV === 'production' 
+      ? ["https://knightsbridge.vercel.app", "https://knightsbridge-app-35xls.ondigitalocean.app"]
+      : ["http://localhost:5173", "http://localhost:3000", "https://knightsbridge.vercel.app"],
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"]
   },
   transports: ['websocket', 'polling'], // Allow fallback to polling
   pingTimeout: 60000, // 60 seconds
