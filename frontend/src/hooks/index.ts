@@ -4,6 +4,7 @@
  */
 
 // Core hooks
+export { useTheme } from '../App'; // useTheme is defined in App.tsx
 export { useSolanaWallet } from './useSolanaWallet';
 export { useGameState } from './useGameState';
 export { useWebSocket } from './useWebSocket';

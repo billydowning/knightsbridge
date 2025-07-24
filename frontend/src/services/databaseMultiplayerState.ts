@@ -27,6 +27,7 @@ interface RoomStatus {
   escrows: Record<string, number>;
   gameStarted: boolean;
   gameState?: any;
+  escrowCount?: number;
 }
 
 interface GameState {

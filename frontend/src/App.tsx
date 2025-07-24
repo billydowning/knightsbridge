@@ -22,7 +22,7 @@ import { useRenderPerformance } from './utils/performance';
 import { useMemoryCleanup } from './utils/memoryManager';
 import { performanceMonitor } from './utils/performance';
 import { memoryManager } from './utils/memoryManager';
-import { ErrorBoundary } from './components/ErrorBoundary';
+// ErrorBoundary is defined locally in this file
 
 // Theme context
 interface ThemeContextType {
@@ -240,7 +240,7 @@ function ChessApp() {
     isInCheck,
     isCheckmate,
     isStalemate,
-    validateMove,
+    // validateMove, // Commented out to avoid conflict
     getLegalMovesForSquare,
     hasMoveChanged,
     gameStatus: chessGameStatus
@@ -567,7 +567,7 @@ function ChessApp() {
     console.log('🎯 Attempting move from', fromSquare, 'to', toSquare);
     
     // Validate move using existing function
-    if (validateMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer)) {
+    if (validateLocalMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer)) {
       console.log('✅ Move is valid, executing...');
       
       // Create new position by making the move
@@ -854,7 +854,7 @@ function ChessApp() {
   };
   
   // Helper function to validate chess moves
-  const validateMove = (position: any, fromSquare: string, toSquare: string, currentPlayer: string): boolean => {
+  const validateLocalMove = (position: any, fromSquare: string, toSquare: string, currentPlayer: string): boolean => {
     const piece = position[fromSquare];
     if (!piece) return false;
     
@@ -1361,7 +1361,7 @@ function ChessApp() {
     ];
     
     testMoves.forEach(move => {
-      const isValid = validateMove(gameState.position, move.from, move.to, move.player);
+      const isValid = validateLocalMove(gameState.position, move.from, move.to, move.player);
       console.log(`Move ${move.from} to ${move.to} (${move.piece}): ${isValid ? '✅ Valid' : '❌ Invalid'}`);
     });
     
