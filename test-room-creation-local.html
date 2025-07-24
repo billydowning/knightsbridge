@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Room Creation - Local Backend</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; margin: 10px 0; max-height: 400px; overflow-y: auto; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        .room-info { background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 4px; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Room Creation - Local Backend</h1>
+        <p>This page tests room creation and joining with the local backend running on port 3001.</p>
+        
+        <div class="room-info" id="roomInfo" style="display: none;">
+            <h3>🏠 Room Information</h3>
+            <p><strong>Room ID:</strong> <span id="roomId">-</span></p>
+            <p><strong>Your Role:</strong> <span id="playerRole">-</span></p>
+            <p><strong>Status:</strong> <span id="roomStatus">-</span></p>
+        </div>
+
+        <div>
+            <button onclick="connect()" id="connectBtn">🔌 Connect to Local Backend</button>
+            <button onclick="createRoom()" id="createBtn" disabled>🏗️ Create Room</button>
+            <button onclick="joinRoom()" id="joinBtn" disabled>🚪 Join Room</button>
+            <button onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let socket;
+        let currentRoomId = null;
+        let currentRole = null;
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('log');
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateRoomInfo() {
+            const roomInfo = document.getElementById('roomInfo');
+            if (currentRoomId) {
+                document.getElementById('roomId').textContent = currentRoomId;
+                document.getElementById('playerRole').textContent = currentRole || 'Unknown';
+                document.getElementById('roomStatus').textContent = 'Active';
+                roomInfo.style.display = 'block';
+            } else {
+                roomInfo.style.display = 'none';
+            }
+        }
+
+        function connect() {
+            log('🔌 Connecting to local backend...', 'info');
+            
+            socket = io('http://localhost:3001', {
+                transports: ['websocket', 'polling'],
+                timeout: 10000
+            });
+
+            socket.on('connect', () => {
+                log('✅ Connected to local backend!', 'success');
+                log(`📊 Socket ID: ${socket.id}`, 'info');
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('createBtn').disabled = false;
+                document.getElementById('joinBtn').disabled = false;
+            });
+
+            socket.on('disconnect', () => {
+                log('❌ Disconnected from local backend', 'error');
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('createBtn').disabled = true;
+                document.getElementById('joinBtn').disabled = true;
+            });
+
+            socket.on('connect_error', (error) => {
+                log(`❌ Connection error: ${error.message}`, 'error');
+            });
+
+            socket.on('roomUpdated', (data) => {
+                log(`📡 Room updated: ${JSON.stringify(data)}`, 'info');
+            });
+
+            socket.on('error', (error) => {
+                log(`❌ Socket error: ${error}`, 'error');
+            });
+        }
+
+        function createRoom() {
+            if (!socket || !socket.connected) {
+                log('❌ Not connected to server', 'error');
+                return;
+            }
+
+            log('🏗️ Creating room...', 'info');
+            
+            const playerWallet = 'TEST_WALLET_' + Date.now();
+            const roomData = {
+                playerWallet: playerWallet,
+                playerName: 'TestPlayer',
+                escrowAmount: 0.1
+            };
+
+            socket.emit('createRoom', roomData, (response) => {
+                if (response && response.success) {
+                    currentRoomId = response.roomId;
+                    currentRole = response.role;
+                    log(`✅ Room creation response: ${JSON.stringify(response)}`, 'success');
+                    updateRoomInfo();
+                } else {
+                    log(`❌ Room creation failed: ${JSON.stringify(response)}`, 'error');
+                }
+            });
+        }
+
+        function joinRoom() {
+            if (!socket || !socket.connected) {
+                log('❌ Not connected to server', 'error');
+                return;
+            }
+
+            if (!currentRoomId) {
+                log('❌ No room to join. Create a room first.', 'error');
+                return;
+            }
+
+            log(`🚪 Joining room: ${currentRoomId}`, 'info');
+            
+            const joinData = {
+                roomId: currentRoomId,
+                playerWallet: 'JOINER_WALLET_' + Date.now(),
+                playerName: 'TestJoiner'
+            };
+
+            socket.emit('joinRoom', joinData, (response) => {
+                if (response && response.success) {
+                    log(`✅ Joined room response: ${JSON.stringify(response)}`, 'success');
+                } else {
+                    log(`❌ Join room failed: ${JSON.stringify(response)}`, 'error');
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

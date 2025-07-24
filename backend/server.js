@@ -834,7 +834,11 @@ io.on('connection', (socket) => {
     console.log('📨 Callback function:', typeof callback);
     
     try {
-      const { roomId, playerWallet } = data;
+      const { playerWallet } = data;
+      
+      // Generate a unique room ID
+      const roomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+      console.log('🏗️ Generated room ID:', roomId);
       
       const poolInstance = initializePool();
       
@@ -861,8 +865,8 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
       console.log('📡 Broadcasted roomUpdated to room:', roomId);
 
-      // Send success response
-      const response = { success: true, role: 'white' };
+      // Send success response with room ID
+      const response = { success: true, roomId: roomId, role: 'white' };
       console.log('📤 Sending createRoom response:', response);
       callback(response);
       
@@ -1392,6 +1396,16 @@ io.on('connection', (socket) => {
   // Handle connection status
   socket.on('ping', () => {
     socket.emit('pong');
+  });
+
+  // Handle custom test events
+  socket.on('customEvent', (data) => {
+    console.log('📨 Received custom event:', data);
+    socket.emit('customResponse', { 
+      received: data, 
+      serverTime: new Date().toISOString(),
+      socketId: socket.id 
+    });
   });
 
   socket.on('disconnect', () => {
