@@ -6,26 +6,32 @@
 
 const { Pool } = require('pg');
 
-const caCert = process.env.DATABASE_CA_CERT;
-if (!caCert || !caCert.includes('BEGIN CERTIFICATE')) {
-  console.error('❌ Invalid DATABASE_CA_CERT - must contain full certificate string.');
-  process.exit(1);
-}
-console.log('✅ CA certificate loaded from environment variable (length:', caCert.length, 'chars).');
+// Parse the DATABASE_URL to get connection details
+const connectionString = process.env.DATABASE_URL;
 
-if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith('postgresql://')) {
+if (!connectionString || !connectionString.startsWith('postgresql://')) {
   console.error('❌ Invalid DATABASE_URL - must start with postgresql://');
   process.exit(1);
 }
-console.log('✅ DATABASE_URL loaded:', process.env.DATABASE_URL.replace(/:([^@]+)@/, ':***@'));
+console.log('✅ DATABASE_URL loaded:', connectionString.replace(/:([^@]+)@/, ':***@'));
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
+// Create the pool configuration with proper SSL handling
+const poolConfig = {
+  connectionString: connectionString,
+  ssl: process.env.DATABASE_CA_CERT ? {
     rejectUnauthorized: true,
-    ca: caCert
-  }
-});
+    ca: process.env.DATABASE_CA_CERT
+  } : false
+};
+
+if (process.env.DATABASE_CA_CERT) {
+  console.log('✅ CA certificate loaded from environment variable (length:', process.env.DATABASE_CA_CERT.length, 'chars).');
+  console.log('🔧 SSL configuration: Using CA certificate with strict verification');
+} else {
+  console.log('⚠️ No CA certificate found, SSL verification disabled');
+}
+
+const pool = new Pool(poolConfig);
 
 async function testConnection() {
   try {
