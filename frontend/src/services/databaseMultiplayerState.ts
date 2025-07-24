@@ -125,7 +125,7 @@ class DatabaseMultiplayerStateManager {
       }
 
       this.socket = io(this.serverUrl, {
-        transports: ['websocket'], // WebSocket only
+        transports: ['websocket', 'polling'], // Allow fallback to polling
         timeout: 15000,
         reconnection: true,
         reconnectionAttempts: 3,

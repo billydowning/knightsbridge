@@ -34,7 +34,7 @@ const io = socketIo(server, {
     origin: ["http://localhost:5173", "https://knightsbridge.vercel.app"],
     methods: ["GET", "POST"]
   },
-  transports: ['websocket'], // WebSocket only - no polling
+  transports: ['websocket', 'polling'], // Allow fallback to polling
   pingTimeout: 60000, // 60 seconds
   pingInterval: 25000, // 25 seconds
   upgradeTimeout: 10000, // 10 seconds
@@ -195,6 +195,25 @@ app.get('/debug', async (req, res) => {
     console.error('❌ Debug endpoint error:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Socket.IO test endpoint
+app.get('/socket-test', (req, res) => {
+  console.log('🔌 Socket.IO test endpoint called');
+  res.json({
+    message: 'Socket.IO server is running',
+    socketIO: {
+      engine: {
+        clientsCount: io.engine.clientsCount,
+        upgradeTimeout: io.engine.upgradeTimeout,
+        pingTimeout: io.engine.pingTimeout,
+        pingInterval: io.engine.pingInterval
+      },
+      path: io.path(),
+      transports: io.engine.opts.transports
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Debug endpoint to list all rooms
@@ -1378,7 +1397,7 @@ console.log('  - NODE_ENV:', process.env.NODE_ENV);
 console.log('  - DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
 console.log('  - DATABASE_CA_CERT:', process.env.DATABASE_CA_CERT ? 'Set' : 'Not set');
 
-server.listen(PORT, async () => {
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   
   try {

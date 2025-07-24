@@ -78,7 +78,7 @@ class WebSocketService {
     const serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app';
     
     this.socket = io(serverUrl, {
-      transports: ['websocket'], // WebSocket only - no polling
+      transports: ['websocket', 'polling'], // Allow fallback to polling - no polling
       timeout: 20000,
       reconnection: true,
       reconnectionAttempts: this.maxReconnectAttempts,
