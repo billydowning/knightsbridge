@@ -1,8 +1,8 @@
 const axios = require('axios');
 
 const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://knightsbridge-app-35xls.ondigitalocean.app/knightsbridge2/api'
-  : 'https://knightsbridge-app-35xls.ondigitalocean.app/knightsbridge2/api';
+  ? 'https://knightsbridge-app-35xls.ondigitalocean.app/api'
+  : 'https://knightsbridge-app-35xls.ondigitalocean.app/api';
 
 async function testAPIEndpoints() {
   console.log('🧪 Testing API endpoints...\n');

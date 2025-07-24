@@ -34,7 +34,7 @@ export const ENV_CONFIG = {
   IS_TEST: import.meta.env.MODE === 'test',
   
   // API endpoints (DigitalOcean backend)
-  API_BASE_URL: import.meta.env.VITE_API_URL || 'https://knightsbridge-app-35xls.ondigitalocean.app/knightsbridge2',
+  API_BASE_URL: import.meta.env.VITE_API_URL || 'https://knightsbridge-app-35xls.ondigitalocean.app',
   WEBSOCKET_URL: import.meta.env.VITE_WS_URL || 'wss://knightsbridge-app-35xls.ondigitalocean.app',
   
   // Feature flags

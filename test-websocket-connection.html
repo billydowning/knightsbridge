@@ -16,7 +16,7 @@
 </head>
 <body>
     <h1>WebSocket Connection Test</h1>
-    <p>Testing connection to: <strong>wss://knightsbridge-app-35xls.ondigitalocean.app/knightsbridge2/socket.io</strong></p>
+    <p>Testing connection to: <strong>wss://knightsbridge-app-35xls.ondigitalocean.app/socket.io</strong></p>
     
     <button onclick="connect()">Connect</button>
     <button onclick="testCreateRoom()">Test Create Room</button>
@@ -49,7 +49,7 @@
                 transports: ['websocket'],
                 timeout: 10000,
                 reconnection: false,
-                path: '/knightsbridge2/socket.io'
+                // Use default Socket.IO path
             });
 
             socket.on('connect', () => {

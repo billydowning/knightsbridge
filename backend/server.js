@@ -122,6 +122,12 @@ setInterval(() => {
 
 // Database connection will be tested in initializeDatabase()
 
+// Debug logging for HTTP requests
+app.use((req, res, next) => {
+  console.log(`🌐 HTTP Request: ${req.method} ${req.url} from ${req.ip}`);
+  next();
+});
+
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
@@ -145,6 +151,12 @@ const limiter = rateLimit({
 });
 
 app.use(limiter);
+
+// Root endpoint to test server accessibility
+app.get('/', (req, res) => {
+  console.log('🌐 Root endpoint called');
+  res.send('Knightsbridge Chess Server is running! 🎯');
+});
 
 // API Routes
 const apiRoutes = require('./routes/api');
