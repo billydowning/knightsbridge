@@ -114,7 +114,9 @@
         }
 
         function connect() {
-            socket = io('https://knightsbridge-app-35xls.ondigitalocean.app');
+            socket = io('https://knightsbridge-app-35xls.ondigitalocean.app', {
+    path: '/knightsbridge2/socket.io'
+});
             
             socket.on('connect', () => {
                 updateStatus(true);

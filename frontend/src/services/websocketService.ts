@@ -74,7 +74,7 @@ class WebSocketService {
   }
 
   private setupSocket() {
-    // WebSocket connections need to connect to root domain, not subpath
+    // Connect to root domain but specify the path in Socket.IO config
     const serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app';
     
     this.socket = io(serverUrl, {
@@ -84,7 +84,8 @@ class WebSocketService {
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: this.reconnectDelay,
       upgrade: false, // Disable upgrade to prevent connection issues
-      rememberUpgrade: false
+      rememberUpgrade: false,
+      path: '/knightsbridge2/socket.io' // Specify the Socket.IO path
     });
 
     this.setupEventListeners();

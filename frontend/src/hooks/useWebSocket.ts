@@ -59,7 +59,8 @@ export const useWebSocket = ({
       reconnection: true,
       reconnectionAttempts: 5,
       upgrade: false, // Disable upgrade to prevent connection issues
-      rememberUpgrade: false
+      rememberUpgrade: false,
+      path: '/knightsbridge2/socket.io' // Specify the Socket.IO path
     });
 
     socketRef.current = newSocket;

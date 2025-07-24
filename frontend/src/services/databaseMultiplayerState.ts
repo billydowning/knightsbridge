@@ -81,7 +81,7 @@ class DatabaseMultiplayerStateManager {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    // WebSocket connections need to connect to root domain, not subpath
+    // Connect to root domain but specify the path in Socket.IO config
     this.serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app';
     console.log('🔌 Initializing WebSocket-only multiplayer state with server:', this.serverUrl);
     console.log('🔍 Environment check - VITE_WS_URL:', import.meta.env.VITE_WS_URL);
@@ -134,7 +134,8 @@ class DatabaseMultiplayerStateManager {
         forceNew: false,
         autoConnect: true,
         upgrade: false,
-        rememberUpgrade: false
+        rememberUpgrade: false,
+        path: '/knightsbridge2/socket.io' // Specify the Socket.IO path
       });
 
       this.socket.on('connect', () => {
