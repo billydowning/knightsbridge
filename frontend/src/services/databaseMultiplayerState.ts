@@ -60,7 +60,7 @@ interface DatabaseMultiplayerStateHook {
   setupRealtimeSync: (roomId: string, callback: (data: any) => void) => () => void;
   
   // Debug utilities
-  debugRoom: (roomId: string) => Promise<Room | undefined>;
+  debugRoom: (roomId: string) => Promise<RoomStatus | undefined>;
   clearAllRooms: () => Promise<void>;
   
   // Connection management
@@ -525,7 +525,7 @@ class DatabaseMultiplayerStateManager {
     }
   }
 
-  async debugRoom(roomId: string): Promise<Room | undefined> {
+  async debugRoom(roomId: string): Promise<RoomStatus | undefined> {
     try {
       const status = await this.getRoomStatus(roomId);
       console.log('🔍 Debug room status:', status);

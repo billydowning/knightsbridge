@@ -13,7 +13,7 @@ import { MenuView, LobbyView, GameView } from './components';
 import { SOLANA_RPC_ENDPOINT } from './config';
 import { useSolanaWallet } from './hooks/useSolanaWallet';
 import { useWebSocket } from './hooks/useWebSocket';
-import databaseMultiplayerState from './services/databaseMultiplayerState';
+import { databaseMultiplayerState } from './services/databaseMultiplayerState';
 import type { ChatMessage } from './components/ChatBox';
 import { ENV_CONFIG } from './config/appConfig';
 import { ChessEngine } from './engine/chessEngine';

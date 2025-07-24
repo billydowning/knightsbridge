@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import ChessEngine from '../engine/chessEngine';
 import type { GameState, Move } from '../types/chess';
-import databaseMultiplayerState from '../services/databaseMultiplayerState';
+import { databaseMultiplayerState } from '../services/databaseMultiplayerState';
 import { useSolanaWallet } from './useSolanaWallet';
 import { generatePositionHash, generateMoveNotation, validateMoveNotation } from '../utils/blockchainUtils';
 
