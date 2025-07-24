@@ -6,30 +6,28 @@
 
 const { Pool } = require('pg');
 
-// Parse the DATABASE_URL to get connection details
-const connectionString = process.env.DATABASE_URL;
+// Remove the sslmode from the connection string if it exists
+let dbUrl = process.env.DATABASE_URL;
+if (dbUrl.includes('?sslmode=')) {
+  dbUrl = dbUrl.split('?')[0];
+  console.log('🔧 Removed sslmode from DATABASE_URL for DigitalOcean SSL handling');
+}
 
-if (!connectionString || !connectionString.startsWith('postgresql://')) {
+if (!dbUrl || !dbUrl.startsWith('postgresql://')) {
   console.error('❌ Invalid DATABASE_URL - must start with postgresql://');
   process.exit(1);
 }
-console.log('✅ DATABASE_URL loaded:', connectionString.replace(/:([^@]+)@/, ':***@'));
+console.log('✅ DATABASE_URL loaded:', dbUrl.replace(/:([^@]+)@/, ':***@'));
 
-// Create the pool configuration with proper SSL handling
+// Create the pool configuration with DigitalOcean's recommended SSL handling
 const poolConfig = {
-  connectionString: connectionString,
-  ssl: process.env.DATABASE_CA_CERT ? {
-    rejectUnauthorized: true,
-    ca: process.env.DATABASE_CA_CERT
-  } : false
+  connectionString: dbUrl,
+  ssl: {
+    rejectUnauthorized: false  // Recommended for DigitalOcean managed databases
+  }
 };
 
-if (process.env.DATABASE_CA_CERT) {
-  console.log('✅ CA certificate loaded from environment variable (length:', process.env.DATABASE_CA_CERT.length, 'chars).');
-  console.log('🔧 SSL configuration: Using CA certificate with strict verification');
-} else {
-  console.log('⚠️ No CA certificate found, SSL verification disabled');
-}
+console.log('🔧 SSL configuration: Using DigitalOcean managed database SSL (encrypted but relaxed verification)');
 
 const pool = new Pool(poolConfig);
 
