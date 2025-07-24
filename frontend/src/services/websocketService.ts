@@ -74,8 +74,8 @@ class WebSocketService {
   }
 
   private setupSocket() {
-    // Use the correct DigitalOcean App Platform URL with path prefix
-    const serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app/knightsbridge2';
+    // WebSocket connections need to connect to root domain, not subpath
+    const serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app';
     
     this.socket = io(serverUrl, {
       transports: ['websocket'], // WebSocket only - no polling

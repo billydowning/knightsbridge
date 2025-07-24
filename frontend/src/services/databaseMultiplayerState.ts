@@ -81,8 +81,8 @@ class DatabaseMultiplayerStateManager {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    // Use the correct DigitalOcean App Platform URL with path prefix
-    this.serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app/knightsbridge2';
+    // WebSocket connections need to connect to root domain, not subpath
+    this.serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app';
     console.log('🔌 Initializing WebSocket-only multiplayer state with server:', this.serverUrl);
     console.log('🔍 Environment check - VITE_WS_URL:', import.meta.env.VITE_WS_URL);
     console.log('🔍 Environment check - VITE_API_URL:', import.meta.env.VITE_API_URL);

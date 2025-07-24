@@ -35,7 +35,7 @@ export const ENV_CONFIG = {
   
   // API endpoints (DigitalOcean backend)
   API_BASE_URL: import.meta.env.VITE_API_URL || 'https://knightsbridge-app-35xls.ondigitalocean.app/knightsbridge2',
-  WEBSOCKET_URL: import.meta.env.VITE_WS_URL || 'wss://knightsbridge-app-35xls.ondigitalocean.app/knightsbridge2',
+  WEBSOCKET_URL: import.meta.env.VITE_WS_URL || 'wss://knightsbridge-app-35xls.ondigitalocean.app',
   
   // Feature flags
   ENABLE_ANALYTICS: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
