@@ -46,8 +46,18 @@ const io = socketIo(server, {
 async function initializeDatabase() {
   try {
     console.log('🔌 Connecting to PostgreSQL database...');
+    
+    // Check if we have the required environment variables
+    if (!process.env.DATABASE_URL) {
+      console.error('❌ DATABASE_URL environment variable is not set');
+      throw new Error('DATABASE_URL not configured');
+    }
+    
     const connected = await testConnection();
-    if (!connected) throw new Error('Database connection test failed');
+    if (!connected) {
+      console.error('❌ Database connection test failed');
+      throw new Error('Database connection test failed');
+    }
     
     console.log('✅ Database connection successful');
     
@@ -68,9 +78,13 @@ async function initializeDatabase() {
     
     await pool.query(createEscrowsTable);
     console.log('✅ Escrows table created/verified successfully');
+    
+    return true;
   } catch (error) {
     console.error('❌ Database initialization error:', error.message, '- Code:', error.code);
-    // Continue running for health checks
+    console.error('❌ Full error details:', error);
+    // Continue running for health checks - don't throw
+    return false;
   }
 }
 
@@ -634,7 +648,19 @@ app.get('/', (req, res) => {
     message: 'Knightsbridge Chess Backend is running!',
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    port: process.env.PORT || 8080,
+    databaseUrl: process.env.DATABASE_URL ? 'Configured' : 'Not configured',
+    databaseCaCert: process.env.DATABASE_CA_CERT ? 'Configured' : 'Not configured'
+  });
+});
+
+// Simple test endpoint that doesn't require database
+app.get('/test', (req, res) => {
+  res.json({
+    message: 'Backend is responding!',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   });
 });
 
@@ -1309,10 +1335,22 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3001; // Use Railway's PORT or default to 3001
+const PORT = process.env.PORT || 8080; // Use DigitalOcean's PORT or default to 8080
+console.log('🔧 Server configuration:');
+console.log('  - PORT:', PORT);
+console.log('  - NODE_ENV:', process.env.NODE_ENV);
+console.log('  - DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+console.log('  - DATABASE_CA_CERT:', process.env.DATABASE_CA_CERT ? 'Set' : 'Not set');
+
 server.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
   
-  // Initialize database and create tables
-  await initializeDatabase();
+  try {
+    // Initialize database and create tables
+    await initializeDatabase();
+    console.log('✅ Server startup completed successfully');
+  } catch (error) {
+    console.error('❌ Server startup failed:', error);
+    // Don't exit - let the server run for health checks
+  }
 });
