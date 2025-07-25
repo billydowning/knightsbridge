@@ -1616,6 +1616,9 @@ function ChessApp() {
         console.log('📢 Game state updated event received:', data);
         if (data.gameState && gameMode === 'game') {
           console.log('🎮 Updating game state from server:', data.gameState);
+          console.log('🔍 Current local state:', gameState);
+          console.log('🔍 Received state currentPlayer:', data.gameState.currentPlayer);
+          console.log('🔍 Local state currentPlayer:', gameState.currentPlayer);
           
           // Set flag to prevent saving back to server
           setIsReceivingServerUpdate(true);

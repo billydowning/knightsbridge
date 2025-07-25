@@ -1381,6 +1381,12 @@ io.on('connection', (socket) => {
         const currentStateResult = await poolInstance.query('SELECT game_state FROM game_states WHERE room_id = $1', [roomId]);
         const currentState = currentStateResult.rows[0]?.game_state;
         
+        // Debug logging
+        console.log('🔍 State comparison for room:', roomId);
+        console.log('🔍 Current state in DB:', currentState);
+        console.log('🔍 New state to save:', JSON.stringify(gameState));
+        console.log('🔍 States are equal:', currentState === JSON.stringify(gameState));
+        
         // Only proceed if the state has actually changed
         if (!currentState || currentState !== JSON.stringify(gameState)) {
           // Update games table status
