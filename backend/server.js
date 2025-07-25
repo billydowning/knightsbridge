@@ -17,6 +17,11 @@ console.log('📋 Environment:', process.env.NODE_ENV);
 console.log('🔧 Debug mode:', process.env.DEBUG);
 console.log('🌊 Platform: DigitalOcean App Platform');
 
+// CORS origins configuration
+const corsOrigins = process.env.NODE_ENV === 'production' 
+  ? ["https://knightsbridge.vercel.app", "https://knightsbridge-app-35xls.ondigitalocean.app"]
+  : ["http://localhost:5173", "http://localhost:3000", "https://knightsbridge.vercel.app"];
+
 // Check for DigitalOcean CA certificate environment variables
 const possibleCAVars = ['DATABASE_CA_CERT', 'DB_CA_CERT', 'CA_CERT', 'DIGITALOCEAN_CA_CERT', 'POSTGRES_CA_CERT'];
 for (const varName of possibleCAVars) {
@@ -131,10 +136,6 @@ app.use((req, res, next) => {
 });
 
 // CORS configuration
-const corsOrigins = process.env.NODE_ENV === 'production' 
-  ? ["https://knightsbridge.vercel.app", "https://knightsbridge-app-35xls.ondigitalocean.app"]
-  : ["http://localhost:5173", "http://localhost:3000", "https://knightsbridge.vercel.app"];
-
 app.use(cors({
   origin: corsOrigins,
   credentials: true,
