@@ -107,6 +107,21 @@ async function initializeDatabase() {
     await poolInstance.query(createChatMessagesTable);
     console.log('✅ Chat messages table created/verified successfully');
     
+    // Create game states table for storing full game state
+    console.log('🏗️ Creating game_states table...');
+    const createGameStatesTable = `
+      CREATE TABLE IF NOT EXISTS game_states (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        room_id VARCHAR(100) NOT NULL,
+        game_state JSONB NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(room_id)
+      )
+    `;
+    await poolInstance.query(createGameStatesTable);
+    console.log('✅ Game states table created/verified successfully');
+    
     return true;
   } catch (error) {
     console.error('❌ Database initialization error:', error.message, '- Code:', error.code);
@@ -1347,10 +1362,19 @@ io.on('connection', (socket) => {
       if (process.env.DATABASE_URL) {
         const poolInstance = initializePool();
         
-        // Update game state in database
+        // Update games table status
         await poolInstance.query(
           'UPDATE games SET game_state = $1, updated_at = $2 WHERE room_id = $3',
-          [gameState, new Date(), roomId]
+          ['active', new Date(), roomId]
+        );
+        
+        // Save full game state to game_states table
+        await poolInstance.query(
+          `INSERT INTO game_states (room_id, game_state, updated_at) 
+           VALUES ($1, $2, $3) 
+           ON CONFLICT (room_id) 
+           DO UPDATE SET game_state = $2, updated_at = $3`,
+          [roomId, JSON.stringify(gameState), new Date()]
         );
         
         console.log('✅ Game state saved to database:', roomId);
@@ -1366,7 +1390,7 @@ io.on('connection', (socket) => {
       
       if (typeof callback === 'function') callback({ success: true });
       
-      // Broadcast game state update
+      // Broadcast game state update to all players in the room
       io.to(roomId).emit('gameStateUpdated', { roomId, gameState });
       
     } catch (error) {
@@ -1384,12 +1408,13 @@ io.on('connection', (socket) => {
       if (process.env.DATABASE_URL) {
         const poolInstance = initializePool();
         
-        // Get game state from database
-        const result = await poolInstance.query('SELECT game_state FROM games WHERE room_id = $1', [roomId]);
-        const gameState = result.rows[0];
+        // Get full game state from game_states table
+        const result = await poolInstance.query('SELECT game_state FROM game_states WHERE room_id = $1', [roomId]);
+        const gameStateRow = result.rows[0];
 
-        if (gameState) {
-          if (typeof callback === 'function') callback({ success: true, gameState: gameState.game_state });
+        if (gameStateRow) {
+          const gameState = JSON.parse(gameStateRow.game_state);
+          if (typeof callback === 'function') callback({ success: true, gameState });
         } else {
           if (typeof callback === 'function') callback({ success: false, error: 'Game state not found' });
         }
