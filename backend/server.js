@@ -1540,8 +1540,18 @@ io.on('connection', (socket) => {
       if (process.env.DATABASE_URL) {
         const poolInstance = initializePool();
         
+        // Get the game ID from the games table using room_id
+        const gameResult = await poolInstance.query('SELECT id FROM games WHERE room_id = $1', [roomId]);
+        if (gameResult.rows.length === 0) {
+          console.log('❌ Game not found for room:', roomId);
+          if (typeof callback === 'function') callback({ success: false, error: 'Game not found' });
+          return;
+        }
+        
+        const gameId = gameResult.rows[0].id;
+        
         // Get chat messages from database
-        const result = await poolInstance.query('SELECT id, player_id, player_name, message, created_at FROM chat_messages WHERE game_id = $1 ORDER BY created_at ASC', [roomId]);
+        const result = await poolInstance.query('SELECT id, player_id, player_name, message, created_at FROM chat_messages WHERE game_id = $1 ORDER BY created_at ASC', [gameId]);
         const messages = result.rows.map(msg => ({
           id: msg.id,
           gameId: roomId,
@@ -1591,10 +1601,20 @@ io.on('connection', (socket) => {
       if (process.env.DATABASE_URL) {
         const poolInstance = initializePool();
         
+        // Get the game ID from the games table using room_id
+        const gameResult = await poolInstance.query('SELECT id FROM games WHERE room_id = $1', [roomId]);
+        if (gameResult.rows.length === 0) {
+          console.log('❌ Game not found for room:', roomId);
+          if (typeof callback === 'function') callback({ success: false, error: 'Game not found' });
+          return;
+        }
+        
+        const gameId = gameResult.rows[0].id;
+        
         // Insert new chat message into database
         await poolInstance.query(
           'INSERT INTO chat_messages (game_id, player_id, player_name, message, created_at) VALUES ($1, $2, $3, $4, $5)',
-          [roomId, playerWallet, playerRole, message.trim(), new Date()]
+          [gameId, playerWallet, playerRole, message.trim(), new Date()]
         );
       } else {
         // Use in-memory storage for testing
