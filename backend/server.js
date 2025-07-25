@@ -1358,40 +1358,83 @@ io.on('connection', (socket) => {
     try {
       const { roomId, gameState } = data;
       
+      // Simple rate limiting: prevent multiple saves within 1 second
+      const lastSaveKey = `lastSave_${roomId}`;
+      const lastSaveTime = socket.lastSaveTimes?.[lastSaveKey] || 0;
+      const now = Date.now();
+      
+      if (now - lastSaveTime < 1000) {
+        console.log('⏱️ Rate limiting: skipping save for room', roomId);
+        if (typeof callback === 'function') callback({ success: true });
+        return;
+      }
+      
+      // Update last save time
+      if (!socket.lastSaveTimes) socket.lastSaveTimes = {};
+      socket.lastSaveTimes[lastSaveKey] = now;
+      
       // Check if we have database access
       if (process.env.DATABASE_URL) {
         const poolInstance = initializePool();
         
-        // Update games table status
-        await poolInstance.query(
-          'UPDATE games SET game_state = $1, updated_at = $2 WHERE room_id = $3',
-          ['active', new Date(), roomId]
-        );
+        // Get current game state to check if it has actually changed
+        const currentStateResult = await poolInstance.query('SELECT game_state FROM game_states WHERE room_id = $1', [roomId]);
+        const currentState = currentStateResult.rows[0]?.game_state;
         
-        // Save full game state to game_states table
-        await poolInstance.query(
-          `INSERT INTO game_states (room_id, game_state, updated_at) 
-           VALUES ($1, $2, $3) 
-           ON CONFLICT (room_id) 
-           DO UPDATE SET game_state = $2, updated_at = $3`,
-          [roomId, JSON.stringify(gameState), new Date()]
-        );
-        
-        console.log('✅ Game state saved to database:', roomId);
+        // Only proceed if the state has actually changed
+        if (!currentState || currentState !== JSON.stringify(gameState)) {
+          // Update games table status
+          await poolInstance.query(
+            'UPDATE games SET game_state = $1, updated_at = $2 WHERE room_id = $3',
+            ['active', new Date(), roomId]
+          );
+          
+          // Save full game state to game_states table
+          await poolInstance.query(
+            `INSERT INTO game_states (room_id, game_state, updated_at) 
+             VALUES ($1, $2, $3) 
+             ON CONFLICT (room_id) 
+             DO UPDATE SET game_state = $2, updated_at = $3`,
+            [roomId, JSON.stringify(gameState), new Date()]
+          );
+          
+          console.log('✅ Game state saved to database:', roomId);
+          
+          // Broadcast game state update to OTHER players in the room (not the sender)
+          // Only broadcast if there are other players in the room
+          const room = io.sockets.adapter.rooms.get(roomId);
+          if (room && room.size > 1) {
+            socket.to(roomId).emit('gameStateUpdated', { roomId, gameState });
+            console.log('📢 Broadcasted game state update to other players in room:', roomId);
+          }
+        } else {
+          console.log('🔄 Game state unchanged, skipping save and broadcast');
+        }
       } else {
         // Use in-memory storage for testing
         const room = testRooms.get(roomId);
         if (room) {
-          room.gameState = gameState;
-          room.last_updated = new Date();
-          console.log('✅ Game state saved to memory (test mode):', roomId);
+          const currentState = JSON.stringify(room.gameState);
+          const newState = JSON.stringify(gameState);
+          
+          if (currentState !== newState) {
+            room.gameState = gameState;
+            room.last_updated = new Date();
+            console.log('✅ Game state saved to memory (test mode):', roomId);
+            
+            // Broadcast to other players in test mode
+            const roomSockets = io.sockets.adapter.rooms.get(roomId);
+            if (roomSockets && roomSockets.size > 1) {
+              socket.to(roomId).emit('gameStateUpdated', { roomId, gameState });
+              console.log('📢 Broadcasted game state update to other players in room (test mode):', roomId);
+            }
+          } else {
+            console.log('🔄 Game state unchanged, skipping save and broadcast (test mode)');
+          }
         }
       }
       
       if (typeof callback === 'function') callback({ success: true });
-      
-      // Broadcast game state update to all players in the room
-      io.to(roomId).emit('gameStateUpdated', { roomId, gameState });
       
     } catch (error) {
       console.error('Error saving game state:', error);

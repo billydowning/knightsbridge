@@ -428,26 +428,54 @@ function ChessApp() {
     }
   }, [roomId, gameMode]);
 
+  // Add a flag to prevent infinite loops and track last saved state
+  const [isReceivingServerUpdate, setIsReceivingServerUpdate] = useState<boolean>(false);
+  const [lastSavedState, setLastSavedState] = useState<string>('');
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+
   // Save game state to database when it changes (but not on every change)
   useEffect(() => {
-    if (roomId && gameMode === 'game' && gameState.gameActive) {
-      // Only save if the game state has meaningful changes (not just timestamp updates)
-      const hasSignificantChanges = gameState.moveHistory.length > 0 || 
-                                  gameState.currentPlayer !== 'white' ||
-                                  gameState.selectedSquare !== null ||
-                                  gameState.inCheck ||
-                                  gameState.inCheckmate ||
-                                  gameState.winner ||
-                                  gameState.draw;
+    if (roomId && gameMode === 'game' && gameState.gameActive && !isReceivingServerUpdate) {
+      // Create a hash of the current game state to detect meaningful changes
+      const stateHash = JSON.stringify({
+        position: gameState.position,
+        currentPlayer: gameState.currentPlayer,
+        moveHistory: gameState.moveHistory,
+        winner: gameState.winner,
+        draw: gameState.draw,
+        inCheck: gameState.inCheck,
+        inCheckmate: gameState.inCheckmate
+      });
       
-      if (hasSignificantChanges) {
-        console.log('💾 Saving game state to database for sync');
-        databaseMultiplayerState.saveGameState(roomId, gameState).catch(error => {
-          console.error('Error saving game state:', error);
-        });
+      // Only save if the state has actually changed and we're not currently receiving an update
+      if (stateHash !== lastSavedState && !isReceivingServerUpdate) {
+        // Clear any existing timeout
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+        }
+        
+        // Debounce the save operation
+        const timeout = setTimeout(() => {
+          console.log('💾 Saving game state to database for sync');
+          setLastSavedState(stateHash);
+          databaseMultiplayerState.saveGameState(roomId, gameState).catch(error => {
+            console.error('Error saving game state:', error);
+          });
+        }, 500); // Increased debounce to 500ms
+        
+        setSaveTimeout(timeout);
       }
     }
-  }, [gameState.position, gameState.currentPlayer, gameState.moveHistory, gameState.winner, gameState.draw, gameState.inCheck, gameState.inCheckmate, roomId, gameMode]); // Only depend on specific game state properties, not the entire gameState object
+  }, [gameState.position, gameState.currentPlayer, gameState.moveHistory, gameState.winner, gameState.draw, gameState.inCheck, gameState.inCheckmate, roomId, gameMode, isReceivingServerUpdate, lastSavedState, saveTimeout]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
+  }, [saveTimeout]);
 
   // Reset game state when game starts
   useEffect(() => {
@@ -1547,7 +1575,19 @@ function ChessApp() {
         console.log('📢 Game state updated event received:', data);
         if (data.gameState && gameMode === 'game') {
           console.log('🎮 Updating game state from server:', data.gameState);
+          
+          // Set flag to prevent saving back to server
+          setIsReceivingServerUpdate(true);
+          
+          // Update game state
           setGameState(data.gameState);
+          
+          // Reset flag after a longer delay to ensure state has settled
+          setTimeout(() => {
+            setIsReceivingServerUpdate(false);
+            // Also reset the last saved state to prevent immediate re-save
+            setLastSavedState('');
+          }, 500);
         }
       };
 
