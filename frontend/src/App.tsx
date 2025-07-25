@@ -1540,6 +1540,28 @@ function ChessApp() {
     }
   }, [roomId, fetchRoomStatus]);
 
+  // Listen for game state updates
+  useEffect(() => {
+    if (roomId && databaseMultiplayerState.isConnected()) {
+      const handleGameStateUpdated = (data: any) => {
+        console.log('📢 Game state updated event received:', data);
+        if (data.gameState && gameMode === 'game') {
+          console.log('🎮 Updating game state from server:', data.gameState);
+          setGameState(data.gameState);
+        }
+      };
+
+      const socket = (databaseMultiplayerState as any).socket;
+      if (socket) {
+        socket.on('gameStateUpdated', handleGameStateUpdated);
+        
+        return () => {
+          socket.off('gameStateUpdated', handleGameStateUpdated);
+        };
+      }
+    }
+  }, [roomId, gameMode]);
+
   // Listen for game started event
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
