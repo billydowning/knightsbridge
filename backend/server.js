@@ -297,6 +297,64 @@ app.get('/debug/rooms', async (req, res) => {
   }
 });
 
+// Debug endpoint to test chat_messages table
+app.get('/debug/chat-test', async (req, res) => {
+  try {
+    const poolInstance = initializePool();
+    
+    // Test if chat_messages table exists
+    const tableCheck = await poolInstance.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'chat_messages'
+      );
+    `);
+    
+    const tableExists = tableCheck.rows[0].exists;
+    
+    if (tableExists) {
+      // Try to insert a test message
+      const testMessage = {
+        game_id: 'TEST-ROOM-' + Date.now(),
+        player_id: 'TEST-WALLET-' + Date.now(),
+        player_name: 'Test Player',
+        message: 'Test message from debug endpoint',
+        created_at: new Date()
+      };
+      
+      await poolInstance.query(
+        'INSERT INTO chat_messages (game_id, player_id, player_name, message, created_at) VALUES ($1, $2, $3, $4, $5)',
+        [testMessage.game_id, testMessage.player_id, testMessage.player_name, testMessage.message, testMessage.created_at]
+      );
+      
+      // Try to retrieve the message
+      const result = await poolInstance.query('SELECT * FROM chat_messages WHERE game_id = $1', [testMessage.game_id]);
+      
+      res.json({
+        success: true,
+        tableExists: true,
+        testMessage: testMessage,
+        retrievedMessage: result.rows[0],
+        message: 'Chat messages table is working correctly'
+      });
+    } else {
+      res.json({
+        success: false,
+        tableExists: false,
+        message: 'Chat messages table does not exist'
+      });
+    }
+  } catch (error) {
+    console.error('❌ Debug chat test error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Debug endpoint to check specific room
 app.get('/debug/room/:roomId', async (req, res) => {
   const roomId = req.params.roomId;

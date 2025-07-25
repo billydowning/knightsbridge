@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Chat Debug Test</h1>
+    <div id="results"></div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const BACKEND_URL = 'https://knightsbridge-app-35xls.ondigitalocean.app';
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        log('🚀 Starting chat debug test...', 'info');
+
+        try {
+            const socket = io(BACKEND_URL, {
+                transports: ['polling', 'websocket'],
+                timeout: 20000,
+                reconnectionAttempts: 3,
+                reconnectionDelay: 1000,
+                withCredentials: true
+            });
+
+            socket.on('connect', () => {
+                log(`✅ WebSocket connected! Socket ID: ${socket.id}`, 'success');
+                
+                // Test room creation first
+                socket.emit('createRoom', { 
+                    playerWallet: 'DEBUG_WALLET_' + Date.now() 
+                }, (response) => {
+                    if (response && response.success) {
+                        log(`✅ Room created! Room ID: ${response.roomId}`, 'success');
+                        
+                        // Now test chat with detailed error handling
+                        log('💬 Testing chat message...', 'info');
+                        socket.emit('sendChatMessage', {
+                            roomId: response.roomId,
+                            message: 'Debug test message',
+                            playerWallet: 'DEBUG_WALLET_' + Date.now(),
+                            playerRole: 'white'
+                        }, (chatResponse) => {
+                            if (chatResponse && chatResponse.success) {
+                                log(`✅ Chat message sent successfully!`, 'success');
+                                log(`📝 Response: ${JSON.stringify(chatResponse)}`, 'info');
+                            } else {
+                                log(`❌ Chat message failed: ${chatResponse?.error}`, 'error');
+                                log(`📝 Full response: ${JSON.stringify(chatResponse)}`, 'error');
+                            }
+                            socket.disconnect();
+                        });
+                    } else {
+                        log(`❌ Room creation failed: ${response?.error}`, 'error');
+                        socket.disconnect();
+                    }
+                });
+            });
+
+            socket.on('connect_error', (error) => {
+                log(`❌ WebSocket connection failed: ${error.message}`, 'error');
+                log(`🔍 Error details: ${JSON.stringify(error)}`, 'error');
+            });
+
+            socket.on('error', (error) => {
+                log(`❌ Socket error: ${error}`, 'error');
+            });
+
+            socket.on('disconnect', (reason) => {
+                log(`🔌 WebSocket disconnected: ${reason}`, 'info');
+            });
+
+        } catch (error) {
+            log(`❌ Chat debug test failed: ${error.message}`, 'error');
+        }
+    </script>
+</body>
+</html> 
