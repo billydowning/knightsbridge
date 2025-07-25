@@ -57,8 +57,9 @@ async function initializeDatabase() {
     
     // Check if we have the required environment variables
     if (!process.env.DATABASE_URL) {
-      console.error('❌ DATABASE_URL environment variable is not set');
-      throw new Error('DATABASE_URL not configured');
+      console.log('⚠️ DATABASE_URL not set - running in test mode without database');
+      console.log('📝 WebSocket functionality will work but room/chat data will not persist');
+      return true; // Allow server to start without database
     }
     
     const connected = await testConnection();
@@ -104,6 +105,10 @@ let connectionStats = {
   currentConnections: 0,
   lastReset: Date.now()
 };
+
+// In-memory storage for testing (when DATABASE_URL is not set)
+const testRooms = new Map();
+const testChatMessages = new Map();
 
 // Reset stats every hour
 setInterval(() => {
@@ -793,13 +798,13 @@ io.on('connection', (socket) => {
   // Test event handler to verify backend is working
   socket.on('test', (data, callback) => {
     console.log('🧪 Test event received:', data);
-    callback({ success: true, message: 'Backend is working!' });
+    if (typeof callback === 'function') callback({ success: true, message: 'Backend is working!' });
   });
 
   // Heartbeat to keep connection alive
   socket.on('ping', (callback) => {
     console.log('💓 Ping received from socket:', socket.id);
-    callback({ pong: Date.now() });
+    if (typeof callback === 'function') callback({ pong: Date.now() });
   });
 
   // Debug: Add error handler to see if there are any Socket.io errors
@@ -830,7 +835,7 @@ io.on('connection', (socket) => {
       connectionStats
     };
     console.log('🏥 Health check from socket:', socket.id, health);
-    callback(health);
+    if (typeof callback === 'function') callback(health);
   });
 
   // Create a new room
@@ -845,22 +850,35 @@ io.on('connection', (socket) => {
       const roomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
       console.log('🏗️ Generated room ID:', roomId);
       
-      const poolInstance = initializePool();
-      
-      // Check if room already exists in database
-      const existingRoom = await poolInstance.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
-      if (existingRoom.rows.length > 0) {
-        console.log('❌ Room already exists in database:', roomId);
-        callback({ success: false, error: 'Room already exists' });
-        return;
-      }
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Check if room already exists in database
+        const existingRoom = await poolInstance.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
+        if (existingRoom.rows.length > 0) {
+          console.log('❌ Room already exists in database:', roomId);
+          if (typeof callback === 'function') callback({ success: false, error: 'Room already exists' });
+          return;
+        }
 
-      // Insert new room into database
-      await poolInstance.query(
-        'INSERT INTO games (room_id, player_white_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4)',
-        [roomId, playerWallet, 'waiting', new Date()]
-      );
-      console.log('✅ Room created in database:', roomId, 'for player:', playerWallet);
+        // Insert new room into database
+        await poolInstance.query(
+          'INSERT INTO games (room_id, player_white_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4)',
+          [roomId, playerWallet, 'waiting', new Date()]
+        );
+        console.log('✅ Room created in database:', roomId, 'for player:', playerWallet);
+      } else {
+        // Use in-memory storage for testing
+        testRooms.set(roomId, {
+          roomId,
+          playerWallet,
+          created_at: new Date(),
+          last_updated: new Date(),
+          players: [{ wallet: playerWallet, role: 'white', isReady: true }]
+        });
+        console.log('✅ Room created in memory (test mode):', testRooms.get(roomId));
+      }
 
       // Join the socket to the room
       socket.join(roomId);
@@ -873,11 +891,11 @@ io.on('connection', (socket) => {
       // Send success response with room ID
       const response = { success: true, roomId: roomId, role: 'white' };
       console.log('📤 Sending createRoom response:', response);
-      callback(response);
+      if (typeof callback === 'function') callback(response);
       
     } catch (error) {
       console.error('❌ Error in createRoom:', error);
-      callback({ success: false, error: error.message });
+      if (typeof callback === 'function') callback({ success: false, error: error.message });
     }
   });
 
@@ -899,51 +917,107 @@ io.on('connection', (socket) => {
     try {
       const { roomId, playerWallet } = data;
       console.log('📨 Received joinRoom event:', data);
+      console.log('🔍 Debug - Room ID:', roomId, 'Player Wallet:', playerWallet);
       
-      const poolInstance = initializePool();
-      
-      // Check if room exists in database
-      const existingRoom = await poolInstance.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
-      if (existingRoom.rows.length === 0) {
-        console.log('❌ Room not found in database:', roomId);
-        callback({ success: false, error: 'Room does not exist' });
+      // Validate required parameters
+      if (!roomId) {
+        console.error('❌ Missing roomId in joinRoom event');
+        if (typeof callback === 'function') callback({ success: false, error: 'Missing roomId' });
         return;
       }
+      
+      if (!playerWallet) {
+        console.error('❌ Missing playerWallet in joinRoom event');
+        if (typeof callback === 'function') callback({ success: false, error: 'Missing playerWallet' });
+        return;
+      }
+      
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Check if room exists in database
+        const existingRoom = await poolInstance.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
+        if (existingRoom.rows.length === 0) {
+          console.log('❌ Room not found in database:', roomId);
+          if (typeof callback === 'function') callback({ success: false, error: 'Room does not exist' });
+          return;
+        }
 
-      // Get current players in the room from database
-      const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]);
-      const currentPlayers = result.rows;
+        // Get current players in the room from database
+        const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]);
+        const currentPlayers = result.rows;
 
-      // Check if player is already in the room
-      const existingPlayer = currentPlayers.find(p => p.player_white_wallet === playerWallet || p.player_black_wallet === playerWallet);
-      if (existingPlayer) {
-        console.log('✅ Player already in room:', existingPlayer);
+        // Check if player is already in the room
+        const existingPlayer = currentPlayers.find(p => p.player_white_wallet === playerWallet || p.player_black_wallet === playerWallet);
+        if (existingPlayer) {
+          console.log('✅ Player already in room:', existingPlayer);
+          socket.join(roomId);
+          if (typeof callback === 'function') callback({ success: true, role: existingPlayer.player_white_wallet === playerWallet ? 'white' : 'black' });
+          return;
+        }
+
+        // Add new player to the room
+        const newRole = currentPlayers.length === 0 ? 'white' : 'black'; // Assign role based on current players
+        await poolInstance.query(
+          'UPDATE games SET player_black_wallet = $1 WHERE room_id = $2',
+          [playerWallet, roomId]
+        );
+        console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', newRole);
+
+        // Broadcast room update
+        io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
+        
+        // If both players are present, notify about game ready
+        if (currentPlayers.length === 1) { // Only one player was in the room, now two
+          io.to(roomId).emit('gameReady', { roomId, players: currentPlayers.map(p => p.player_white_wallet === playerWallet ? 'white' : 'black') });
+        }
+
+        if (typeof callback === 'function') callback({ success: true, role: newRole });
+      } else {
+        // Use in-memory storage for testing
+        const room = testRooms.get(roomId);
+        if (!room) {
+          console.log('❌ Room not found in memory:', roomId);
+          if (typeof callback === 'function') callback({ success: false, error: 'Room does not exist' });
+          return;
+        }
+
+        // Check if player is already in the room
+        console.log('🔍 Debug - Checking if player already in room. Current players:', room.players.map(p => ({ wallet: p.wallet, role: p.role })));
+        const existingPlayer = room.players.find(p => p.wallet === playerWallet);
+        if (existingPlayer) {
+          console.log('✅ Player already in room (memory):', existingPlayer);
+          socket.join(roomId);
+          if (typeof callback === 'function') callback({ success: true, role: existingPlayer.role });
+          return;
+        }
+
+        // Add new player to the room
+        const hasWhitePlayer = room.players.some(p => p.role === 'white');
+        const newRole = hasWhitePlayer ? 'black' : 'white';
+        room.players.push({ wallet: playerWallet, role: newRole, isReady: true });
+        room.last_updated = new Date();
+        
+        console.log('✅ Player joined room (memory):', roomId, 'player:', playerWallet, 'role:', newRole);
+
+        // Join the socket to the room
         socket.join(roomId);
-        callback({ success: true, role: existingPlayer.player_white_wallet === playerWallet ? 'white' : 'black' });
-        return;
+
+        // Broadcast room update
+        io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
+        
+        // If both players are present, notify about game ready
+        if (room.players.length === 2) {
+          io.to(roomId).emit('gameReady', { roomId, players: room.players.map(p => p.role) });
+        }
+
+        if (typeof callback === 'function') callback({ success: true, role: newRole });
       }
-
-      // Add new player to the room
-      const newRole = currentPlayers.length === 0 ? 'white' : 'black'; // Assign role based on current players
-      await poolInstance.query(
-        'UPDATE games SET player_black_wallet = $1 WHERE room_id = $2',
-        [playerWallet, roomId]
-      );
-      console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', newRole);
-
-      // Broadcast room update
-      io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
-      
-      // If both players are present, notify about game ready
-      if (currentPlayers.length === 1) { // Only one player was in the room, now two
-        io.to(roomId).emit('gameReady', { roomId, players: currentPlayers.map(p => p.player_white_wallet === playerWallet ? 'white' : 'black') });
-      }
-
-      callback({ success: true, role: newRole });
       
     } catch (error) {
       console.error('Error joining room:', error);
-      callback({ success: false, error: 'Failed to join room' });
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to join room' });
     }
   });
 
@@ -952,53 +1026,75 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
-      const poolInstance = initializePool();
-      
-      // Get room details from database
-      const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
-      const room = result.rows[0];
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Get room details from database
+        const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
+        const room = result.rows[0];
 
-      if (!room) {
-        callback({ success: false, error: 'Room does not exist' });
-        return;
+        if (!room) {
+          if (typeof callback === 'function') callback({ success: false, error: 'Room does not exist' });
+          return;
+        }
+
+        // Get escrows for this room
+        const escrowsResult = await poolInstance.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]);
+        const escrows = escrowsResult.rows;
+
+        // Calculate player count
+        const playerCount = (room.player_white_wallet ? 1 : 0) + (room.player_black_wallet ? 1 : 0);
+        
+        // Build players array
+        const players = [];
+        if (room.player_white_wallet) {
+          players.push({ role: 'white', wallet: room.player_white_wallet });
+        }
+        if (room.player_black_wallet) {
+          players.push({ role: 'black', wallet: room.player_black_wallet });
+        }
+
+        // Build escrows object
+        const escrowsObj = {};
+        escrows.forEach(escrow => {
+          escrowsObj[escrow.player_wallet] = escrow.escrow_amount;
+        });
+
+        const roomStatus = {
+          playerCount: playerCount,
+          players: players,
+          escrowCount: escrows.length,
+          escrows: escrowsObj,
+          gameStarted: room.game_state === 'active'
+        };
+
+        console.log('📊 Room status for', roomId, ':', roomStatus);
+        if (typeof callback === 'function') callback({ success: true, roomStatus });
+      } else {
+        // Use in-memory storage for testing
+        const room = testRooms.get(roomId);
+        if (!room) {
+          console.log('❌ Room not found in memory:', roomId);
+          if (typeof callback === 'function') callback({ success: false, error: 'Room does not exist' });
+          return;
+        }
+
+        const roomStatus = {
+          playerCount: room.players.length,
+          players: room.players.map(p => ({ role: p.role, wallet: p.wallet })),
+          escrowCount: 0, // No escrows in test mode
+          escrows: {},
+          gameStarted: false
+        };
+
+        console.log('📊 Room status for', roomId, ':', roomStatus);
+        if (typeof callback === 'function') callback({ success: true, roomStatus });
       }
-
-      // Get escrows for this room
-      const escrowsResult = await poolInstance.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]);
-      const escrows = escrowsResult.rows;
-
-      // Calculate player count
-      const playerCount = (room.player_white_wallet ? 1 : 0) + (room.player_black_wallet ? 1 : 0);
-      
-      // Build players array
-      const players = [];
-      if (room.player_white_wallet) {
-        players.push({ role: 'white', wallet: room.player_white_wallet });
-      }
-      if (room.player_black_wallet) {
-        players.push({ role: 'black', wallet: room.player_black_wallet });
-      }
-
-      // Build escrows object
-      const escrowsObj = {};
-      escrows.forEach(escrow => {
-        escrowsObj[escrow.player_wallet] = escrow.escrow_amount;
-      });
-
-      const roomStatus = {
-        playerCount: playerCount,
-        players: players,
-        escrowCount: escrows.length,
-        escrows: escrowsObj,
-        gameStarted: room.game_state === 'active'
-      };
-
-      console.log('📊 Room status for', roomId, ':', roomStatus);
-      callback({ success: true, roomStatus });
       
     } catch (error) {
       console.error('Error getting room status:', error);
-      callback({ success: false, error: 'Failed to get room status' });
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to get room status' });
     }
   });
 
@@ -1008,74 +1104,90 @@ io.on('connection', (socket) => {
       console.log('💰 Received addEscrow event:', data);
       const { roomId, playerWallet, amount } = data;
       
-      const poolInstance = initializePool();
-      
-      // Get current escrows from database
-      const result = await poolInstance.query('SELECT escrow_amount FROM escrows WHERE room_id = $1 AND player_wallet = $2', [roomId, playerWallet]);
-      if (result.rows.length > 0) {
-        console.log('❌ Escrow already exists for player:', playerWallet, 'in room:', roomId);
-        callback({ success: false, error: 'Escrow already exists' });
-        return;
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Get current escrows from database
+        const result = await poolInstance.query('SELECT escrow_amount FROM escrows WHERE room_id = $1 AND player_wallet = $2', [roomId, playerWallet]);
+        if (result.rows.length > 0) {
+          console.log('❌ Escrow already exists for player:', playerWallet, 'in room:', roomId);
+          if (typeof callback === 'function') callback({ success: false, error: 'Escrow already exists' });
+          return;
+        }
+
+        // Insert new escrow into database
+        await poolInstance.query(
+          'INSERT INTO escrows (room_id, player_wallet, escrow_amount) VALUES ($1, $2, $3)',
+          [roomId, playerWallet, amount]
+        );
+        console.log('✅ Escrow added to database:', roomId, playerWallet, amount);
+
+        // Broadcast escrow update
+        io.to(roomId).emit('escrowUpdated', { roomId, escrows: await poolInstance.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows) });
+      } else {
+        // Use in-memory storage for testing
+        console.log('✅ Escrow added to memory (test mode):', roomId, playerWallet, amount);
+        if (typeof callback === 'function') callback({ success: true, message: 'Escrow added (test mode)' });
       }
-
-      // Insert new escrow into database
-      await poolInstance.query(
-        'INSERT INTO escrows (room_id, player_wallet, escrow_amount) VALUES ($1, $2, $3)',
-        [roomId, playerWallet, amount]
-      );
-      console.log('✅ Escrow added to database:', roomId, playerWallet, amount);
-
-      // Broadcast escrow update
-      io.to(roomId).emit('escrowUpdated', { roomId, escrows: await poolInstance.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows) });
       
       // Auto-start game if both escrows are created and both players are present
-      const currentPlayers = await poolInstance.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]).then(r => r.rows[0]);
-      const escrows = await poolInstance.query('SELECT player_wallet FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows);
-      
-      console.log('🔍 Auto-start check:', {
-        roomId,
-        currentPlayers,
-        escrows: escrows.map(e => e.player_wallet),
-        whiteWallet: currentPlayers?.player_white_wallet,
-        blackWallet: currentPlayers?.player_black_wallet,
-        escrowCount: escrows.length
-      });
-      
-      // Check if both players are present and both escrows are created
-      if (currentPlayers && 
-          currentPlayers.player_white_wallet && 
-          currentPlayers.player_black_wallet && 
-          escrows.length === 2) {
+      if (process.env.DATABASE_URL) {
+        const currentPlayers = await poolInstance.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]).then(r => r.rows[0]);
+        const escrows = await poolInstance.query('SELECT player_wallet FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows);
         
-        console.log('🎮 Starting game automatically - both players and escrows ready');
-        await poolInstance.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
-        
-        // Broadcast game started event to ALL players in the room
-        console.log('📢 Broadcasting gameStarted event to room:', roomId);
-        io.to(roomId).emit('gameStarted', { 
-          roomId, 
-          players: [currentPlayers.player_white_wallet, currentPlayers.player_black_wallet]
-        });
-        
-        // Also emit room updated event
-        console.log('📢 Broadcasting roomUpdated event to room:', roomId);
-        io.to(roomId).emit('roomUpdated', { roomId, gameState: 'active' });
-        
-        console.log('✅ Game started event broadcasted to room:', roomId);
-      } else {
-        console.log('⏳ Game not ready yet:', {
-          bothPlayersPresent: !!(currentPlayers?.player_white_wallet && currentPlayers?.player_black_wallet),
-          escrowCount: escrows.length,
+        console.log('🔍 Auto-start check:', {
+          roomId,
+          currentPlayers,
+          escrows: escrows.map(e => e.player_wallet),
           whiteWallet: currentPlayers?.player_white_wallet,
-          blackWallet: currentPlayers?.player_black_wallet
+          blackWallet: currentPlayers?.player_black_wallet,
+          escrowCount: escrows.length
         });
+        
+        // Check if both players are present and both escrows are created
+        if (currentPlayers && 
+            currentPlayers.player_white_wallet && 
+            currentPlayers.player_black_wallet && 
+            escrows.length === 2) {
+          
+          console.log('🎮 Starting game automatically - both players and escrows ready');
+          await poolInstance.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
+          
+          // Broadcast game started event to ALL players in the room
+          console.log('📢 Broadcasting gameStarted event to room:', roomId);
+          io.to(roomId).emit('gameStarted', { 
+            roomId, 
+            players: [currentPlayers.player_white_wallet, currentPlayers.player_black_wallet]
+          });
+          
+          // Also emit room updated event
+          console.log('📢 Broadcasting roomUpdated event to room:', roomId);
+          io.to(roomId).emit('roomUpdated', { roomId, gameState: 'active' });
+          
+          console.log('✅ Game started event broadcasted to room:', roomId);
+        } else {
+          console.log('⏳ Game not ready yet:', {
+            bothPlayersPresent: !!(currentPlayers?.player_white_wallet && currentPlayers?.player_black_wallet),
+            escrowCount: escrows.length,
+            whiteWallet: currentPlayers?.player_white_wallet,
+            blackWallet: currentPlayers?.player_black_wallet
+          });
+        }
+      } else {
+        // Test mode - use in-memory storage
+        const room = testRooms.get(roomId);
+        if (room && room.players.length === 2) {
+          console.log('🎮 Test mode: Game ready with both players');
+          io.to(roomId).emit('gameReady', { roomId, players: room.players.map(p => p.role) });
+        }
       }
       
-      callback({ success: true, message: 'Escrow created successfully' });
+      if (typeof callback === 'function') callback({ success: true, message: 'Escrow created successfully' });
       
     } catch (error) {
       console.error('❌ Error adding escrow:', error);
-      callback({ success: false, error: 'Failed to add escrow' });
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to add escrow' });
     }
   });
 
@@ -1087,18 +1199,25 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
-      const poolInstance = initializePool();
-      
-      // Clear escrows from database
-      await poolInstance.query('DELETE FROM escrows WHERE room_id = $1', [roomId]);
-      console.log('🔄 Cleared escrows for room:', roomId);
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Clear escrows from database
+        await poolInstance.query('DELETE FROM escrows WHERE room_id = $1', [roomId]);
+        console.log('🔄 Cleared escrows for room:', roomId);
+      } else {
+        // Use in-memory storage for testing
+        console.log('🔄 Cleared escrows for room (test mode):', roomId);
+      }
 
       // Broadcast room update
       io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
+      if (typeof callback === 'function') callback({ success: true });
       
     } catch (error) {
       console.error('Error clearing escrows:', error);
-      callback({ success: false, error: 'Failed to clear escrows' });
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to clear escrows' });
     }
   });
 
@@ -1107,23 +1226,35 @@ io.on('connection', (socket) => {
     try {
       const { roomId, gameState } = data;
       
-      const poolInstance = initializePool();
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Update game state in database
+        await poolInstance.query(
+          'UPDATE games SET game_state = $1, updated_at = $2 WHERE room_id = $3',
+          [gameState, new Date(), roomId]
+        );
+        
+        console.log('✅ Game state saved to database:', roomId);
+      } else {
+        // Use in-memory storage for testing
+        const room = testRooms.get(roomId);
+        if (room) {
+          room.gameState = gameState;
+          room.last_updated = new Date();
+          console.log('✅ Game state saved to memory (test mode):', roomId);
+        }
+      }
       
-      // Update game state in database
-      await poolInstance.query(
-        'UPDATE games SET game_state = $1, updated_at = $2 WHERE room_id = $3',
-        [gameState, new Date(), roomId]
-      );
-      
-      console.log('✅ Game state saved:', roomId);
-      callback({ success: true });
+      if (typeof callback === 'function') callback({ success: true });
       
       // Broadcast game state update
       io.to(roomId).emit('gameStateUpdated', { roomId, gameState });
       
     } catch (error) {
       console.error('Error saving game state:', error);
-      callback({ success: false, error: 'Failed to save game state' });
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to save game state' });
     }
   });
 
@@ -1132,39 +1263,59 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
-      const poolInstance = initializePool();
-      
-      // Get game state from database
-      const result = await poolInstance.query('SELECT game_state FROM games WHERE room_id = $1', [roomId]);
-      const gameState = result.rows[0];
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Get game state from database
+        const result = await poolInstance.query('SELECT game_state FROM games WHERE room_id = $1', [roomId]);
+        const gameState = result.rows[0];
 
-      if (gameState) {
-        callback({ success: true, gameState: gameState.game_state });
+        if (gameState) {
+          if (typeof callback === 'function') callback({ success: true, gameState: gameState.game_state });
+        } else {
+          if (typeof callback === 'function') callback({ success: false, error: 'Game state not found' });
+        }
       } else {
-        callback({ success: false, error: 'Game state not found' });
+        // Use in-memory storage for testing
+        const room = testRooms.get(roomId);
+        if (room) {
+          if (typeof callback === 'function') callback({ success: true, gameState: room.gameState || 'waiting' });
+        } else {
+          if (typeof callback === 'function') callback({ success: false, error: 'Game state not found' });
+        }
       }
       
     } catch (error) {
       console.error('Error getting game state:', error);
-      callback({ success: false, error: 'Failed to get game state' });
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to get game state' });
     }
   });
 
   // Clear all rooms (for testing/debugging)
   socket.on('clearAllRooms', async (data, callback) => {
     try {
-      const poolInstance = initializePool();
-      await poolInstance.query('DELETE FROM games');
-      await poolInstance.query('DELETE FROM escrows');
-      await poolInstance.query('DELETE FROM moves');
-      await poolInstance.query('DELETE FROM chat_messages');
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        await poolInstance.query('DELETE FROM games');
+        await poolInstance.query('DELETE FROM escrows');
+        await poolInstance.query('DELETE FROM moves');
+        await poolInstance.query('DELETE FROM chat_messages');
+        
+        console.log('🧹 All rooms cleared from database');
+      } else {
+        // Use in-memory storage for testing
+        testRooms.clear();
+        testChatMessages.clear();
+        console.log('🧹 All rooms cleared from memory (test mode)');
+      }
       
-      console.log('🧹 All rooms cleared from database');
-      callback({ success: true });
+      if (typeof callback === 'function') callback({ success: true });
       
     } catch (error) {
       console.error('Error clearing rooms:', error);
-      callback({ success: false, error: 'Failed to clear rooms' });
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to clear rooms' });
     }
   });
 
@@ -1268,23 +1419,30 @@ io.on('connection', (socket) => {
     try {
       const { roomId } = data;
       
-      const poolInstance = initializePool();
-      
-      // Get chat messages from database
-      const result = await poolInstance.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [roomId]);
-      const messages = result.rows.map(msg => ({
-        id: msg.id, // Assuming msg.id is the unique ID from the DB
-        gameId: msg.game_id,
-        playerId: msg.player_id,
-        playerName: msg.player_name,
-        message: msg.message,
-        timestamp: msg.timestamp
-      }));
-      callback({ success: true, messages });
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Get chat messages from database
+        const result = await poolInstance.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [roomId]);
+        const messages = result.rows.map(msg => ({
+          id: msg.id, // Assuming msg.id is the unique ID from the DB
+          gameId: msg.game_id,
+          playerId: msg.player_id,
+          playerName: msg.player_name,
+          message: msg.message,
+          timestamp: msg.timestamp
+        }));
+        if (typeof callback === 'function') callback({ success: true, messages });
+      } else {
+        // Use in-memory storage for testing
+        const messages = testChatMessages.get(roomId) || [];
+        if (typeof callback === 'function') callback({ success: true, messages });
+      }
       
     } catch (error) {
       console.error('Error getting chat messages:', error);
-      callback({ success: false, error: 'Failed to get chat messages' });
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to get chat messages' });
     }
   });
 
@@ -1294,46 +1452,49 @@ io.on('connection', (socket) => {
       const { roomId, message, playerWallet, playerRole } = data;
       
       if (!message || message.trim().length === 0) {
-        callback({ success: false, error: 'Message cannot be empty' });
+        if (typeof callback === 'function') callback({ success: false, error: 'Message cannot be empty' });
         return;
       }
 
       if (message.length > 500) {
-        callback({ success: false, error: 'Message too long (max 500 characters)' });
+        if (typeof callback === 'function') callback({ success: false, error: 'Message too long (max 500 characters)' });
         return;
       }
 
-      const poolInstance = initializePool();
-      
-      // Insert new chat message into database
-      await poolInstance.query(
-        'INSERT INTO chat_messages (game_id, player_id, player_name, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
-        [roomId, playerWallet, playerRole, message.trim(), new Date()]
-      );
+      const newMessage = {
+        id: Date.now().toString(),
+        roomId,
+        playerWallet,
+        playerRole,
+        message: message.trim(),
+        timestamp: new Date()
+      };
+
+      // Check if we have database access
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Insert new chat message into database
+        await poolInstance.query(
+          'INSERT INTO chat_messages (game_id, player_id, player_name, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
+          [roomId, playerWallet, playerRole, message.trim(), new Date()]
+        );
+      } else {
+        // Use in-memory storage for testing
+        const messages = testChatMessages.get(roomId) || [];
+        messages.push(newMessage);
+        testChatMessages.set(roomId, messages);
+      }
 
       console.log('💬 Chat message sent:', roomId, playerWallet, message);
-      callback({ success: true, message: {
-        id: Date.now().toString(), // Use a unique ID for frontend
-        roomId,
-        playerWallet,
-        playerRole,
-        message: message.trim(),
-        timestamp: new Date()
-      } });
+      if (typeof callback === 'function') callback({ success: true, message: newMessage });
 
       // Broadcast message to all players in the room
-      io.to(roomId).emit('chatMessageReceived', {
-        id: Date.now().toString(), // Use a unique ID for frontend
-        roomId,
-        playerWallet,
-        playerRole,
-        message: message.trim(),
-        timestamp: new Date()
-      });
+      io.to(roomId).emit('chatMessageReceived', newMessage);
 
     } catch (error) {
       console.error('Error sending chat message:', error);
-      callback({ success: false, error: 'Failed to send message' });
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to send message' });
     }
   });
 

@@ -81,13 +81,18 @@ class DatabaseMultiplayerStateManager {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    // Connect to root domain but specify the path in Socket.IO config
-    this.serverUrl = 'wss://knightsbridge-app-35xls.ondigitalocean.app';
+    // Use local backend for testing
+    this.serverUrl = 'http://localhost:3001';
+    
     console.log('🔌 Initializing WebSocket-only multiplayer state with server:', this.serverUrl);
+    
+    // Debug environment variables
     console.log('🔍 Environment check - VITE_WS_URL:', import.meta.env.VITE_WS_URL);
     console.log('🔍 Environment check - VITE_API_URL:', import.meta.env.VITE_API_URL);
     console.log('🔍 Environment check - VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
     console.log('🔍 All env vars:', import.meta.env);
+    
+    // For now, use hardcoded URL to bypass env var issues
     console.log('🔍 Using hardcoded URL to bypass env var issues');
   }
 
@@ -126,7 +131,7 @@ class DatabaseMultiplayerStateManager {
       }
 
       this.socket = io(this.serverUrl, {
-        transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
+        transports: ['polling'], // Use polling only to avoid WebSocket issues
         timeout: 20000, // Increased timeout as recommended
         reconnection: true,
         reconnectionAttempts: 5, // Increased attempts as recommended
@@ -134,10 +139,10 @@ class DatabaseMultiplayerStateManager {
         reconnectionDelayMax: 10000, // Reasonable max delay
         forceNew: true, // Force new connection as recommended
         autoConnect: true,
-        upgrade: true, // Enable upgrade for better compatibility
-        rememberUpgrade: true, // Remember successful upgrades
+        upgrade: false, // Disable upgrade since we're using polling only
+        rememberUpgrade: false, // Not needed for polling only
         withCredentials: true, // Enable credentials for auth
-        // Remove custom path - use default Socket.IO path
+        // Removed pingTimeout and pingInterval due to linter errors
       });
 
       this.socket.on('connect', () => {

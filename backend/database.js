@@ -27,8 +27,8 @@ function initializePool() {
   if (!dbUrl.startsWith('postgresql://')) {
     console.error('❌ Invalid DATABASE_URL - must start with postgresql://');
     throw new Error('Invalid DATABASE_URL format');
-  }
-  
+}
+
   console.log('✅ DATABASE_URL loaded:', dbUrl.replace(/:([^@]+)@/, ':***@'));
 
   // Create the pool configuration with DigitalOcean's recommended SSL handling
@@ -50,8 +50,8 @@ async function testConnection() {
     const poolInstance = initializePool();
     const client = await poolInstance.connect();
     console.log('✅ Test connection successful');
-    client.release();
-    return true;
+      client.release();
+      return true;
   } catch (error) {
     console.error('❌ Test connection failed:', error.message, '- Code:', error.code);
     throw error;
@@ -83,11 +83,11 @@ async function roomService(action, data) {
       default:
         throw new Error('Invalid room action');
     }
-  } catch (error) {
+    } catch (error) {
     console.error('Room service error:', error);
-    throw error;
+      throw error;
+    }
   }
-}
 
 // Chat service functions
 async function chatService(action, data) {
@@ -107,10 +107,10 @@ async function chatService(action, data) {
       default:
         throw new Error('Invalid chat action');
     }
-  } catch (error) {
+    } catch (error) {
     console.error('Chat service error:', error);
-    throw error;
+      throw error;
+    }
   }
-}
 
 module.exports = { pool: () => pool, initializePool, testConnection, roomService, chatService }; 

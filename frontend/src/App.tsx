@@ -420,8 +420,9 @@ function ChessApp() {
       // Only join room when in lobby mode, not when transitioning to game mode
       if (databaseMultiplayerState.isConnected()) {
         const socket = (databaseMultiplayerState as any).socket;
-        if (socket) {
-          socket.emit('joinRoom', { roomId });
+        if (socket && publicKey) {
+          const playerWallet = publicKey.toString();
+          socket.emit('joinRoom', { roomId, playerWallet });
         }
       }
     }
@@ -698,6 +699,10 @@ function ChessApp() {
           setRoomId(result.roomId);
           setGameMode('lobby');
           setGameStatus(`Room created! Share Room ID: ${result.roomId} with your opponent`);
+          
+          // Get room status using the new room ID
+          const roomStatus = await databaseMultiplayerState.getRoomStatus(result.roomId);
+          console.log('📊 Room status:', roomStatus);
         } else {
           setGameStatus('Failed to create room');
         }
@@ -709,14 +714,14 @@ function ChessApp() {
           setPlayerRole(role);
           setGameMode('lobby');
           setGameStatus(`Joined room as ${role}`);
+          
+          // Get room status using the current room ID
+          const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+          console.log('📊 Room status:', roomStatus);
         } else {
           setGameStatus('Failed to join room');
         }
       }
-
-      // Get room status
-      const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-      console.log('📊 Room status:', roomStatus);
 
     } catch (error) {
       console.error('❌ Error joining room:', error);

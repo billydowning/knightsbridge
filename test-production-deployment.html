@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Deployment Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Production Deployment Test</h1>
+    <p>Testing connectivity between Vercel frontend and DigitalOcean backend</p>
+    
+    <div>
+        <button onclick="testBackendHealth()">Test Backend Health</button>
+        <button onclick="testWebSocketConnection()">Test WebSocket Connection</button>
+        <button onclick="testRoomCreation()">Test Room Creation</button>
+        <button onclick="testFrontendDeployment()">Test Frontend Deployment</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const BACKEND_URL = 'https://knightsbridge-app-35xls.ondigitalocean.app';
+        const FRONTEND_URL = 'https://knightsbridge.vercel.app';
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        async function testBackendHealth() {
+            log('🔍 Testing backend health...', 'info');
+            try {
+                const response = await fetch(`${BACKEND_URL}/`);
+                const data = await response.json();
+                log(`✅ Backend health check: ${data.message}`, 'success');
+                log(`📊 Environment: ${data.environment}, Port: ${data.port}`, 'info');
+            } catch (error) {
+                log(`❌ Backend health check failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testWebSocketConnection() {
+            log('🔌 Testing WebSocket connection...', 'info');
+            try {
+                const socket = io(BACKEND_URL, {
+                    transports: ['polling', 'websocket'],
+                    timeout: 20000,
+                    reconnectionAttempts: 3,
+                    reconnectionDelay: 1000
+                });
+
+                socket.on('connect', () => {
+                    log(`✅ WebSocket connected! Socket ID: ${socket.id}`, 'success');
+                    socket.disconnect();
+                });
+
+                socket.on('connect_error', (error) => {
+                    log(`❌ WebSocket connection failed: ${error.message}`, 'error');
+                });
+
+                socket.on('disconnect', () => {
+                    log('🔌 WebSocket disconnected', 'info');
+                });
+
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    if (socket.connected) {
+                        socket.disconnect();
+                    }
+                }, 10000);
+
+            } catch (error) {
+                log(`❌ WebSocket test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRoomCreation() {
+            log('🏗️ Testing room creation...', 'info');
+            try {
+                const socket = io(BACKEND_URL, {
+                    transports: ['polling', 'websocket'],
+                    timeout: 20000
+                });
+
+                socket.on('connect', () => {
+                    log(`✅ Connected for room test. Socket ID: ${socket.id}`, 'success');
+                    
+                    // Test room creation
+                    socket.emit('createRoom', { 
+                        playerWallet: 'TEST_WALLET_' + Date.now() 
+                    }, (response) => {
+                        if (response && response.success) {
+                            log(`✅ Room created successfully! Room ID: ${response.roomId}`, 'success');
+                            log(`🎯 Player role: ${response.role}`, 'info');
+                            
+                            // Test joining the room
+                            socket.emit('joinRoom', {
+                                roomId: response.roomId,
+                                playerWallet: 'TEST_WALLET_BLACK_' + Date.now()
+                            }, (joinResponse) => {
+                                if (joinResponse && joinResponse.success) {
+                                    log(`✅ Second player joined! Role: ${joinResponse.role}`, 'success');
+                                } else {
+                                    log(`❌ Failed to join room: ${joinResponse?.error}`, 'error');
+                                }
+                                socket.disconnect();
+                            });
+                        } else {
+                            log(`❌ Room creation failed: ${response?.error}`, 'error');
+                            socket.disconnect();
+                        }
+                    });
+                });
+
+                socket.on('connect_error', (error) => {
+                    log(`❌ Connection failed for room test: ${error.message}`, 'error');
+                });
+
+                // Timeout after 15 seconds
+                setTimeout(() => {
+                    if (socket.connected) {
+                        socket.disconnect();
+                    }
+                }, 15000);
+
+            } catch (error) {
+                log(`❌ Room creation test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFrontendDeployment() {
+            log('🌐 Testing frontend deployment...', 'info');
+            try {
+                const response = await fetch(FRONTEND_URL);
+                if (response.ok) {
+                    log(`✅ Frontend is accessible! Status: ${response.status}`, 'success');
+                } else {
+                    log(`❌ Frontend returned status: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Frontend test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run basic tests on page load
+        window.onload = function() {
+            log('🚀 Starting production deployment tests...', 'info');
+            setTimeout(testBackendHealth, 1000);
+            setTimeout(testWebSocketConnection, 3000);
+            setTimeout(testFrontendDeployment, 5000);
+        };
+    </script>
+</body>
+</html> 

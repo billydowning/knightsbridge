@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = process.env.NODE_ENV === 'production'
+const API_URL = process.env.NODE_ENV === 'production' 
   ? 'https://knightsbridge-app-35xls.ondigitalocean.app/api'
   : 'https://knightsbridge-app-35xls.ondigitalocean.app/api';
 
