@@ -1574,16 +1574,53 @@ function ChessApp() {
         });
       };
 
+      const handleRoomUpdated = (data: any) => {
+        console.log('📢 Room updated event received:', data);
+        // Check if game state is active as a fallback for gameStarted event
+        if (data.gameState === 'active' && gameMode === 'lobby') {
+          console.log('🎮 Game state is active, switching to game mode');
+          setGameMode('game');
+          // Reset game state for new game
+          setGameState({
+            position: {
+              'a1': 'white-rook', 'b1': 'white-knight', 'c1': 'white-bishop', 'd1': 'white-queen',
+              'e1': 'white-king', 'f1': 'white-bishop', 'g1': 'white-knight', 'h1': 'white-rook',
+              'a2': 'white-pawn', 'b2': 'white-pawn', 'c2': 'white-pawn', 'd2': 'white-pawn',
+              'e2': 'white-pawn', 'f2': 'white-pawn', 'g2': 'white-pawn', 'h2': 'white-pawn',
+              'a7': 'black-pawn', 'b7': 'black-pawn', 'c7': 'black-pawn', 'd7': 'black-pawn',
+              'e7': 'black-pawn', 'f7': 'black-pawn', 'g7': 'black-pawn', 'h7': 'black-pawn',
+              'a8': 'black-rook', 'b8': 'black-knight', 'c8': 'black-bishop', 'd8': 'black-queen',
+              'e8': 'black-king', 'f8': 'black-bishop', 'g8': 'black-knight', 'h8': 'black-rook'
+            },
+            currentPlayer: 'white',
+            selectedSquare: null,
+            gameActive: true,
+            winner: null,
+            draw: false,
+            moveHistory: [],
+            lastUpdated: Date.now(),
+            castlingRights: 'KQkq',
+            enPassantTarget: null,
+            halfmoveClock: 0,
+            fullmoveNumber: 1,
+            inCheck: false,
+            inCheckmate: false
+          });
+        }
+      };
+
       const socket = (databaseMultiplayerState as any).socket;
       if (socket) {
         socket.on('gameStarted', handleGameStarted);
+        socket.on('roomUpdated', handleRoomUpdated);
         
         return () => {
           socket.off('gameStarted', handleGameStarted);
+          socket.off('roomUpdated', handleRoomUpdated);
         };
       }
     }
-  }, [roomId]);
+  }, [roomId, gameMode]);
 
   // Check game state when reconnecting to handle missed events
   useEffect(() => {
