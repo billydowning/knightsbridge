@@ -36,7 +36,7 @@ const server = http.createServer(app);
 // DigitalOcean App Platform optimized Socket.IO configuration
 const io = socketIo(server, {
   cors: {
-    origin: corsOrigins,
+    origin: true, // Allow all origins for now to debug
     methods: ["GET", "POST", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
@@ -137,7 +137,7 @@ app.use((req, res, next) => {
 
 // CORS configuration
 app.use(cors({
-  origin: corsOrigins,
+  origin: true, // Allow all origins for now to debug
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
