@@ -519,12 +519,25 @@ function ChessApp() {
       console.log('🎮 Game started with player role:', playerRole, 'initial currentPlayer:', newGameState.currentPlayer);
       console.log('🎮 Initial game state set:', newGameState);
       
-      // Save initial game state to database
+      // Save initial game state to database (only the first player to do so)
       if (roomId) {
-        console.log('💾 Saving initial game state to database');
-        databaseMultiplayerState.saveGameState(roomId, newGameState).catch(error => {
-          console.error('❌ Error saving initial game state:', error);
-        });
+        // Only the white player should save the initial state
+        if (playerRole === 'white') {
+          console.log('💾 White player saving initial game state to database');
+          // Set the flag to prevent immediate re-save when server broadcasts
+          setIsReceivingServerUpdate(true);
+          databaseMultiplayerState.saveGameState(roomId, newGameState).catch(error => {
+            console.error('❌ Error saving initial game state:', error);
+          }).finally(() => {
+            // Reset flag after a delay to allow server broadcast to settle
+            setTimeout(() => {
+              setIsReceivingServerUpdate(false);
+              setLastSavedState('');
+            }, 1000);
+          });
+        } else {
+          console.log('🔄 Black player waiting for white player to save initial state');
+        }
       }
     }
   }, [gameMode, playerRole, roomId]);
@@ -1583,11 +1596,13 @@ function ChessApp() {
           setGameState(data.gameState);
           
           // Reset flag after a longer delay to ensure state has settled
+          // Use longer delay for black player to avoid race conditions
+          const delay = playerRole === 'black' ? 800 : 500;
           setTimeout(() => {
             setIsReceivingServerUpdate(false);
             // Also reset the last saved state to prevent immediate re-save
             setLastSavedState('');
-          }, 500);
+          }, delay);
         }
       };
 
