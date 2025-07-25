@@ -464,6 +464,10 @@ function ChessApp() {
         }, 500); // Increased debounce to 500ms
         
         setSaveTimeout(timeout);
+      } else if (isReceivingServerUpdate) {
+        console.log('🔄 Skipping save - currently receiving server update');
+      } else if (stateHash === lastSavedState) {
+        console.log('🔄 Skipping save - state unchanged');
       }
     }
   }, [gameState.position, gameState.currentPlayer, gameState.moveHistory, gameState.winner, gameState.draw, gameState.inCheck, gameState.inCheckmate, roomId, gameMode, isReceivingServerUpdate, lastSavedState, saveTimeout]);
@@ -526,13 +530,24 @@ function ChessApp() {
           console.log('💾 White player saving initial game state to database');
           // Set the flag to prevent immediate re-save when server broadcasts
           setIsReceivingServerUpdate(true);
+          // Set the last saved state immediately to prevent duplicate saves
+          const initialStateHash = JSON.stringify({
+            position: newGameState.position,
+            currentPlayer: newGameState.currentPlayer,
+            moveHistory: newGameState.moveHistory,
+            winner: newGameState.winner,
+            draw: newGameState.draw,
+            inCheck: newGameState.inCheck,
+            inCheckmate: newGameState.inCheckmate
+          });
+          setLastSavedState(initialStateHash);
+          
           databaseMultiplayerState.saveGameState(roomId, newGameState).catch(error => {
             console.error('❌ Error saving initial game state:', error);
           }).finally(() => {
             // Reset flag after a delay to allow server broadcast to settle
             setTimeout(() => {
               setIsReceivingServerUpdate(false);
-              setLastSavedState('');
             }, 1000);
           });
         } else {
