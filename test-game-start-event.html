@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Start Event Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Game Start Event Test</h1>
+        
+        <div>
+            <button class="button" onclick="testWhitePlayer()">Test White Player</button>
+            <button class="button" onclick="testBlackPlayer()">Test Black Player</button>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const BACKEND_URL = 'https://knightsbridge-app-35xls.ondigitalocean.app';
+        let whiteSocket = null;
+        let blackSocket = null;
+        let testRoomId = null;
+        
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : 
+                            type === 'error' ? 'error' : 
+                            type === 'warning' ? 'warning' : 'info';
+            
+            logElement.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        async function testWhitePlayer() {
+            log('🎯 Testing White Player...', 'info');
+            
+            try {
+                // Connect white player
+                whiteSocket = io(BACKEND_URL, {
+                    transports: ['websocket'],
+                    timeout: 20000,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    reconnectionDelayMax: 10000,
+                    forceNew: true,
+                    autoConnect: true,
+                    upgrade: false,
+                    rememberUpgrade: false,
+                    withCredentials: true
+                });
+                
+                whiteSocket.on('connect', () => {
+                    log('✅ White player connected:', whiteSocket.id, 'success');
+                    
+                    // Create room
+                    whiteSocket.emit('createRoom', {
+                        playerWallet: 'WHITE_TEST_WALLET_' + Date.now()
+                    }, (response) => {
+                        if (response && response.success) {
+                            testRoomId = response.roomId;
+                            log('✅ White player created room:', testRoomId, 'success');
+                            
+                            // Listen for game events
+                            whiteSocket.on('gameStarted', (data) => {
+                                log('🎮 White player received gameStarted event:', data, 'success');
+                            });
+                            
+                            whiteSocket.on('roomUpdated', (data) => {
+                                log('📢 White player received roomUpdated event:', data, 'info');
+                            });
+                            
+                            whiteSocket.on('escrowUpdated', (data) => {
+                                log('💰 White player received escrowUpdated event:', data, 'info');
+                            });
+                            
+                            // Add escrow
+                            setTimeout(() => {
+                                whiteSocket.emit('addEscrow', {
+                                    roomId: testRoomId,
+                                    playerWallet: 'WHITE_TEST_WALLET_' + Date.now(),
+                                    amount: 0.1
+                                }, (response) => {
+                                    if (response && response.success) {
+                                        log('✅ White player escrow created:', response, 'success');
+                                    } else {
+                                        log('❌ White player escrow failed:', response, 'error');
+                                    }
+                                });
+                            }, 1000);
+                        } else {
+                            log('❌ White player room creation failed:', response, 'error');
+                        }
+                    });
+                });
+                
+                whiteSocket.on('connect_error', (error) => {
+                    log('❌ White player connection error:', error, 'error');
+                });
+                
+                whiteSocket.on('disconnect', (reason) => {
+                    log('❌ White player disconnected:', reason, 'warning');
+                });
+                
+            } catch (error) {
+                log('❌ White player test failed:', error, 'error');
+            }
+        }
+        
+        async function testBlackPlayer() {
+            if (!testRoomId) {
+                log('❌ No room ID available. Create room with white player first.', 'error');
+                return;
+            }
+            
+            log('🎯 Testing Black Player...', 'info');
+            
+            try {
+                // Connect black player
+                blackSocket = io(BACKEND_URL, {
+                    transports: ['websocket'],
+                    timeout: 20000,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    reconnectionDelayMax: 10000,
+                    forceNew: true,
+                    autoConnect: true,
+                    upgrade: false,
+                    rememberUpgrade: false,
+                    withCredentials: true
+                });
+                
+                blackSocket.on('connect', () => {
+                    log('✅ Black player connected:', blackSocket.id, 'success');
+                    
+                    // Join room
+                    blackSocket.emit('joinRoom', {
+                        roomId: testRoomId,
+                        playerWallet: 'BLACK_TEST_WALLET_' + Date.now()
+                    }, (response) => {
+                        if (response && response.success) {
+                            log('✅ Black player joined room:', response, 'success');
+                            
+                            // Listen for game events
+                            blackSocket.on('gameStarted', (data) => {
+                                log('🎮 Black player received gameStarted event:', data, 'success');
+                            });
+                            
+                            blackSocket.on('roomUpdated', (data) => {
+                                log('📢 Black player received roomUpdated event:', data, 'info');
+                            });
+                            
+                            blackSocket.on('escrowUpdated', (data) => {
+                                log('💰 Black player received escrowUpdated event:', data, 'info');
+                            });
+                            
+                            // Add escrow
+                            setTimeout(() => {
+                                blackSocket.emit('addEscrow', {
+                                    roomId: testRoomId,
+                                    playerWallet: 'BLACK_TEST_WALLET_' + Date.now(),
+                                    amount: 0.1
+                                }, (response) => {
+                                    if (response && response.success) {
+                                        log('✅ Black player escrow created:', response, 'success');
+                                    } else {
+                                        log('❌ Black player escrow failed:', response, 'error');
+                                    }
+                                });
+                            }, 1000);
+                        } else {
+                            log('❌ Black player room joining failed:', response, 'error');
+                        }
+                    });
+                });
+                
+                blackSocket.on('connect_error', (error) => {
+                    log('❌ Black player connection error:', error, 'error');
+                });
+                
+                blackSocket.on('disconnect', (reason) => {
+                    log('❌ Black player disconnected:', reason, 'warning');
+                });
+                
+            } catch (error) {
+                log('❌ Black player test failed:', error, 'error');
+            }
+        }
+        
+        // Auto-run test
+        window.onload = function() {
+            log('🚀 Starting game start event test...', 'info');
+            log('📝 Instructions:', 'info');
+            log('1. Click "Test White Player" to create room and add escrow', 'info');
+            log('2. Click "Test Black Player" to join room and add escrow', 'info');
+            log('3. Watch for gameStarted events on both players', 'info');
+        };
+    </script>
+</body>
+</html> 

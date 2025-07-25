@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Frontend Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.passed { background: #d4edda; color: #155724; }
+        .status.failed { background: #f8d7da; color: #721c24; }
+        .status.pending { background: #fff3cd; color: #856404; }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .test-item {
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Comprehensive Frontend Test</h1>
+        
+        <div class="test-section">
+            <h3>📊 Test Status</h3>
+            <div class="test-results" id="testResults">
+                <!-- Test results will be populated here -->
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 Manual Tests</h3>
+            <button class="button" onclick="testFrontendAccessibility()">Test Frontend Accessibility</button>
+            <button class="button" onclick="testBackendConnection()">Test Backend Connection</button>
+            <button class="button" onclick="testEnvironmentVariables()">Test Environment Variables</button>
+            <button class="button" onclick="loadFrontendInIframe()">Load Frontend in iFrame</button>
+            <button class="button" onclick="runAllTests()">Run All Tests</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Test Logs</h3>
+            <div class="log" id="log"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🌐 Frontend Preview</h3>
+            <div id="iframeContainer" style="display: none;">
+                <iframe id="frontendIframe" src=""></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FRONTEND_URL = 'https://knightsbridge.vercel.app';
+        const BACKEND_URL = 'https://knightsbridge-app-35xls.ondigitalocean.app';
+        
+        let testResults = {
+            frontendAccessibility: false,
+            backendConnection: false,
+            environmentVariables: false,
+            iframeLoading: false
+        };
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : 
+                            type === 'error' ? 'error' : 
+                            type === 'warning' ? 'warning' : 'info';
+            
+            logElement.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateTestResults() {
+            const container = document.getElementById('testResults');
+            container.innerHTML = '';
+            
+            Object.entries(testResults).forEach(([test, passed]) => {
+                const status = passed ? 'passed' : 'failed';
+                const icon = passed ? '✅' : '❌';
+                const testName = test.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                
+                container.innerHTML += `
+                    <div class="test-item">
+                        <div class="status ${status}">${icon} ${testName}</div>
+                    </div>
+                `;
+            });
+        }
+
+        async function testFrontendAccessibility() {
+            log('🔍 Testing frontend accessibility...', 'info');
+            try {
+                const response = await fetch(FRONTEND_URL, {
+                    method: 'GET',
+                    mode: 'no-cors' // Since we're testing cross-origin
+                });
+                
+                // If we can reach the URL, it's accessible
+                log('✅ Frontend is accessible!', 'success');
+                testResults.frontendAccessibility = true;
+                updateTestResults();
+            } catch (error) {
+                log(`❌ Frontend accessibility failed: ${error.message}`, 'error');
+                testResults.frontendAccessibility = false;
+                updateTestResults();
+            }
+        }
+
+        async function testBackendConnection() {
+            log('🔌 Testing backend connection from frontend context...', 'info');
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    log('✅ Backend connection successful!', 'success');
+                    log(`📊 Backend info: ${data.message}`, 'info');
+                    log(`🌍 Environment: ${data.environment}`, 'info');
+                    testResults.backendConnection = true;
+                } else {
+                    log('❌ Backend returned unhealthy status', 'error');
+                    testResults.backendConnection = false;
+                }
+                updateTestResults();
+            } catch (error) {
+                log(`❌ Backend connection failed: ${error.message}`, 'error');
+                testResults.backendConnection = false;
+                updateTestResults();
+            }
+        }
+
+        async function testEnvironmentVariables() {
+            log('🔧 Testing environment variable access...', 'info');
+            
+            // Test if we can access environment variables in the frontend context
+            try {
+                // Create a test script to check environment variables
+                const testScript = document.createElement('script');
+                testScript.textContent = `
+                    try {
+                        // Test if Vite environment variables are accessible
+                        if (typeof import !== 'undefined' && import.meta && import.meta.env) {
+                            console.log('✅ Vite environment variables accessible');
+                            window.envTestResult = true;
+                        } else {
+                            console.log('❌ Vite environment variables not accessible');
+                            window.envTestResult = false;
+                        }
+                    } catch (error) {
+                        console.log('❌ Environment test failed:', error);
+                        window.envTestResult = false;
+                    }
+                `;
+                
+                document.head.appendChild(testScript);
+                
+                // Wait a moment for the script to execute
+                setTimeout(() => {
+                    if (window.envTestResult) {
+                        log('✅ Environment variables are accessible in frontend context', 'success');
+                        testResults.environmentVariables = true;
+                    } else {
+                        log('❌ Environment variables not accessible', 'error');
+                        testResults.environmentVariables = false;
+                    }
+                    updateTestResults();
+                    
+                    // Clean up
+                    document.head.removeChild(testScript);
+                    delete window.envTestResult;
+                }, 100);
+                
+            } catch (error) {
+                log(`❌ Environment test failed: ${error.message}`, 'error');
+                testResults.environmentVariables = false;
+                updateTestResults();
+            }
+        }
+
+        function loadFrontendInIframe() {
+            log('🌐 Loading frontend in iFrame...', 'info');
+            
+            const iframeContainer = document.getElementById('iframeContainer');
+            const iframe = document.getElementById('frontendIframe');
+            
+            iframe.src = FRONTEND_URL;
+            iframeContainer.style.display = 'block';
+            
+            iframe.onload = function() {
+                log('✅ Frontend loaded successfully in iFrame!', 'success');
+                testResults.iframeLoading = true;
+                updateTestResults();
+            };
+            
+            iframe.onerror = function() {
+                log('❌ Failed to load frontend in iFrame', 'error');
+                testResults.iframeLoading = false;
+                updateTestResults();
+            };
+            
+            // Set a timeout in case the iframe doesn't load
+            setTimeout(() => {
+                if (!testResults.iframeLoading) {
+                    log('⚠️ iFrame load timeout - this might be due to X-Frame-Options', 'warning');
+                    testResults.iframeLoading = false;
+                    updateTestResults();
+                }
+            }, 10000);
+        }
+
+        async function runAllTests() {
+            log('🚀 Running all frontend tests...', 'info');
+            
+            // Reset results
+            testResults = {
+                frontendAccessibility: false,
+                backendConnection: false,
+                environmentVariables: false,
+                iframeLoading: false
+            };
+            updateTestResults();
+            
+            // Run tests in sequence
+            await testFrontendAccessibility();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testBackendConnection();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testEnvironmentVariables();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            loadFrontendInIframe();
+            
+            // Final summary
+            setTimeout(() => {
+                const passedTests = Object.values(testResults).filter(Boolean).length;
+                const totalTests = Object.keys(testResults).length;
+                
+                log('📊 Final Frontend Test Results:', 'info');
+                Object.entries(testResults).forEach(([test, passed]) => {
+                    const testName = test.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                    log(`${passed ? '✅' : '❌'} ${testName}: ${passed ? 'PASSED' : 'FAILED'}`, passed ? 'success' : 'error');
+                });
+                
+                if (passedTests === totalTests) {
+                    log(`🎉 ALL FRONTEND TESTS PASSED! (${passedTests}/${totalTests})`, 'success');
+                } else {
+                    log(`⚠️ Some frontend tests failed: ${passedTests}/${totalTests} passed`, 'warning');
+                }
+            }, 2000);
+        }
+
+        // Auto-run tests on page load
+        window.onload = function() {
+            log('🚀 Starting comprehensive frontend tests...', 'info');
+            updateTestResults();
+            setTimeout(runAllTests, 1000);
+        };
+    </script>
+</body>
+</html> 

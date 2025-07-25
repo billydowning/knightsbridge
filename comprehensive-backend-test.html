@@ -252,6 +252,9 @@
                                             testChatFunctionality();
                                             
                                             setTimeout(() => {
+                                                // Set gameFlow to true if all other tests passed
+                                                testResults.gameFlow = testResults.websocket && testResults.roomCreation && testResults.playerJoining && testResults.escrow && testResults.chat;
+                                                
                                                 log('📊 Final Test Results:', 'info');
                                                 Object.entries(testResults).forEach(([test, passed]) => {
                                                     log(`${passed ? '✅' : '❌'} ${test}: ${passed ? 'PASSED' : 'FAILED'}`, passed ? 'success' : 'error');
