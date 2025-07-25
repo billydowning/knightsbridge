@@ -449,6 +449,19 @@ function ChessApp() {
       
       // Only save if the state has actually changed and we're not currently receiving an update
       if (stateHash !== lastSavedState && !isReceivingServerUpdate) {
+        // Additional check: don't save if this looks like the initial state being broadcast back
+        const isInitialState = gameState.moveHistory.length === 0 && 
+                              gameState.currentPlayer === 'white' && 
+                              !gameState.winner && 
+                              !gameState.draw &&
+                              !gameState.inCheck &&
+                              !gameState.inCheckmate;
+        
+        if (isInitialState && playerRole === 'white') {
+          console.log('🔄 Skipping save - this appears to be initial state broadcast back to white player');
+          return;
+        }
+        
         // Clear any existing timeout
         if (saveTimeout) {
           clearTimeout(saveTimeout);
@@ -545,10 +558,10 @@ function ChessApp() {
           databaseMultiplayerState.saveGameState(roomId, newGameState).catch(error => {
             console.error('❌ Error saving initial game state:', error);
           }).finally(() => {
-            // Reset flag after a delay to allow server broadcast to settle
+            // Keep the flag set for longer to prevent the broadcast from triggering a save
             setTimeout(() => {
               setIsReceivingServerUpdate(false);
-            }, 1000);
+            }, 2000); // Increased to 2 seconds to ensure broadcast is handled
           });
         } else {
           console.log('🔄 Black player waiting for white player to save initial state');
