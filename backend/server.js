@@ -89,6 +89,24 @@ async function initializeDatabase() {
     await poolInstance.query(createEscrowsTable);
     console.log('✅ Escrows table created/verified successfully');
     
+    console.log('🏗️ Creating chat_messages table...');
+    const createChatMessagesTable = `
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        game_id VARCHAR(100) NOT NULL,
+        player_id VARCHAR(255) NOT NULL,
+        player_name VARCHAR(100),
+        message TEXT NOT NULL,
+        message_type VARCHAR(50) DEFAULT 'chat' CHECK (message_type IN ('chat', 'system', 'draw_offer', 'resignation')),
+        is_deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `;
+    
+    await poolInstance.query(createChatMessagesTable);
+    console.log('✅ Chat messages table created/verified successfully');
+    
     return true;
   } catch (error) {
     console.error('❌ Database initialization error:', error.message, '- Code:', error.code);
