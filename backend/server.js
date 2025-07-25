@@ -1465,14 +1465,14 @@ io.on('connection', (socket) => {
         const poolInstance = initializePool();
         
         // Get chat messages from database
-        const result = await poolInstance.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [roomId]);
+        const result = await poolInstance.query('SELECT id, player_id, player_name, message, created_at FROM chat_messages WHERE game_id = $1 ORDER BY created_at ASC', [roomId]);
         const messages = result.rows.map(msg => ({
-          id: msg.id, // Assuming msg.id is the unique ID from the DB
-          gameId: msg.game_id,
+          id: msg.id,
+          gameId: roomId,
           playerId: msg.player_id,
           playerName: msg.player_name,
           message: msg.message,
-          timestamp: msg.timestamp
+          timestamp: msg.created_at
         }));
         if (typeof callback === 'function') callback({ success: true, messages });
       } else {
@@ -1517,7 +1517,7 @@ io.on('connection', (socket) => {
         
         // Insert new chat message into database
         await poolInstance.query(
-          'INSERT INTO chat_messages (game_id, player_id, player_name, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
+          'INSERT INTO chat_messages (game_id, player_id, player_name, message, created_at) VALUES ($1, $2, $3, $4, $5)',
           [roomId, playerWallet, playerRole, message.trim(), new Date()]
         );
       } else {
