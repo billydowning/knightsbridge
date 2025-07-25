@@ -1149,12 +1149,31 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('escrowUpdated', { roomId, escrows: await poolInstance.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows) });
       } else {
         // Use in-memory storage for testing
+        const room = testRooms.get(roomId);
+        if (!room) {
+          console.log('❌ Room not found in memory for escrow:', roomId);
+          if (typeof callback === 'function') callback({ success: false, error: 'Room does not exist' });
+          return;
+        }
+        
+        // Add escrow to in-memory storage
+        if (!room.escrows) {
+          room.escrows = {};
+        }
+        room.escrows[playerWallet] = amount;
+        room.last_updated = new Date();
+        
         console.log('✅ Escrow added to memory (test mode):', roomId, playerWallet, amount);
+        
+        // Broadcast escrow update
+        io.to(roomId).emit('escrowUpdated', { roomId, escrows: room.escrows });
+        
         if (typeof callback === 'function') callback({ success: true, message: 'Escrow added (test mode)' });
       }
       
       // Auto-start game if both escrows are created and both players are present
       if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
         const currentPlayers = await poolInstance.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]).then(r => r.rows[0]);
         const escrows = await poolInstance.query('SELECT player_wallet FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows);
         
@@ -1199,8 +1218,8 @@ io.on('connection', (socket) => {
       } else {
         // Test mode - use in-memory storage
         const room = testRooms.get(roomId);
-        if (room && room.players.length === 2) {
-          console.log('🎮 Test mode: Game ready with both players');
+        if (room && room.players.length === 2 && room.escrows && Object.keys(room.escrows).length === 2) {
+          console.log('🎮 Test mode: Game ready with both players and escrows');
           io.to(roomId).emit('gameReady', { roomId, players: room.players.map(p => p.role) });
         }
       }

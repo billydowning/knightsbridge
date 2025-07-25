@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Backend Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        #results { margin-top: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Comprehensive Backend Test</h1>
+    <p>Testing all backend functionality before moving to frontend development</p>
+    
+    <div class="test-section">
+        <h3>📊 HTTP Endpoints</h3>
+        <button onclick="testHealthEndpoint()">Test Health Endpoint</button>
+        <button onclick="testDatabaseEndpoint()">Test Database Endpoint</button>
+        <button onclick="testSocketEndpoint()">Test Socket.IO Endpoint</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔌 WebSocket Functionality</h3>
+        <button onclick="testWebSocketConnection()">Test WebSocket Connection</button>
+        <button onclick="testRoomCreation()">Test Room Creation</button>
+        <button onclick="testPlayerJoining()">Test Player Joining</button>
+        <button onclick="testEscrowCreation()">Test Escrow Creation</button>
+        <button onclick="testChatFunctionality()">Test Chat Functionality</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>🎮 Full Game Flow</h3>
+        <button onclick="testCompleteGameFlow()">Test Complete Game Flow</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const BACKEND_URL = 'https://knightsbridge-app-35xls.ondigitalocean.app';
+        let testSocket = null;
+        let testRoomId = null;
+        let testResults = {
+            health: false,
+            database: false,
+            socket: false,
+            websocket: false,
+            roomCreation: false,
+            playerJoining: false,
+            escrow: false,
+            chat: false,
+            gameFlow: false
+        };
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        async function testHealthEndpoint() {
+            log('🔍 Testing health endpoint...', 'info');
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                log(`✅ Health endpoint: ${data.message}`, 'success');
+                log(`📊 Environment: ${data.environment}, Database: ${data.databaseUrl}`, 'info');
+                testResults.health = true;
+            } catch (error) {
+                log(`❌ Health endpoint failed: ${error.message}`, 'error');
+                testResults.health = false;
+            }
+        }
+
+        async function testDatabaseEndpoint() {
+            log('💾 Testing database endpoint...', 'info');
+            try {
+                const response = await fetch(`${BACKEND_URL}/test-db`);
+                const data = await response.json();
+                log(`✅ Database endpoint: ${data.message}`, 'success');
+                log(`📊 Database connected: ${data.databaseConnected}`, 'info');
+                testResults.database = true;
+            } catch (error) {
+                log(`❌ Database endpoint failed: ${error.message}`, 'error');
+                testResults.database = false;
+            }
+        }
+
+        async function testSocketEndpoint() {
+            log('🔌 Testing Socket.IO endpoint...', 'info');
+            try {
+                const response = await fetch(`${BACKEND_URL}/socket-test`);
+                const data = await response.json();
+                log(`✅ Socket.IO endpoint: ${data.message}`, 'success');
+                log(`📊 Clients: ${data.socketIO.engine.clientsCount}`, 'info');
+                testResults.socket = true;
+            } catch (error) {
+                log(`❌ Socket.IO endpoint failed: ${error.message}`, 'error');
+                testResults.socket = false;
+            }
+        }
+
+        function testWebSocketConnection() {
+            log('🔌 Testing WebSocket connection...', 'info');
+            try {
+                testSocket = io(BACKEND_URL, {
+                    transports: ['polling', 'websocket'],
+                    timeout: 20000,
+                    reconnectionAttempts: 3,
+                    reconnectionDelay: 1000,
+                    withCredentials: true
+                });
+
+                testSocket.on('connect', () => {
+                    log(`✅ WebSocket connected! Socket ID: ${testSocket.id}`, 'success');
+                    testResults.websocket = true;
+                });
+
+                testSocket.on('connect_error', (error) => {
+                    log(`❌ WebSocket connection failed: ${error.message}`, 'error');
+                    testResults.websocket = false;
+                });
+
+                testSocket.on('disconnect', (reason) => {
+                    log(`🔌 WebSocket disconnected: ${reason}`, 'info');
+                });
+
+            } catch (error) {
+                log(`❌ WebSocket test failed: ${error.message}`, 'error');
+                testResults.websocket = false;
+            }
+        }
+
+        function testRoomCreation() {
+            if (!testSocket || !testSocket.connected) {
+                log('⚠️ WebSocket not connected. Run WebSocket test first.', 'warning');
+                return;
+            }
+
+            log('🏗️ Testing room creation...', 'info');
+            testSocket.emit('createRoom', { 
+                playerWallet: 'TEST_WALLET_WHITE_' + Date.now() 
+            }, (response) => {
+                if (response && response.success) {
+                    testRoomId = response.roomId;
+                    log(`✅ Room created! Room ID: ${response.roomId}, Role: ${response.role}`, 'success');
+                    testResults.roomCreation = true;
+                } else {
+                    log(`❌ Room creation failed: ${response?.error}`, 'error');
+                    testResults.roomCreation = false;
+                }
+            });
+        }
+
+        function testPlayerJoining() {
+            if (!testSocket || !testSocket.connected || !testRoomId) {
+                log('⚠️ WebSocket not connected or no room created. Run previous tests first.', 'warning');
+                return;
+            }
+
+            log('👥 Testing player joining...', 'info');
+            testSocket.emit('joinRoom', {
+                roomId: testRoomId,
+                playerWallet: 'TEST_WALLET_BLACK_' + Date.now()
+            }, (response) => {
+                if (response && response.success) {
+                    log(`✅ Second player joined! Role: ${response.role}`, 'success');
+                    testResults.playerJoining = true;
+                } else {
+                    log(`❌ Failed to join room: ${response?.error}`, 'error');
+                    testResults.playerJoining = false;
+                }
+            });
+        }
+
+        function testEscrowCreation() {
+            if (!testSocket || !testSocket.connected || !testRoomId) {
+                log('⚠️ WebSocket not connected or no room created. Run previous tests first.', 'warning');
+                return;
+            }
+
+            log('💰 Testing escrow creation...', 'info');
+            testSocket.emit('addEscrow', {
+                roomId: testRoomId,
+                playerWallet: 'TEST_WALLET_WHITE_' + Date.now(),
+                amount: 0.1
+            }, (response) => {
+                if (response && response.success) {
+                    log(`✅ Escrow created successfully!`, 'success');
+                    testResults.escrow = true;
+                } else {
+                    log(`❌ Escrow creation failed: ${response?.error}`, 'error');
+                    testResults.escrow = false;
+                }
+            });
+        }
+
+        function testChatFunctionality() {
+            if (!testSocket || !testSocket.connected || !testRoomId) {
+                log('⚠️ WebSocket not connected or no room created. Run previous tests first.', 'warning');
+                return;
+            }
+
+            log('💬 Testing chat functionality...', 'info');
+            testSocket.emit('sendChatMessage', {
+                roomId: testRoomId,
+                message: 'Test message from backend test',
+                playerWallet: 'TEST_WALLET_' + Date.now(),
+                playerRole: 'white'
+            }, (response) => {
+                if (response && response.success) {
+                    log(`✅ Chat message sent successfully!`, 'success');
+                    testResults.chat = true;
+                } else {
+                    log(`❌ Chat message failed: ${response?.error}`, 'error');
+                    testResults.chat = false;
+                }
+            });
+        }
+
+        function testCompleteGameFlow() {
+            log('🎮 Testing complete game flow...', 'info');
+            
+            // This will test the entire flow
+            testWebSocketConnection();
+            
+            setTimeout(() => {
+                if (testResults.websocket) {
+                    testRoomCreation();
+                    
+                    setTimeout(() => {
+                        if (testResults.roomCreation) {
+                            testPlayerJoining();
+                            
+                            setTimeout(() => {
+                                if (testResults.playerJoining) {
+                                    testEscrowCreation();
+                                    
+                                    setTimeout(() => {
+                                        if (testResults.escrow) {
+                                            testChatFunctionality();
+                                            
+                                            setTimeout(() => {
+                                                log('📊 Final Test Results:', 'info');
+                                                Object.entries(testResults).forEach(([test, passed]) => {
+                                                    log(`${passed ? '✅' : '❌'} ${test}: ${passed ? 'PASSED' : 'FAILED'}`, passed ? 'success' : 'error');
+                                                });
+                                                
+                                                const passedTests = Object.values(testResults).filter(Boolean).length;
+                                                const totalTests = Object.keys(testResults).length;
+                                                
+                                                if (passedTests === totalTests) {
+                                                    log(`🎉 ALL TESTS PASSED! (${passedTests}/${totalTests})`, 'success');
+                                                } else {
+                                                    log(`⚠️ Some tests failed: ${passedTests}/${totalTests} passed`, 'warning');
+                                                }
+                                                
+                                                if (testSocket) {
+                                                    testSocket.disconnect();
+                                                }
+                                            }, 2000);
+                                        }
+                                    }, 2000);
+                                }
+                            }, 2000);
+                        }
+                    }, 2000);
+                }
+            }, 2000);
+        }
+
+        // Auto-run basic tests on page load
+        window.onload = function() {
+            log('🚀 Starting comprehensive backend tests...', 'info');
+            setTimeout(testHealthEndpoint, 1000);
+            setTimeout(testDatabaseEndpoint, 2000);
+            setTimeout(testSocketEndpoint, 3000);
+        };
+    </script>
+</body>
+</html> 
