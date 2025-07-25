@@ -81,8 +81,8 @@ class DatabaseMultiplayerStateManager {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    // Use local backend for testing
-    this.serverUrl = 'http://localhost:3001';
+    // Use production backend URL
+    this.serverUrl = 'https://knightsbridge-app-35xls.ondigitalocean.app';
     
     console.log('🔌 Initializing WebSocket-only multiplayer state with server:', this.serverUrl);
     
@@ -92,8 +92,8 @@ class DatabaseMultiplayerStateManager {
     console.log('🔍 Environment check - VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
     console.log('🔍 All env vars:', import.meta.env);
     
-    // For now, use hardcoded URL to bypass env var issues
-    console.log('🔍 Using hardcoded URL to bypass env var issues');
+    // Using production backend URL
+    console.log('🔍 Using production backend URL');
   }
 
   /**
@@ -131,7 +131,7 @@ class DatabaseMultiplayerStateManager {
       }
 
       this.socket = io(this.serverUrl, {
-        transports: ['polling'], // Use polling only to avoid WebSocket issues
+        transports: ['websocket'], // WebSocket only - no polling fallback
         timeout: 20000, // Increased timeout as recommended
         reconnection: true,
         reconnectionAttempts: 5, // Increased attempts as recommended
@@ -139,8 +139,8 @@ class DatabaseMultiplayerStateManager {
         reconnectionDelayMax: 10000, // Reasonable max delay
         forceNew: true, // Force new connection as recommended
         autoConnect: true,
-        upgrade: false, // Disable upgrade since we're using polling only
-        rememberUpgrade: false, // Not needed for polling only
+        upgrade: false, // Disable upgrade since we're WebSocket only
+        rememberUpgrade: false, // Not needed for WebSocket only
         withCredentials: true, // Enable credentials for auth
         // Removed pingTimeout and pingInterval due to linter errors
       });

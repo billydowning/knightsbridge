@@ -72,7 +72,7 @@ export const useWebSocket = ({
     connectionStartTime.current = Date.now();
     // Temporarily hardcode the correct URL to bypass environment variable issues
           const newSocket = io('wss://knightsbridge-app-35xls.ondigitalocean.app', {
-      transports: ['websocket', 'polling'], // Allow fallback to polling - no polling
+      transports: ['websocket'], // WebSocket only - no polling fallback
       timeout: 20000,
       reconnection: true,
       reconnectionAttempts: 5,
