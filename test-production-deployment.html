@@ -44,10 +44,11 @@
         async function testBackendHealth() {
             log('🔍 Testing backend health...', 'info');
             try {
-                const response = await fetch(`${BACKEND_URL}/`);
+                const response = await fetch(`${BACKEND_URL}/health`);
                 const data = await response.json();
                 log(`✅ Backend health check: ${data.message}`, 'success');
                 log(`📊 Environment: ${data.environment}, Port: ${data.port}`, 'info');
+                log(`💾 Database: ${data.databaseUrl}`, 'info');
             } catch (error) {
                 log(`❌ Backend health check failed: ${error.message}`, 'error');
             }

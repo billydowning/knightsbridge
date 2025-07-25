@@ -165,7 +165,29 @@ app.use(limiter);
 // Root endpoint to test server accessibility
 app.get('/', (req, res) => {
   console.log('🌐 Root endpoint called');
-  res.send('Knightsbridge Chess Server is running! 🎯');
+  res.json({
+    message: 'Knightsbridge Chess Server is running! 🎯',
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    port: process.env.PORT || 3001,
+    databaseUrl: process.env.DATABASE_URL ? 'Configured' : 'Not set',
+    databaseCaCert: process.env.DATABASE_CA_CERT ? 'Configured' : 'Not set'
+  });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  console.log('🏥 Health check endpoint called');
+  res.json({
+    message: 'Knightsbridge Chess Backend is running!',
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    port: process.env.PORT || 3001,
+    databaseUrl: process.env.DATABASE_URL ? 'Configured' : 'Not set',
+    databaseCaCert: process.env.DATABASE_CA_CERT ? 'Configured' : 'Not set'
+  });
 });
 
 // API Routes
