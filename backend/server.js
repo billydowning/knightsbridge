@@ -31,12 +31,10 @@ const server = http.createServer(app);
 // DigitalOcean App Platform optimized Socket.IO configuration
 const io = socketIo(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? ["https://knightsbridge.vercel.app", "https://knightsbridge-app-35xls.ondigitalocean.app"]
-      : ["http://localhost:5173", "http://localhost:3000", "https://knightsbridge.vercel.app"],
-    methods: ["GET", "POST"],
+    origin: corsOrigins,
+    methods: ["GET", "POST", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
   },
   transports: ['websocket', 'polling'], // Allow fallback to polling
   pingTimeout: 60000, // 60 seconds
@@ -133,17 +131,19 @@ app.use((req, res, next) => {
 });
 
 // CORS configuration
+const corsOrigins = process.env.NODE_ENV === 'production' 
+  ? ["https://knightsbridge.vercel.app", "https://knightsbridge-app-35xls.ondigitalocean.app"]
+  : ["http://localhost:5173", "http://localhost:3000", "https://knightsbridge.vercel.app"];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app', 'https://knightsbridge-app-35xls.ondigitalocean.app']
-    : '*',
-  credentials: true
+  origin: corsOrigins,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 
 // Socket.io setup (already configured above)
-console.log('🚀 Socket.io server initialized with CORS origins:', process.env.NODE_ENV === 'production' 
-  ? ['https://knightsbridge.vercel.app', 'https://knightsbridge-chess.vercel.app', 'https://knightsbridge-chess-git-main-williamdowning.vercel.app', 'https://knightsbridge-app-35xls.ondigitalocean.app']
-  : '*');
+console.log('🚀 Socket.io server initialized with CORS origins:', corsOrigins);
 
 // Rate limiting middleware
 const limiter = rateLimit({
