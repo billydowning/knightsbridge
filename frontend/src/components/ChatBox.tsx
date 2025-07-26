@@ -36,6 +36,13 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
   const isMobile = useIsMobile();
   const isTabletOrSmaller = useIsTabletOrSmaller();
 
+  // Debug: Log when messages prop changes
+  useEffect(() => {
+    console.log('💬 ChatBox received messages prop:', messages);
+    console.log('💬 ChatBox messages count:', messages.length);
+    console.log('💬 ChatBox messages:', messages);
+  }, [messages]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
