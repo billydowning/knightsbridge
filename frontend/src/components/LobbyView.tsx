@@ -121,18 +121,15 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       
       {/* Player Info */}
       <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '15px',
-        marginBottom: '20px',
-        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
-        margin: '0 auto 20px auto' // Center the box
+        margin: '0 auto 20px auto',
+        width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
       }}>
         <div style={{ 
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
-          border: `2px solid ${theme.border}`
+          border: `2px solid ${theme.border}`,
+          marginBottom: '15px'
         }}>
           <h4 style={{ margin: '0 0 10px 0', color: theme.text }}>👤 Your Info</h4>
           <p style={{ margin: '5px 0', color: theme.textSecondary }}>
