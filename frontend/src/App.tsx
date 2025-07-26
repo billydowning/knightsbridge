@@ -1663,7 +1663,15 @@ function ChessApp() {
 
   // Listen for real-time chat messages
   useEffect(() => {
+    console.log('🔗 Chat message useEffect triggered with:', {
+      roomId,
+      isConnected: databaseMultiplayerState.isConnected(),
+      gameMode
+    });
+    
     if (roomId && databaseMultiplayerState.isConnected()) {
+      console.log('🔗 Chat message useEffect conditions met, setting up listener');
+      
       const handleChatMessage = (message: any) => {
         try {
           console.log('💬 Received real-time chat message:', message);
@@ -1720,8 +1728,13 @@ function ChessApp() {
       });
       
       return cleanup;
+    } else {
+      console.log('🔗 Chat message useEffect conditions not met:', {
+        roomId: !!roomId,
+        isConnected: databaseMultiplayerState.isConnected()
+      });
     }
-  }, [roomId]);
+  }, [roomId, databaseMultiplayerState.isConnected()]);
 
   // Listen for escrow updates and refresh room status
   useEffect(() => {
