@@ -38,14 +38,26 @@ export const MenuView: React.FC<MenuViewProps> = ({
   const largeBetAmounts = [2, 5, 10, 50, 100];
 
   // Dynamic width measurement for larger amounts container
-  const smallButtonsRef = React.useRef<HTMLDivElement>(null);
+  const normalBetSectionRef = React.useRef<HTMLDivElement>(null);
   const [largerAmountsWidth, setLargerAmountsWidth] = React.useState('auto');
 
   React.useEffect(() => {
-    if (smallButtonsRef.current) {
-      setLargerAmountsWidth(`${smallButtonsRef.current.offsetWidth}px`);
+    if (normalBetSectionRef.current) {
+      setLargerAmountsWidth(`${normalBetSectionRef.current.offsetWidth}px`);
     }
   }, []);
+
+  const sharedButtonStyle = {
+    padding: '12px 20px',
+    minWidth: '120px',
+    boxSizing: 'border-box' as const,
+    fontSize: '14px',
+    fontWeight: 'bold',
+    borderRadius: '8px',
+    border: undefined,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  };
 
   const handleCreateRoom = () => {
     // Generate a new room ID for creating
@@ -71,9 +83,9 @@ export const MenuView: React.FC<MenuViewProps> = ({
         <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Create A Room</h2>
         
         {/* Bet Amount Buttons */}
-        <div style={{ marginBottom: '25px' }}>
+        <div ref={normalBetSectionRef} style={{ marginBottom: '25px' }}>
           <h4 style={{ margin: '0 0 15px 0', color: theme.textSecondary }}>Choose Bet Amount:</h4>
-          <div ref={smallButtonsRef} style={{ 
+          <div style={{ 
             display: 'flex', 
             flexWrap: 'wrap', 
             gap: '10px', 
@@ -84,16 +96,10 @@ export const MenuView: React.FC<MenuViewProps> = ({
                 key={amount}
                 onClick={() => setBetAmount(amount)}
                 style={{
-                  padding: '12px 20px',
+                  ...sharedButtonStyle,
                   backgroundColor: betAmount === amount ? theme.primary : theme.surface,
                   color: betAmount === amount ? 'white' : theme.text,
-                  border: `2px solid ${theme.border}`,
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  transition: 'all 0.2s ease',
-                  minWidth: '80px'
+                  border: `2px solid ${theme.border}`
                 }}
               >
                 {amount} SOL
@@ -142,16 +148,10 @@ export const MenuView: React.FC<MenuViewProps> = ({
                     key={amount}
                     onClick={() => setBetAmount(amount)}
                     style={{
-                      padding: '12px 20px',
+                      ...sharedButtonStyle,
                       backgroundColor: betAmount === amount ? theme.primary : theme.surface,
                       color: betAmount === amount ? 'white' : theme.text,
-                      border: `2px solid ${theme.border}`,
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      transition: 'all 0.2s ease',
-                      minWidth: '80px'
+                      border: `2px solid ${theme.border}`
                     }}
                   >
                     {amount} SOL
