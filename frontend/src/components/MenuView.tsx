@@ -45,7 +45,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+    <div style={{ textAlign: 'center' }}>
       
       {/* Create Room Section */}
       <div style={{ 
@@ -55,7 +55,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
         boxShadow: theme.shadow,
         marginBottom: '30px',
         border: `1px solid ${theme.border}`,
-        width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
+        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
+        margin: '0 auto'
       }}>
         <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Create A Room</h2>
         
@@ -242,7 +243,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
         borderRadius: '10px', 
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
-        width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
+        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
+        margin: '0 auto'
       }}>
         <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Join A Room</h2>
         
@@ -333,7 +335,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
         textAlign: 'left',
         border: `1px solid ${theme.border}`,
         color: theme.text,
-        width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
+        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
+        margin: '0 auto'
       }}>
         <h4 style={{ margin: '0 0 15px 0', color: theme.text }}>📋 How to Play:</h4>
         <ul style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
