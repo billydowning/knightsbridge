@@ -828,6 +828,11 @@ function ChessApp() {
           if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
             setEscrowCreated(true);
             console.log('✅ Found existing escrow for current player');
+          } else {
+            console.log('❌ No existing escrow found for current player');
+            console.log('🔍 Room status escrows:', roomStatus?.escrows);
+            console.log('🔍 Player wallet:', playerWallet);
+            console.log('🔍 Escrow check:', roomStatus?.escrows?.[playerWallet]);
           }
         } else {
           setGameStatus('Failed to create room');
@@ -849,6 +854,11 @@ function ChessApp() {
           if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
             setEscrowCreated(true);
             console.log('✅ Found existing escrow for current player');
+          } else {
+            console.log('❌ No existing escrow found for current player');
+            console.log('🔍 Room status escrows:', roomStatus?.escrows);
+            console.log('🔍 Player wallet:', playerWallet);
+            console.log('🔍 Escrow check:', roomStatus?.escrows?.[playerWallet]);
           }
         } else {
           setGameStatus('Failed to join room');
