@@ -7,154 +7,109 @@ import React from 'react';
 import { ChessBoard } from './ChessBoard';
 import { ChatBox, type ChatMessage } from './ChatBox';
 import { useTheme } from '../App';
+import { useLayoutConfig, useTextSizes, useIsMobile } from '../utils/responsive';
 import type { GameState } from '../types';
 
 export interface GameViewProps {
   roomId: string;
   playerRole: string;
-  betAmount: number;
   gameState: GameState;
   onSquareClick: (square: string) => void;
-  onResignGame: () => void;
-  onClaimWinnings: () => void;
-  onStartNewGame: () => void;
-  onBackToMenu: () => void;
+  onSendChatMessage?: (message: string) => void;
+  chatMessages: ChatMessage[];
+  onResignGame?: () => void;
+  onClaimWinnings?: () => void;
+  onStartNewGame?: () => void;
+  onBackToMenu?: () => void;
   winningsClaimed: boolean;
   isLoading: boolean;
-  onDeclareWinner?: (winner: 'white' | 'black') => void;
-  onTestCheckmate?: () => void;
-  onTestCurrentBoard?: () => void;
-  chatMessages?: ChatMessage[];
-  onSendChatMessage?: (message: string) => void;
+  betAmount: number;
 }
 
 export const GameView: React.FC<GameViewProps> = ({
   roomId,
   playerRole,
-  betAmount,
   gameState,
   onSquareClick,
+  onSendChatMessage,
+  chatMessages,
   onResignGame,
   onClaimWinnings,
   onStartNewGame,
   onBackToMenu,
   winningsClaimed,
   isLoading,
-  onDeclareWinner,
-  onTestCheckmate,
-  onTestCurrentBoard,
-  chatMessages = [],
-  onSendChatMessage
+  betAmount
 }) => {
   const { theme } = useTheme();
+  const layoutConfig = useLayoutConfig();
+  const textSizes = useTextSizes();
+  const isMobile = useIsMobile();
+
+  const canClaimWinnings = gameState.winner && !winningsClaimed;
   const isGameOver = gameState.winner || gameState.draw;
-  const isMyTurn = gameState.currentPlayer === playerRole;
-  const canClaimWinnings = (gameState.winner === playerRole || gameState.draw) && !winningsClaimed;
-  const potValue = betAmount * 2;
-
-  const getGameStatusMessage = (): string => {
-    if (gameState.winner) return `${gameState.winner} wins!`;
-    if (gameState.draw) return 'Draw!';
-    if (gameState.inCheckmate) return `${gameState.currentPlayer} is in checkmate!`;
-    if (gameState.inCheck) return `${gameState.currentPlayer} is in check!`;
-    if (gameState.gameActive) return `${gameState.currentPlayer}'s turn`;
-    return 'Game not started';
-  };
-
-  const getPlayerStatusMessage = (): string => {
-    if (gameState.winner === playerRole) return 'You Win! 🏆';
-    if (gameState.winner && gameState.winner !== playerRole) return 'You Lose 😔';
-    if (gameState.draw) return 'Draw 🤝';
-    if (isMyTurn) return 'Your turn! 🎯';
-    return 'Waiting for opponent... ⏳';
-  };
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      
-      {/* Game Header Info */}
+    <div style={{ 
+      padding: isMobile ? '10px' : '20px',
+      maxWidth: '100vw',
+      overflow: 'hidden'
+    }}>
+      {/* Game Header */}
       <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        marginBottom: '20px',
-        padding: '10px',
+        textAlign: 'center', 
+        marginBottom: isMobile ? '15px' : '20px',
         backgroundColor: theme.surface,
+        padding: isMobile ? '15px' : '20px',
         borderRadius: '8px',
-        flexWrap: 'wrap',
-        gap: '10px',
-        color: theme.text,
-        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
-        margin: '0 auto 20px auto' // Center the box
+        border: `1px solid ${theme.border}`
       }}>
-        <div style={{ fontSize: '14px', color: theme.text }}>
-          <strong>Room:</strong> {roomId} | <strong>Role:</strong> 
-          <span style={{ 
-            color: playerRole === 'white' ? '#4CAF50' : '#FF9800',
-            fontWeight: 'bold',
-            marginLeft: '5px'
-          }}>
-            {playerRole.toUpperCase()}
-          </span>
-        </div>
-        <div style={{ fontSize: '14px', color: theme.text }}>
-          <strong>Turn:</strong> {gameState.currentPlayer} | <strong>Pot:</strong> {potValue} SOL
+        <h2 style={{ 
+          margin: '0 0 10px 0', 
+          color: theme.text,
+          fontSize: textSizes.h2
+        }}>♟️ Chess Game</h2>
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+          gap: isMobile ? '8px' : '15px',
+          fontSize: textSizes.body
+        }}>
+          <div style={{ textAlign: 'center', color: theme.text }}>
+            <strong>Room:</strong><br/>
+            {roomId}
+          </div>
+          <div style={{ textAlign: 'center', color: theme.text }}>
+            <strong>Bet:</strong><br/>
+            {betAmount} SOL
+          </div>
+          <div style={{ textAlign: 'center', color: theme.text }}>
+            <strong>Turn:</strong><br/>
+            {gameState.currentPlayer}
+          </div>
+          <div style={{ textAlign: 'center', color: theme.text }}>
+            <strong>Status:</strong><br/>
+            {gameState.gameActive ? 'Active' : 'Game Over'}
+          </div>
         </div>
       </div>
-      
-      {/* Enhanced Status Display */}
+
+      {/* Main Game Area */}
       <div style={{ 
-        padding: '15px', 
-        backgroundColor: theme.surface, 
-        borderRadius: '8px',
-        border: `2px solid ${theme.border}`,
-        color: theme.text,
-        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
-        margin: '10px auto' // Center the box
+        display: 'flex',
+        flexDirection: layoutConfig.gameLayout === 'column' ? 'column' : 'row',
+        gap: layoutConfig.spacing,
+        alignItems: layoutConfig.gameLayout === 'column' ? 'center' : 'flex-start',
+        justifyContent: 'center'
       }}>
-        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: theme.text }}>
-          <strong>Game Status:</strong> {getGameStatusMessage()}
-        </div>
         
-        <div style={{ fontSize: '16px', color: theme.textSecondary }}>
-          {getPlayerStatusMessage()}
-        </div>
-
-
-
-        {/* Game Over Messages */}
-        {gameState.winner && (
-          <div style={{ 
-            marginTop: '10px', 
-            fontSize: '20px', 
-            fontWeight: 'bold', 
-            color: gameState.winner === playerRole ? '#4CAF50' : '#f44336'
-          }}>
-            {gameState.winner === playerRole ? '🏆 Congratulations!' : '💔 Better luck next time!'}
-          </div>
-        )}
-        
-        {gameState.draw && (
-          <div style={{ 
-            marginTop: '10px', 
-            fontSize: '18px', 
-            fontWeight: 'bold', 
-            color: '#FF9800' 
-          }}>
-            🤝 Well played by both sides!
-          </div>
-        )}
-      </div>
-      
-      {/* Chess Board and Chat Layout */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'flex-start',
-        marginTop: '20px',
-        gap: '20px'
-      }}>
         {/* Chess Board */}
-        <div>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          maxWidth: layoutConfig.boardMaxWidth
+        }}>
           <ChessBoard
             position={gameState.position}
             onSquareClick={onSquareClick}
@@ -162,34 +117,41 @@ export const GameView: React.FC<GameViewProps> = ({
             orientation={playerRole === 'white' ? 'white' : 'black'}
             gameState={gameState}
             playerRole={playerRole}
-            disabled={!gameState.gameActive || !isMyTurn || isLoading}
+            disabled={!gameState.gameActive || isLoading}
           />
         </div>
 
         {/* Chat Box */}
         {onSendChatMessage && (
-          <ChatBox
-            roomId={roomId}
-            playerRole={playerRole}
-            messages={chatMessages}
-            onSendMessage={onSendChatMessage}
-          />
+          <div style={{
+            width: layoutConfig.gameLayout === 'column' ? '100%' : '300px',
+            maxWidth: layoutConfig.gameLayout === 'column' ? '500px' : '300px',
+            minHeight: layoutConfig.gameLayout === 'column' ? '200px' : '480px'
+          }}>
+            <ChatBox
+              roomId={roomId}
+              playerRole={playerRole}
+              messages={chatMessages}
+              onSendMessage={onSendChatMessage}
+            />
+          </div>
         )}
       </div>
       
       {/* Game Info Panel */}
       <div style={{ 
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-        gap: '15px',
-        marginTop: '20px',
-        fontSize: '14px',
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(120px, 1fr))',
+        gap: isMobile ? '10px' : '15px',
+        marginTop: isMobile ? '15px' : '20px',
+        fontSize: textSizes.body,
         backgroundColor: theme.surface,
-        padding: '15px',
+        padding: isMobile ? '12px' : '15px',
         borderRadius: '8px',
         color: theme.text,
-        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
-        margin: '20px auto' // Center the box
+        width: '100%',
+        maxWidth: layoutConfig.gameLayout === 'column' ? '100%' : '800px',
+        margin: `${isMobile ? '15px' : '20px'} auto`
       }}>
         <div style={{ textAlign: 'center', color: theme.text }}>
           <strong>Moves</strong><br/>
@@ -210,166 +172,94 @@ export const GameView: React.FC<GameViewProps> = ({
       </div>
       
       {/* Action Buttons */}
-      <div style={{ marginTop: '30px' }}>
+      <div style={{ 
+        marginTop: isMobile ? '20px' : '30px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: isMobile ? '8px' : '12px',
+        justifyContent: 'center'
+      }}>
         {/* Claim Winnings Button */}
         {canClaimWinnings && (
           <button
             onClick={onClaimWinnings}
             disabled={isLoading}
             style={{
-              padding: '15px 30px',
-              backgroundColor: isLoading ? '#ccc' : '#4CAF50',
+              padding: isMobile ? '10px 20px' : '12px 24px',
+              backgroundColor: isLoading ? theme.border : theme.primary,
               color: 'white',
               border: 'none',
-              borderRadius: '5px',
+              borderRadius: '6px',
               cursor: isLoading ? 'not-allowed' : 'pointer',
-              fontSize: '16px',
+              fontSize: textSizes.body,
               fontWeight: 'bold',
-              margin: '10px'
+              transition: 'all 0.2s ease'
             }}
           >
-            {isLoading ? '⏳ Processing...' : (
-              gameState.winner === playerRole ? '💰 Claim Winnings' : '🤝 Claim Draw Split'
-            )}
+            {isLoading ? '⏳ Processing...' : '💰 Claim Winnings'}
           </button>
         )}
 
-        {/* Winnings Claimed Indicator */}
-        {winningsClaimed && (
-          <div style={{
-            display: 'inline-block',
-            padding: '10px 20px',
-            backgroundColor: '#d4edda',
-            color: '#155724',
-            border: '1px solid #c3e6cb',
-            borderRadius: '5px',
-            margin: '10px',
-            fontSize: '14px',
-            fontWeight: 'bold'
-          }}>
-            ✅ Winnings have been claimed!
-          </div>
+        {/* Resign Button */}
+        {gameState.gameActive && !isGameOver && onResignGame && (
+          <button
+            onClick={onResignGame}
+            style={{
+              padding: isMobile ? '10px 20px' : '12px 24px',
+              backgroundColor: theme.accent,
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: textSizes.body,
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            🏳️ Resign
+          </button>
         )}
 
-        {/* Game Control Buttons */}
-        <div style={{ marginTop: '15px' }}>
-          {/* Resign Button - Only show if game is active and no winner yet */}
-          {gameState.gameActive && !isGameOver && (
-            <button
-              onClick={onResignGame}
-              disabled={isLoading}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: isLoading ? '#ccc' : '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                margin: '5px',
-                fontSize: '14px',
-                fontWeight: 'bold'
-              }}
-            >
-              🏳️ Resign Game
-            </button>
-          )}
+        {/* New Game Button */}
+        {isGameOver && onStartNewGame && (
+          <button
+            onClick={onStartNewGame}
+            style={{
+              padding: isMobile ? '10px 20px' : '12px 24px',
+              backgroundColor: theme.secondary,
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: textSizes.body,
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            🎮 New Game
+          </button>
+        )}
 
-
-
-          {/* Game Over Options - Only show when game is finished */}
-          {isGameOver && (
-            <>
-              <button
-                onClick={onStartNewGame}
-                disabled={isLoading}
-                style={{
-                  padding: '12px 25px',
-                  backgroundColor: isLoading ? '#ccc' : '#2196F3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  fontSize: '15px',
-                  fontWeight: 'bold',
-                  margin: '5px'
-                }}
-              >
-                🎮 Start New Game
-              </button>
-              
-              <button
-                onClick={onBackToMenu}
-                disabled={isLoading}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#666',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  margin: '5px',
-                  fontSize: '14px'
-                }}
-              >
-                ← Back to Menu
-              </button>
-            </>
-          )}
-        </div>
+        {/* Back to Menu Button */}
+        {onBackToMenu && (
+          <button
+            onClick={onBackToMenu}
+            style={{
+              padding: isMobile ? '10px 20px' : '12px 24px',
+              backgroundColor: theme.surface,
+              color: theme.text,
+              border: `1px solid ${theme.border}`,
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: textSizes.body,
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            ← Back to Menu
+          </button>
+        )}
       </div>
-      
-      {/* Move History */}
-      {gameState.moveHistory.length > 0 && (
-        <div style={{ 
-          marginTop: '30px', 
-          maxHeight: '150px', 
-          overflowY: 'auto',
-          backgroundColor: '#f8f9fa',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'left',
-          border: '1px solid #dee2e6',
-          color: '#333'
-        }}>
-          <strong style={{ fontSize: '16px', color: '#333' }}>📝 Move History:</strong>
-          <div style={{ fontSize: '13px', marginTop: '10px', fontFamily: 'monospace', color: '#333' }}>
-            {gameState.moveHistory.map((move, index) => (
-              <span key={index} style={{ 
-                marginRight: '15px',
-                display: 'inline-block',
-                marginBottom: '5px',
-                padding: '2px 6px',
-                backgroundColor: '#ffffff',
-                borderRadius: '3px',
-                border: '1px solid #dee2e6',
-                color: '#333'
-              }}>
-                <strong>{Math.floor(index / 2) + 1}{index % 2 === 0 ? '.' : '...'}</strong> {move.piece} {move.from}→{move.to}
-                {move.capturedPiece && <span style={{ color: '#f44336' }}> x{move.capturedPiece}</span>}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Turn Indicator */}
-      {gameState.gameActive && !isGameOver && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          padding: '10px 15px',
-          backgroundColor: isMyTurn ? '#4CAF50' : '#ff9800',
-          color: 'white',
-          borderRadius: '20px',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          zIndex: 1000
-        }}>
-          {isMyTurn ? '🎯 Your Turn' : '⏳ Opponent\'s Turn'}
-        </div>
-      )}
     </div>
   );
 };

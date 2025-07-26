@@ -7,6 +7,7 @@ import React, { useMemo, useCallback } from 'react';
 import { ChessEngine } from '../engine/chessEngine';
 import { useChessOptimizations } from '../hooks/useChessOptimizations';
 import { useRenderPerformance } from '../utils/performance';
+import { useChessBoardConfig } from '../utils/responsive';
 import type { GameState, Position } from '../types';
 
 export interface ChessBoardProps {
@@ -30,6 +31,8 @@ interface SquareProps {
   isLastMove: boolean;
   onClick: () => void;
   disabled?: boolean;
+  squareSize: number;
+  fontSize: string;
 }
 
 /**
@@ -44,7 +47,9 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
   isInCheck,
   isLastMove,
   onClick,
-  disabled = false
+  disabled = false,
+  squareSize,
+  fontSize
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
@@ -68,7 +73,7 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     const isBlackPiece = ['♚', '♛', '♜', '♝', '♞', '♟'].includes(piece);
     
     const baseStyle: React.CSSProperties = {
-      fontSize: '2.5rem',
+      fontSize,
       fontWeight: 'bold',
       textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
       transition: 'transform 0.2s ease',
@@ -89,7 +94,10 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     }
 
     return baseStyle;
-  }, [isHovered, disabled, piece]);
+  }, [isHovered, disabled, piece, fontSize]);
+
+  // Calculate indicator size based on square size
+  const indicatorSize = Math.max(8, squareSize * 0.3);
 
   return (
     <div
@@ -98,8 +106,8 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        width: '60px',
-        height: '60px',
+        width: `${squareSize}px`,
+        height: `${squareSize}px`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -126,11 +134,11 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
       {isLegalMove && !piece && (
         <div
           style={{
-            width: '20px',
-            height: '20px',
+            width: `${indicatorSize}px`,
+            height: `${indicatorSize}px`,
             borderRadius: '50%',
             backgroundColor: 'rgba(0, 255, 0, 0.5)',
-            border: '2px solid rgba(0, 255, 0, 0.8)',
+            border: `2px solid rgba(0, 255, 0, 0.8)`,
           }}
         />
       )}
@@ -158,6 +166,9 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
 
   // Chess optimizations
   const { validateMove, getLegalMovesForSquare } = useChessOptimizations(gameState);
+
+  // Responsive configuration
+  const { boardSize, squareSize, fontSize } = useChessBoardConfig();
 
   // Memoize the board squares to prevent unnecessary re-renders
   const boardSquares = useMemo(() => {
@@ -219,9 +230,11 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
         isLastMove={isLastMove}
         onClick={() => handleSquareClick(square)}
         disabled={disabled}
+        squareSize={squareSize}
+        fontSize={fontSize}
       />
     ));
-  }, [boardSquares, handleSquareClick, disabled]);
+  }, [boardSquares, handleSquareClick, disabled, squareSize, fontSize]);
 
   return (
     <div
@@ -229,13 +242,15 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(8, 1fr)',
-        width: '480px',
-        height: '480px',
+        width: `${boardSize}px`,
+        height: `${boardSize}px`,
         border: '3px solid #333',
         borderRadius: '8px',
         overflow: 'hidden',
         boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
         backgroundColor: '#333',
+        maxWidth: '100%',
+        maxHeight: '100%',
       }}
       role="grid"
       aria-label="Chess board"
@@ -258,6 +273,8 @@ export const LabeledChessBoard: React.FC<LabeledChessBoardProps> = ({
   showLabels = true,
   ...props
 }) => {
+  const { boardSize, squareSize } = useChessBoardConfig();
+  
   const files = props.orientation === 'white' 
     ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];
@@ -268,6 +285,9 @@ export const LabeledChessBoard: React.FC<LabeledChessBoardProps> = ({
   if (!showLabels) {
     return <ChessBoard {...props} />;
   }
+
+  const labelFontSize = Math.max(10, squareSize * 0.2);
+  const labelOffset = Math.max(15, squareSize * 0.25);
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -280,14 +300,14 @@ export const LabeledChessBoard: React.FC<LabeledChessBoardProps> = ({
         marginTop: '5px',
         paddingLeft: '4px',
         paddingRight: '4px',
-        width: '488px' // 8 * 60px + 8px border
+        width: `${boardSize + 8}px` // board size + border
       }}>
         {files.map(file => (
           <span key={file} style={{ 
-            fontSize: '12px', 
+            fontSize: `${labelFontSize}px`, 
             fontWeight: 'bold',
             color: '#666',
-            width: '60px',
+            width: `${squareSize}px`,
             textAlign: 'center'
           }}>
             {file}
@@ -298,9 +318,9 @@ export const LabeledChessBoard: React.FC<LabeledChessBoardProps> = ({
       {/* Rank labels (1-8) */}
       <div style={{
         position: 'absolute',
-        left: '-20px',
+        left: `-${labelOffset}px`,
         top: '4px',
-        height: '488px', // 8 * 60px + 8px border
+        height: `${boardSize + 8}px`, // board size + border
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-around',
@@ -308,10 +328,10 @@ export const LabeledChessBoard: React.FC<LabeledChessBoardProps> = ({
       }}>
         {ranks.map(rank => (
           <span key={rank} style={{ 
-            fontSize: '12px', 
+            fontSize: `${labelFontSize}px`, 
             fontWeight: 'bold',
             color: '#666',
-            height: '60px',
+            height: `${squareSize}px`,
             display: 'flex',
             alignItems: 'center'
           }}>

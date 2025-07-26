@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useTheme } from '../App';
+import { useTextSizes, useIsMobile } from '../utils/responsive';
 
 export interface ChatMessage {
   id: string;
-  player: string;
+  playerId: string;
+  playerName?: string;
   message: string;
-  timestamp: Date | string;
+  timestamp: number;
+  type?: 'system' | 'player' | 'draw_offer' | 'resignation';
 }
 
 export interface ChatBoxProps {
@@ -12,173 +16,285 @@ export interface ChatBoxProps {
   playerRole: string;
   messages: ChatMessage[];
   onSendMessage: (message: string) => void;
+  className?: string;
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = ({
   roomId,
   playerRole,
   messages,
-  onSendMessage
+  onSendMessage,
+  className = ''
 }) => {
+  const { theme } = useTheme();
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Responsive utilities
+  const textSizes = useTextSizes();
+  const isMobile = useIsMobile();
 
-  const scrollToBottom = () => {
-    const messagesContainer = document.querySelector('[data-messages-container]');
-    if (messagesContainer) {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-  };
-
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  // Focus input when component mounts
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim()) {
-      onSendMessage(newMessage.trim());
-      setNewMessage('');
+    
+    if (!newMessage.trim()) return;
+    
+    onSendMessage(newMessage.trim());
+    setNewMessage('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      handleSubmit(e);
     }
   };
 
-  const formatTime = (timestamp: Date | string) => {
-    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+  const formatTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const getMessageTypeStyles = (type: ChatMessage['type']) => {
+    switch (type) {
+      case 'system':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'draw_offer':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'resignation':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-50 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getMessageIcon = (type: ChatMessage['type']) => {
+    switch (type) {
+      case 'system':
+        return '🔔';
+      case 'draw_offer':
+        return '🤝';
+      case 'resignation':
+        return '🏳️';
+      default:
+        return '💬';
+    }
+  };
+
   return (
-    <div style={{
-      width: '300px',
-      height: '480px', // Match chessboard height (8 squares × 60px)
-      border: '2px solid #ddd',
-      borderRadius: '8px',
-      backgroundColor: '#f8f9fa',
-      display: 'flex',
-      flexDirection: 'column',
-      marginLeft: '20px'
-    }}>
+    <div 
+      className={`chat-box ${className}`}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: isMobile ? '200px' : '300px',
+        backgroundColor: theme.surface,
+        border: `1px solid ${theme.border}`,
+        borderRadius: '8px',
+        overflow: 'hidden',
+        boxShadow: theme.shadow
+      }}
+    >
       {/* Chat Header */}
       <div style={{
-        padding: '12px 16px',
-        backgroundColor: '#2c3e50',
+        padding: isMobile ? '10px' : '15px',
+        backgroundColor: theme.primary,
         color: 'white',
-        borderTopLeftRadius: '6px',
-        borderTopRightRadius: '6px',
-        fontWeight: 'bold',
-        fontSize: '14px'
+        borderBottom: `1px solid ${theme.border}`,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
-        💬 Game Chat - Room: {roomId}
+        <div style={{ 
+          fontSize: textSizes.body, 
+          fontWeight: 'bold' 
+        }}>
+          💬 Game Chat
+        </div>
+        <div style={{ 
+          fontSize: textSizes.small, 
+          opacity: 0.8 
+        }}>
+          Room: {roomId}
+        </div>
       </div>
 
       {/* Messages Area */}
-      <div 
-        data-messages-container
-        style={{
-          flex: 1,
-          padding: '12px',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}
-      >
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: isMobile ? '10px' : '15px',
+        backgroundColor: theme.background
+      }}>
         {messages.length === 0 ? (
           <div style={{
             textAlign: 'center',
-            color: '#666',
-            fontSize: '12px',
-            fontStyle: 'italic',
-            marginTop: '20px'
+            color: theme.textSecondary,
+            padding: isMobile ? '20px 10px' : '40px 20px'
           }}>
-            No messages yet. Start the conversation!
+            <div style={{ 
+              fontSize: isMobile ? '2rem' : '3rem', 
+              marginBottom: '10px' 
+            }}>
+              💬
+            </div>
+            <p style={{ 
+              fontSize: textSizes.body, 
+              margin: '0 0 5px 0' 
+            }}>
+              No messages yet
+            </p>
+            <p style={{ 
+              fontSize: textSizes.small, 
+              margin: '0',
+              opacity: 0.7
+            }}>
+              Start the conversation!
+            </p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: msg.player === playerRole ? 'flex-end' : 'flex-start'
-              }}
-            >
-              <div style={{
-                maxWidth: '80%',
-                padding: '8px 12px',
-                borderRadius: '12px',
-                backgroundColor: msg.player === playerRole ? '#007bff' : '#e9ecef',
-                color: msg.player === playerRole ? 'white' : '#333',
-                fontSize: '13px',
-                wordWrap: 'break-word'
-              }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px',
+                  flexDirection: message.playerId === playerRole ? 'row-reverse' : 'row'
+                }}
+              >
+                {/* Avatar */}
                 <div style={{
+                  flexShrink: 0,
+                  width: isMobile ? '24px' : '32px',
+                  height: isMobile ? '24px' : '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: textSizes.small,
                   fontWeight: 'bold',
-                  fontSize: '11px',
-                  marginBottom: '2px',
-                  opacity: 0.8
+                  backgroundColor: message.playerId === playerRole 
+                    ? theme.primary 
+                    : theme.border,
+                  color: message.playerId === playerRole 
+                    ? 'white' 
+                    : theme.text
                 }}>
-                  {msg.player === playerRole ? 'You' : msg.player}
+                  {message.playerId === playerRole ? 'You' : message.playerName?.charAt(0) || 'P'}
                 </div>
-                <div>{msg.message}</div>
+
+                {/* Message Content */}
                 <div style={{
-                  fontSize: '10px',
-                  opacity: 0.7,
-                  marginTop: '4px',
-                  textAlign: 'right'
+                  flex: 1,
+                  maxWidth: isMobile ? 'calc(100% - 40px)' : 'calc(100% - 50px)',
+                  textAlign: message.playerId === playerRole ? 'right' : 'left'
                 }}>
-                  {formatTime(msg.timestamp)}
+                  <div style={{
+                    display: 'inline-block',
+                    padding: isMobile ? '8px 12px' : '10px 15px',
+                    borderRadius: '12px',
+                    backgroundColor: message.playerId === playerRole 
+                      ? theme.primary 
+                      : theme.surface,
+                    color: message.playerId === playerRole 
+                      ? 'white' 
+                      : theme.text,
+                    border: `1px solid ${message.playerId === playerRole 
+                      ? theme.primary 
+                      : theme.border}`,
+                    maxWidth: '100%',
+                    wordBreak: 'break-word'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginBottom: '4px',
+                      fontSize: textSizes.small,
+                      opacity: 0.8
+                    }}>
+                      <span>{getMessageIcon(message.type)}</span>
+                      {message.type !== 'system' && (
+                        <span style={{ fontWeight: 'bold' }}>
+                          {message.playerId === playerRole ? 'You' : message.playerName}
+                        </span>
+                      )}
+                      <span>
+                        {formatTimestamp(message.timestamp)}
+                      </span>
+                    </div>
+                    <div style={{ 
+                      fontSize: textSizes.body,
+                      lineHeight: '1.4'
+                    }}>
+                      {message.message}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <form onSubmit={handleSendMessage} style={{
-        padding: '12px',
-        borderTop: '1px solid #ddd',
-        backgroundColor: 'white'
+      {/* Input Area */}
+      <div style={{
+        padding: isMobile ? '10px' : '15px',
+        borderTop: `1px solid ${theme.border}`,
+        backgroundColor: theme.surface
       }}>
-        <div style={{
-          display: 'flex',
-          gap: '8px'
-        }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px' }}>
           <input
+            ref={inputRef}
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
             placeholder="Type your message..."
             style={{
               flex: 1,
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '13px',
+              padding: isMobile ? '8px 12px' : '10px 15px',
+              border: `1px solid ${theme.border}`,
+              borderRadius: '6px',
+              fontSize: textSizes.body,
+              backgroundColor: theme.background,
+              color: theme.text,
               outline: 'none'
             }}
-            maxLength={200}
           />
           <button
             type="submit"
             disabled={!newMessage.trim()}
             style={{
-              padding: '8px 16px',
-              backgroundColor: newMessage.trim() ? '#007bff' : '#ccc',
+              padding: isMobile ? '8px 12px' : '10px 15px',
+              backgroundColor: newMessage.trim() ? theme.primary : theme.border,
               color: 'white',
               border: 'none',
-              borderRadius: '4px',
+              borderRadius: '6px',
               cursor: newMessage.trim() ? 'pointer' : 'not-allowed',
-              fontSize: '13px',
-              fontWeight: 'bold'
+              fontSize: textSizes.body,
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease'
             }}
           >
             Send
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

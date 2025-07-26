@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { useTheme } from '../App';
+import { useContainerWidth, useTextSizes, useIsMobile } from '../utils/responsive';
 
 export interface MenuViewProps {
   roomId: string;
@@ -37,6 +38,11 @@ export const MenuView: React.FC<MenuViewProps> = ({
   const smallBetAmounts = [0.01, 0.05, 0.1, 0.5, 1];
   const largeBetAmounts = [2, 5, 10, 50, 100];
 
+  // Responsive utilities
+  const containerWidth = useContainerWidth();
+  const textSizes = useTextSizes();
+  const isMobile = useIsMobile();
+
   // Dynamic width measurement for larger amounts container
   const normalBetSectionRef = React.useRef<HTMLDivElement>(null);
   const [largerAmountsWidth, setLargerAmountsWidth] = React.useState('auto');
@@ -48,10 +54,10 @@ export const MenuView: React.FC<MenuViewProps> = ({
   }, [showLargerAmounts]); // Add showLargerAmounts to dependencies
 
   const sharedButtonStyle = {
-    padding: '12px 20px',
-    minWidth: '120px',
+    padding: isMobile ? '10px 16px' : '12px 20px',
+    minWidth: isMobile ? '80px' : '120px',
     boxSizing: 'border-box' as const,
-    fontSize: '14px',
+    fontSize: textSizes.body,
     fontWeight: 'bold',
     borderRadius: '8px',
     border: undefined,
@@ -73,26 +79,34 @@ export const MenuView: React.FC<MenuViewProps> = ({
       {/* Create Room Section */}
       <div style={{ 
         backgroundColor: theme.surface, 
-        padding: '30px', 
+        padding: isMobile ? '20px' : '30px', 
         borderRadius: '10px', 
         boxShadow: theme.shadow,
         marginBottom: '30px',
         border: `1px solid ${theme.border}`,
-        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
+        width: containerWidth,
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column' as const,
         alignItems: 'center'
       }}>
-        <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Create A Room</h2>
+        <h2 style={{ 
+          margin: '0 0 20px 0', 
+          color: theme.text,
+          fontSize: textSizes.h2
+        }}>🎯 Create A Room</h2>
         
         {/* Bet Amount Buttons */}
         <div ref={normalBetSectionRef} style={{ marginBottom: '25px', width: '100%' }}>
-          <h4 style={{ margin: '0 0 15px 0', color: theme.textSecondary }}>Choose Bet Amount:</h4>
+          <h4 style={{ 
+            margin: '0 0 15px 0', 
+            color: theme.textSecondary,
+            fontSize: textSizes.h3
+          }}>Choose Bet Amount:</h4>
           <div style={{ 
             display: 'flex', 
             flexWrap: 'wrap', 
-            gap: '10px', 
+            gap: isMobile ? '8px' : '10px', 
             justifyContent: 'center' 
           }}>
             {smallBetAmounts.map((amount) => (
@@ -116,13 +130,13 @@ export const MenuView: React.FC<MenuViewProps> = ({
             onClick={() => setShowLargerAmounts(!showLargerAmounts)}
             style={{
               marginTop: '15px',
-              padding: '8px 16px',
+              padding: isMobile ? '6px 12px' : '8px 16px',
               backgroundColor: 'transparent',
               color: theme.primary,
               border: `1px solid ${theme.primary}`,
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '12px',
+              fontSize: textSizes.small,
               fontWeight: 'bold',
               transition: 'all 0.2s ease'
             }}
@@ -134,7 +148,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
           {showLargerAmounts && (
             <div style={{ 
               marginTop: '15px',
-              padding: '15px',
+              padding: isMobile ? '12px' : '15px',
               backgroundColor: theme.background,
               borderRadius: '8px',
               border: `1px solid ${theme.border}`,
@@ -145,7 +159,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
               <div style={{ 
                 display: 'flex', 
                 flexWrap: 'wrap', 
-                gap: '10px', 
+                gap: isMobile ? '8px' : '10px', 
                 justifyContent: 'center' 
               }}>
                 {largeBetAmounts.map((amount) => (
@@ -172,15 +186,15 @@ export const MenuView: React.FC<MenuViewProps> = ({
           onClick={handleCreateRoom}
           disabled={isButtonDisabled || betAmount === 0}
           style={{
-            padding: '15px 40px',
+            padding: isMobile ? '12px 30px' : '15px 40px',
             backgroundColor: (isButtonDisabled || betAmount === 0) ? theme.border : theme.secondary,
             color: 'white',
             border: 'none',
             borderRadius: '8px',
             cursor: (isButtonDisabled || betAmount === 0) ? 'not-allowed' : 'pointer',
-            fontSize: '16px',
+            fontSize: textSizes.h3,
             fontWeight: 'bold',
-            minWidth: '200px',
+            minWidth: isMobile ? '160px' : '200px',
             transition: 'all 0.2s ease'
           }}
         >
@@ -195,7 +209,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
             padding: '10px',
             backgroundColor: theme.background,
             borderRadius: '8px',
-            fontSize: '14px',
+            fontSize: textSizes.body,
             border: `1px solid ${theme.accent}`
           }}>
             <strong>⚠️ Insufficient Balance!</strong><br/>
@@ -210,7 +224,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
             padding: '10px',
             backgroundColor: theme.background,
             borderRadius: '8px',
-            fontSize: '14px',
+            fontSize: textSizes.body,
             border: `1px solid #f39c12`
           }}>
             <strong>💡 Connect your wallet to create a room</strong>
