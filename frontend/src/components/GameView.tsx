@@ -113,20 +113,7 @@ export const GameView: React.FC<GameViewProps> = ({
           {getPlayerStatusMessage()}
         </div>
 
-        {/* Testing Instructions */}
-        {gameState.gameActive && !isGameOver && (
-          <div style={{ 
-            marginTop: '10px', 
-            padding: '10px', 
-            backgroundColor: '#e3f2fd', 
-            borderRadius: '5px', 
-            border: '1px solid #2196f3',
-            fontSize: '14px',
-            color: '#1565c0'
-          }}>
-            <strong>🧪 Testing Mode:</strong> Open a new browser tab and join as the opposite color to test both players manually.
-          </div>
-        )}
+
 
         {/* Game Over Messages */}
         {gameState.winner && (
@@ -193,21 +180,22 @@ export const GameView: React.FC<GameViewProps> = ({
         fontSize: '14px',
         backgroundColor: '#f8f9fa',
         padding: '15px',
-        borderRadius: '8px'
+        borderRadius: '8px',
+        color: '#333'
       }}>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', color: '#333' }}>
           <strong>Moves</strong><br/>
           {gameState.moveHistory.length}
         </div>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', color: '#333' }}>
           <strong>50-move rule</strong><br/>
           {gameState.halfmoveClock}/100
         </div>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', color: '#333' }}>
           <strong>Full moves</strong><br/>
           {gameState.fullmoveNumber}
         </div>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', color: '#333' }}>
           <strong>Castling</strong><br/>
           {gameState.castlingRights || 'None'}
         </div>
@@ -278,76 +266,7 @@ export const GameView: React.FC<GameViewProps> = ({
             </button>
           )}
 
-          {/* Testing Buttons - Only show in development/testing mode */}
-          {gameState.gameActive && !isGameOver && onDeclareWinner && (
-            <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#fff3cd', borderRadius: '5px', border: '1px solid #ffeaa7' }}>
-              <div style={{ fontSize: '12px', color: '#856404', marginBottom: '5px' }}>🧪 Testing Controls:</div>
-              <button
-                onClick={() => onDeclareWinner('white')}
-                style={{
-                  padding: '8px 15px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  margin: '2px',
-                  fontSize: '12px'
-                }}
-              >
-                🏆 Declare White Winner
-              </button>
-              <button
-                onClick={() => onDeclareWinner('black')}
-                style={{
-                  padding: '8px 15px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  margin: '2px',
-                  fontSize: '12px'
-                }}
-              >
-                🏆 Declare Black Winner
-              </button>
-              {onTestCheckmate && (
-                <button
-                  onClick={onTestCheckmate}
-                  style={{
-                    padding: '8px 15px',
-                    backgroundColor: '#ff9800',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    margin: '2px',
-                    fontSize: '12px'
-                  }}
-                >
-                  🧪 Test Checkmate
-                </button>
-              )}
-              {onTestCurrentBoard && (
-                <button
-                  onClick={onTestCurrentBoard}
-                  style={{
-                    padding: '8px 15px',
-                    backgroundColor: '#9c27b0',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    margin: '2px',
-                    fontSize: '12px'
-                  }}
-                >
-                  🔍 Test Current Board
-                </button>
-              )}
-            </div>
-          )}
+
 
           {/* Game Over Options - Only show when game is finished */}
           {isGameOver && (
@@ -401,10 +320,11 @@ export const GameView: React.FC<GameViewProps> = ({
           padding: '15px',
           borderRadius: '8px',
           textAlign: 'left',
-          border: '1px solid #dee2e6'
+          border: '1px solid #dee2e6',
+          color: '#333'
         }}>
-          <strong style={{ fontSize: '16px' }}>📝 Move History:</strong>
-          <div style={{ fontSize: '13px', marginTop: '10px', fontFamily: 'monospace' }}>
+          <strong style={{ fontSize: '16px', color: '#333' }}>📝 Move History:</strong>
+          <div style={{ fontSize: '13px', marginTop: '10px', fontFamily: 'monospace', color: '#333' }}>
             {gameState.moveHistory.map((move, index) => (
               <span key={index} style={{ 
                 marginRight: '15px',
@@ -413,7 +333,8 @@ export const GameView: React.FC<GameViewProps> = ({
                 padding: '2px 6px',
                 backgroundColor: '#ffffff',
                 borderRadius: '3px',
-                border: '1px solid #dee2e6'
+                border: '1px solid #dee2e6',
+                color: '#333'
               }}>
                 <strong>{Math.floor(index / 2) + 1}{index % 2 === 0 ? '.' : '...'}</strong> {move.piece} {move.from}→{move.to}
                 {move.capturedPiece && <span style={{ color: '#f44336' }}> x{move.capturedPiece}</span>}
