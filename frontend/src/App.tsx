@@ -9,24 +9,19 @@ import { useDatabaseMultiplayerState } from './services/databaseMultiplayerState
 import { useSolanaWallet } from './hooks/useSolanaWallet';
 import { useScreenSize, useIsMobile, useIsTabletOrSmaller, useChessBoardConfig, useContainerWidth, useLayoutConfig, useTextSizes, useIsLaptopOrLarger, useIsMacBookAir, useIsDesktopLayout } from './utils/responsive';
 import { ChessEngine } from './engine/chessEngine';
-import { ErrorBoundary } from './components/ErrorBoundary';
 import { MenuView } from './components/MenuView';
 import { LobbyView } from './components/LobbyView';
 import { GameView } from './components/GameView';
-import type { RoomStatus } from './types';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 // Import our custom modules
-import { MenuView, LobbyView, GameView } from './components';
 import { SOLANA_RPC_ENDPOINT } from './config';
-import { useSolanaWallet } from './hooks/useSolanaWallet';
 // import { useWebSocket } from './hooks/useWebSocket';
 import { databaseMultiplayerState } from './services/databaseMultiplayerState';
 import type { ChatMessage } from './components/ChatBox';
 import { ENV_CONFIG } from './config/appConfig';
-import { ChessEngine } from './engine/chessEngine';
 import { useChessOptimizations, useDebounce, useThrottle } from './hooks/useChessOptimizations';
 import { useRenderPerformance } from './utils/performance';
 // import { useMemoryCleanup } from './utils/memoryManager';
@@ -207,7 +202,7 @@ function ChessApp() {
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
   const [winningsClaimed, setWinningsClaimed] = useState<boolean>(false);
   const [appLoading, setAppLoading] = useState<boolean>(false);
-  const [roomStatus, setRoomStatus] = useState<RoomStatus | null>(null);
+  const [roomStatus, setRoomStatus] = useState<any>(null);
   
   // Multiplayer state tracking
   const [opponentEscrowCreated, setOpponentEscrowCreated] = useState<boolean>(false);

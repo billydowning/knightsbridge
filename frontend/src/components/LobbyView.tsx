@@ -13,7 +13,7 @@ export interface LobbyViewProps {
   playerRole: string;
   playerWallet: string;
   betAmount: number;
-  roomStatus: RoomStatus | null;
+  roomStatus: any;
   escrowCreated: boolean;
   opponentEscrowCreated?: boolean;
   bothEscrowsReady?: boolean;
