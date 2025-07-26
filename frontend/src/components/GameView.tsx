@@ -168,7 +168,7 @@ export const GameView: React.FC<GameViewProps> = ({
         </div>
         <div style={{ textAlign: 'center', color: theme.text }}>
           <strong>Full moves</strong><br/>
-          {gameState.fullmoveNumber}
+          {gameState.moveHistory.length === 0 ? 0 : gameState.fullmoveNumber}
         </div>
         <div style={{ textAlign: 'center', color: theme.text }}>
           <strong>Castling</strong><br/>
@@ -246,7 +246,7 @@ export const GameView: React.FC<GameViewProps> = ({
         )}
 
         {/* Back to Menu Button */}
-        {onBackToMenu && (
+        {onBackToMenu && !gameState.gameActive && (
           <button
             onClick={onBackToMenu}
             style={{
