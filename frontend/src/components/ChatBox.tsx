@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../App';
-import { useTextSizes, useIsMobile } from '../utils/responsive';
+import { useTextSizes, useIsMobile, useIsTabletOrSmaller } from '../utils/responsive';
 
 export interface ChatMessage {
   id: string;
@@ -34,6 +34,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
   // Responsive utilities
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
+  const isTabletOrSmaller = useIsTabletOrSmaller();
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -221,12 +222,12 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
                       opacity: 0.8
                     }}>
                       <span>{getMessageIcon(message.type)}</span>
-                      {message.type !== 'system' && (
+                      {message.type !== 'system' && message.playerId !== playerRole && (
                         <span style={{ fontWeight: 'bold' }}>
-                          {message.playerId === playerRole ? 'You' : message.playerName}
+                          {message.playerName}
                         </span>
                       )}
-                      {!isMobile && (
+                      {!isTabletOrSmaller && (
                         <span>
                           {formatTimestamp(message.timestamp)}
                         </span>
