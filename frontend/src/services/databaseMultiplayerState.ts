@@ -28,6 +28,7 @@ interface RoomStatus {
   gameStarted: boolean;
   gameState?: any;
   escrowCount?: number;
+  playerCount?: number;
 }
 
 interface GameState {
