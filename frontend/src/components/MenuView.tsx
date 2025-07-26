@@ -235,7 +235,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
         borderRadius: '10px', 
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
-        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
+        width: isDesktopLayout ? '800px' : '95%',
         margin: '0 auto'
       }}>
         <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Join A Room</h2>
@@ -324,7 +324,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
         borderRadius: '10px',
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
-        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
+        width: isDesktopLayout ? '800px' : '95%',
         margin: '50px auto 0 auto',
         fontSize: '14px',
         textAlign: 'left',
