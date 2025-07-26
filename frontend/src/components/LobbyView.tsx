@@ -57,7 +57,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
   return (
     <div style={{ textAlign: 'center', color: theme.text }}>
-      <h2 style={{ color: theme.text }}>🏠 Room: {roomId}</h2>
+      <h2 style={{ color: theme.text }}>🏠 Room ID: {roomId}</h2>
       
       {/* Room ID Share Section */}
       <div style={{ 
