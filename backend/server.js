@@ -1876,6 +1876,14 @@ io.on('connection', (socket) => {
       // Broadcast to other players in the room (excluding sender)
       socket.to(roomId).emit('chatMessageReceived', newMessage);
       console.log('📢 Chat message broadcast completed (excluding sender)');
+      
+      // Debug: Log the socket IDs in the room
+      if (roomSockets) {
+        const socketIds = Array.from(roomSockets);
+        console.log('📢 Socket IDs in room:', roomId, '=', socketIds);
+        console.log('📢 Sender socket ID:', socket.id);
+        console.log('📢 Broadcasting to sockets:', socketIds.filter(id => id !== socket.id));
+      }
 
     } catch (error) {
       console.error('Error sending chat message:', error);

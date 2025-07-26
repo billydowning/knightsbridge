@@ -1631,14 +1631,20 @@ function ChessApp() {
       // Listen for chat message events
       const socket = (databaseMultiplayerState as any).socket;
       if (socket) {
+        console.log('🔗 Setting up chat message listener for room:', roomId);
         socket.on('chatMessageReceived', handleChatMessage);
         
         return () => {
+          console.log('🔗 Removing chat message listener for room:', roomId);
           socket.off('chatMessageReceived', handleChatMessage);
         };
+      } else {
+        console.log('⚠️ Socket not available for chat listener');
       }
+    } else {
+      console.log('⚠️ Room ID or connection not available for chat listener. RoomId:', roomId, 'Connected:', databaseMultiplayerState.isConnected());
     }
-  }, [roomId]);
+  }, [roomId, databaseMultiplayerState.isConnected()]);
 
   // Listen for escrow updates and refresh room status
   useEffect(() => {
