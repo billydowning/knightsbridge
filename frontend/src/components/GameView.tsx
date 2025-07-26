@@ -69,7 +69,6 @@ export const GameView: React.FC<GameViewProps> = ({
 
   return (
     <div style={{ textAlign: 'center' }}>
-      <h2>♟️ Chess Game</h2>
       
       {/* Game Header Info */}
       <div style={{ 
