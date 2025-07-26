@@ -127,7 +127,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         width: '800px'
       }}>
         <div style={{ 
-          flex: '1',
+          width: '392.5px',
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
@@ -153,7 +153,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         </div>
 
         <div style={{ 
-          flex: '1',
+          width: '392.5px',
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
