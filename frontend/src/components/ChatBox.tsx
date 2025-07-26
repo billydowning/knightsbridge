@@ -199,7 +199,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
                 }}>
                   <div style={{
                     display: 'inline-block',
-                    padding: isMobile ? '6px 10px' : '8px 12px',
+                    padding: isMobile ? '4px 8px' : '6px 10px',
                     borderRadius: '12px',
                     backgroundColor: message.playerId === playerRole 
                       ? theme.primary 
