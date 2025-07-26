@@ -113,7 +113,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
         color: 'white',
         borderBottom: `1px solid ${theme.border}`,
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center'
       }}>
         <div style={{ 
@@ -121,12 +121,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
           fontWeight: 'bold' 
         }}>
           💬 Game Chat
-        </div>
-        <div style={{ 
-          fontSize: textSizes.small, 
-          opacity: 0.8 
-        }}>
-          Room: {roomId}
         </div>
       </div>
 
@@ -232,9 +226,11 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
                           {message.playerId === playerRole ? 'You' : message.playerName}
                         </span>
                       )}
-                      <span>
-                        {formatTimestamp(message.timestamp)}
-                      </span>
+                      {!isMobile && (
+                        <span>
+                          {formatTimestamp(message.timestamp)}
+                        </span>
+                      )}
                     </div>
                     <div style={{ 
                       fontSize: textSizes.body,
