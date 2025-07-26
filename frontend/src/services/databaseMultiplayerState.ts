@@ -578,23 +578,27 @@ class DatabaseMultiplayerStateManager {
     
     console.log(`🔗 setupRealtimeSync called for room: ${roomId} with ${eventTypes.length} event types`);
     
+    // Add a unique ID to this callback for debugging
+    const callbackId = Math.random().toString(36).substr(2, 9);
+    console.log(`🔗 Created callback with ID: ${callbackId}`);
+    
     eventTypes.forEach(eventType => {
       if (!this.callbacks.has(eventType)) {
         this.callbacks.set(eventType, new Set());
         console.log(`🔗 Created new callback set for eventType: ${eventType}`);
       }
       this.callbacks.get(eventType)!.add(callback);
-      console.log(`🔗 Added callback for eventType: ${eventType}, total callbacks: ${this.callbacks.get(eventType)!.size}`);
+      console.log(`🔗 Added callback ${callbackId} for eventType: ${eventType}, total callbacks: ${this.callbacks.get(eventType)!.size}`);
     });
 
     // Return cleanup function
     return () => {
-      console.log(`🔗 Cleaning up callbacks for room: ${roomId}`);
+      console.log(`🔗 Cleaning up callbacks for room: ${roomId}, callback ID: ${callbackId}`);
       eventTypes.forEach(eventType => {
         const callbacks = this.callbacks.get(eventType);
         if (callbacks) {
           callbacks.delete(callback);
-          console.log(`🔗 Removed callback for eventType: ${eventType}, remaining callbacks: ${callbacks.size}`);
+          console.log(`🔗 Removed callback ${callbackId} for eventType: ${eventType}, remaining callbacks: ${callbacks.size}`);
         }
       });
     };
@@ -605,13 +609,16 @@ class DatabaseMultiplayerStateManager {
     const callbacks = this.callbacks.get(eventType);
     if (callbacks) {
       console.log(`🔔 Found ${callbacks.size} callbacks for eventType: ${eventType}`);
+      let callbackIndex = 0;
       callbacks.forEach(callback => {
         try {
-          console.log(`🔔 Calling callback for eventType: ${eventType}`);
+          console.log(`🔔 Calling callback ${callbackIndex + 1}/${callbacks.size} for eventType: ${eventType}`);
           callback({ eventType, data });
+          console.log(`🔔 Successfully called callback ${callbackIndex + 1}/${callbacks.size} for eventType: ${eventType}`);
         } catch (error) {
-          console.error('❌ Error in callback:', error);
+          console.error(`❌ Error in callback ${callbackIndex + 1}/${callbacks.size}:`, error);
         }
+        callbackIndex++;
       });
     } else {
       console.log(`🔔 No callbacks found for eventType: ${eventType}`);

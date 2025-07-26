@@ -1701,15 +1701,16 @@ function ChessApp() {
 
       // Use the databaseMultiplayerState callback system instead of direct socket listeners
       console.log('🔗 Setting up chat message listener for room:', roomId);
+      const callbackId = Math.random().toString(36).substr(2, 9);
       const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
         try {
-          console.log('🔗 Callback received eventData:', eventData);
+          console.log(`🔗 Callback ${callbackId} received eventData:`, eventData);
           if (eventData.eventType === 'chatMessage') {
-            console.log('🔗 Processing chatMessage event:', eventData.data);
+            console.log(`🔗 Callback ${callbackId} processing chatMessage event:`, eventData.data);
             handleChatMessage(eventData.data);
           }
         } catch (error) {
-          console.error('❌ Error in callback function:', error);
+          console.error(`❌ Error in callback ${callbackId}:`, error);
           console.error('❌ Error details:', {
             message: error.message,
             stack: error.stack,
