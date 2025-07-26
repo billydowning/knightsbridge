@@ -19,6 +19,7 @@ import { ENV_CONFIG } from './config/appConfig';
 import { ChessEngine } from './engine/chessEngine';
 import { useChessOptimizations, useDebounce, useThrottle } from './hooks/useChessOptimizations';
 import { useRenderPerformance } from './utils/performance';
+import { useIsMobile, useTextSizes, useIsLaptopOrLarger } from './utils/responsive';
 // import { useMemoryCleanup } from './utils/memoryManager';
 import { performanceMonitor } from './utils/performance';
 // import { memoryManager } from './utils/memoryManager';
@@ -148,23 +149,27 @@ const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 // Dark mode toggle button component
 const DarkModeToggle: React.FC = () => {
   const { isDarkMode, toggleDarkMode, theme } = useTheme();
+  const isMobile = useIsMobile();
+  const isLaptopOrLarger = useIsLaptopOrLarger();
+  const textSizes = useTextSizes();
 
   return (
     <button
       onClick={toggleDarkMode}
       style={{
-        padding: '8px 12px',
+        padding: isLaptopOrLarger ? '8px 12px' : '6px 8px',
         backgroundColor: theme.surface,
         color: theme.text,
         border: `2px solid ${theme.border}`,
         borderRadius: '8px',
         cursor: 'pointer',
-        fontSize: '14px',
+        fontSize: isLaptopOrLarger ? '14px' : textSizes.small,
         fontWeight: 'bold',
         display: 'flex',
         alignItems: 'center',
-        gap: '6px',
-        transition: 'all 0.2s ease'
+        gap: isLaptopOrLarger ? '6px' : '4px',
+        transition: 'all 0.2s ease',
+        whiteSpace: 'nowrap'
       }}
     >
       {isDarkMode ? '☀️ Light' : '🌙 Dark'}
@@ -173,20 +178,14 @@ const DarkModeToggle: React.FC = () => {
 };
 
 function ChessApp() {
+  const { theme } = useTheme();
+  const { publicKey, connected, balance, checkBalance, isLoading } = useSolanaWallet();
+  const isMobile = useIsMobile();
+  const textSizes = useTextSizes();
+  const isLaptopOrLarger = useIsLaptopOrLarger();
+  
   // Performance monitoring
   useRenderPerformance('ChessApp');
-
-  // Get theme
-  const { theme } = useTheme();
-  
-  // Solana wallet hook
-  const { 
-    publicKey, 
-    connected, 
-    balance, 
-    checkBalance, 
-    isLoading 
-  } = useSolanaWallet();
 
   // App state
   const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
@@ -1960,21 +1959,40 @@ function ChessApp() {
         <div style={{
           backgroundColor: theme.surface,
           color: theme.text,
-          padding: '1rem',
+          padding: isLaptopOrLarger ? '1rem' : '0.75rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: `1px solid ${theme.border}`
+          borderBottom: `1px solid ${theme.border}`,
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          gap: isMobile ? '0.5rem' : '0'
         }}>
-          <h1 style={{ margin: 0, fontSize: '1.5rem' }}>♟️ Knightsbridge Chess</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h1 style={{ 
+            margin: 0, 
+            fontSize: isLaptopOrLarger ? '1.5rem' : textSizes.h2,
+            flexShrink: 0
+          }}>
+            ♟️ Knightsbridge Chess
+          </h1>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: isLaptopOrLarger ? '1rem' : '0.5rem',
+            flexWrap: 'wrap',
+            justifyContent: isMobile ? 'center' : 'flex-end',
+            width: isMobile ? '100%' : 'auto'
+          }}>
             <DarkModeToggle />
             <WalletMultiButton />
           </div>
         </div>
 
         {/* Main Content */}
-        <div style={{ padding: '2rem' }}>
+        <div style={{ 
+          padding: isLaptopOrLarger ? '2rem' : '1rem',
+          maxWidth: '100vw',
+          overflow: 'hidden'
+        }}>
           {renderContent()}
         </div>
       </div>

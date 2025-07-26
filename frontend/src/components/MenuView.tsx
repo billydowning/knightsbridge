@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useTheme } from '../App';
-import { useContainerWidth, useTextSizes, useIsMobile } from '../utils/responsive';
+import { useContainerWidth, useTextSizes, useIsMobile, useIsLaptopOrLarger } from '../utils/responsive';
 
 export interface MenuViewProps {
   roomId: string;
@@ -42,6 +42,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
   const containerWidth = useContainerWidth();
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
+  const isLaptopOrLarger = useIsLaptopOrLarger();
 
   // Dynamic width measurement for larger amounts container
   const normalBetSectionRef = React.useRef<HTMLDivElement>(null);
@@ -54,8 +55,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
   }, [showLargerAmounts]); // Add showLargerAmounts to dependencies
 
   const sharedButtonStyle = {
-    padding: isMobile ? '10px 16px' : '12px 20px',
-    minWidth: isMobile ? '80px' : '120px',
+    padding: isLaptopOrLarger ? '12px 20px' : '10px 16px',
+    minWidth: isLaptopOrLarger ? '120px' : '80px',
     boxSizing: 'border-box' as const,
     fontSize: textSizes.body,
     fontWeight: 'bold',
@@ -79,34 +80,34 @@ export const MenuView: React.FC<MenuViewProps> = ({
       {/* Create Room Section */}
       <div style={{ 
         backgroundColor: theme.surface, 
-        padding: isMobile ? '20px' : '30px', 
+        padding: isLaptopOrLarger ? '30px' : '15px', 
         borderRadius: '10px', 
         boxShadow: theme.shadow,
-        marginBottom: '30px',
+        marginBottom: isLaptopOrLarger ? '30px' : '20px',
         border: `1px solid ${theme.border}`,
-        width: containerWidth,
+        width: isLaptopOrLarger ? containerWidth : '95%',
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column' as const,
         alignItems: 'center'
       }}>
         <h2 style={{ 
-          margin: '0 0 20px 0', 
+          margin: '0 0 15px 0', 
           color: theme.text,
           fontSize: textSizes.h2
         }}>🎯 Create A Room</h2>
         
         {/* Bet Amount Buttons */}
-        <div ref={normalBetSectionRef} style={{ marginBottom: '25px', width: '100%' }}>
+        <div ref={normalBetSectionRef} style={{ marginBottom: isLaptopOrLarger ? '25px' : '20px', width: '100%' }}>
           <h4 style={{ 
-            margin: '0 0 15px 0', 
+            margin: '0 0 12px 0', 
             color: theme.textSecondary,
             fontSize: textSizes.h3
           }}>Choose Bet Amount:</h4>
           <div style={{ 
             display: 'flex', 
             flexWrap: 'wrap', 
-            gap: isMobile ? '8px' : '10px', 
+            gap: isLaptopOrLarger ? '10px' : '6px', 
             justifyContent: 'center' 
           }}>
             {smallBetAmounts.map((amount) => (
@@ -129,8 +130,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
           <button
             onClick={() => setShowLargerAmounts(!showLargerAmounts)}
             style={{
-              marginTop: '15px',
-              padding: isMobile ? '6px 12px' : '8px 16px',
+              marginTop: isLaptopOrLarger ? '15px' : '12px',
+              padding: isLaptopOrLarger ? '8px 16px' : '6px 10px',
               backgroundColor: 'transparent',
               color: theme.primary,
               border: `1px solid ${theme.primary}`,
@@ -147,8 +148,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
           {/* Larger bet amounts (hidden by default) */}
           {showLargerAmounts && (
             <div style={{ 
-              marginTop: '15px',
-              padding: isMobile ? '12px' : '15px',
+              marginTop: isLaptopOrLarger ? '15px' : '12px',
+              padding: isLaptopOrLarger ? '15px' : '10px',
               backgroundColor: theme.background,
               borderRadius: '8px',
               border: `1px solid ${theme.border}`,
@@ -159,7 +160,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
               <div style={{ 
                 display: 'flex', 
                 flexWrap: 'wrap', 
-                gap: isMobile ? '8px' : '10px', 
+                gap: isLaptopOrLarger ? '10px' : '6px', 
                 justifyContent: 'center' 
               }}>
                 {largeBetAmounts.map((amount) => (
@@ -186,7 +187,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
           onClick={handleCreateRoom}
           disabled={isButtonDisabled || betAmount === 0}
           style={{
-            padding: isMobile ? '12px 30px' : '15px 40px',
+            padding: isLaptopOrLarger ? '15px 40px' : '12px 24px',
             backgroundColor: (isButtonDisabled || betAmount === 0) ? theme.border : theme.secondary,
             color: 'white',
             border: 'none',
@@ -194,7 +195,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
             cursor: (isButtonDisabled || betAmount === 0) ? 'not-allowed' : 'pointer',
             fontSize: textSizes.h3,
             fontWeight: 'bold',
-            minWidth: isMobile ? '160px' : '200px',
+            minWidth: isLaptopOrLarger ? '200px' : '140px',
             transition: 'all 0.2s ease'
           }}
         >
@@ -205,8 +206,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
         {hasInsufficientBalance && connected && (
           <div style={{ 
             color: theme.accent, 
-            marginTop: '15px',
-            padding: '10px',
+            marginTop: isLaptopOrLarger ? '15px' : '12px',
+            padding: isLaptopOrLarger ? '10px' : '8px',
             backgroundColor: theme.background,
             borderRadius: '8px',
             fontSize: textSizes.body,
@@ -220,8 +221,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
         {!connected && (
           <div style={{ 
             color: '#f39c12', 
-            marginTop: '15px',
-            padding: '10px',
+            marginTop: isLaptopOrLarger ? '15px' : '12px',
+            padding: isLaptopOrLarger ? '10px' : '8px',
             backgroundColor: theme.background,
             borderRadius: '8px',
             fontSize: textSizes.body,

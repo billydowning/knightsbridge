@@ -99,6 +99,12 @@ export const useIsTabletOrSmaller = (): boolean => {
   return screenSize === 'mobile' || screenSize === 'tablet';
 };
 
+// Hook to check if screen is laptop or larger (for MacBook Air)
+export const useIsLaptopOrLarger = (): boolean => {
+  const screenSize = useScreenSize();
+  return screenSize === 'laptop' || screenSize === 'desktop' || screenSize === 'wide';
+};
+
 // Hook to get chess board configuration for current screen size
 export const useChessBoardConfig = () => {
   const screenSize = useScreenSize();
