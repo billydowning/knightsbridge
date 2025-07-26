@@ -231,12 +231,15 @@ export const MenuView: React.FC<MenuViewProps> = ({
       {/* Join Room Section */}
       <div style={{ 
         backgroundColor: theme.surface, 
-        padding: '30px', 
+        padding: isDesktopLayout ? '40px' : '15px', 
         borderRadius: '10px', 
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
         width: isDesktopLayout ? '800px' : '95%',
-        margin: '0 auto'
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center'
       }}>
         <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Join A Room</h2>
         
@@ -320,7 +323,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
       {/* Instructions */}
       <div style={{ 
         backgroundColor: theme.background, 
-        padding: '30px', 
+        padding: isDesktopLayout ? '40px' : '15px', 
         borderRadius: '10px',
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
@@ -328,7 +331,10 @@ export const MenuView: React.FC<MenuViewProps> = ({
         margin: '50px auto 0 auto',
         fontSize: '14px',
         textAlign: 'left',
-        color: theme.text
+        color: theme.text,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center'
       }}>
         <h4 style={{ margin: '0 0 15px 0', color: theme.text }}>📋 How to Play:</h4>
         <ul style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
