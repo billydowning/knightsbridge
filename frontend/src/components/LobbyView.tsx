@@ -122,16 +122,16 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {/* Player Info */}
       <div style={{ 
         display: 'flex',
-        gap: '15px',
         margin: '0 auto 20px auto',
-        width: '800px'
+        width: '785px'
       }}>
         <div style={{ 
           width: '392.5px',
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
-          border: `2px solid ${theme.border}`
+          border: `2px solid ${theme.border}`,
+          marginRight: '7.5px'
         }}>
           <h4 style={{ margin: '0 0 10px 0', color: theme.text }}>👤 Your Info</h4>
           <p style={{ margin: '5px 0', color: theme.textSecondary }}>
@@ -157,7 +157,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
-          border: `2px solid ${theme.border}`
+          border: `2px solid ${theme.border}`,
+          marginLeft: '7.5px'
         }}>
           <h4 style={{ margin: '0 0 10px 0', color: theme.text }}>🎮 Room Status</h4>
           <p style={{ margin: '5px 0', color: theme.textSecondary }}>
