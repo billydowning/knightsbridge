@@ -7,7 +7,7 @@ import React from 'react';
 import { ChessBoard } from './ChessBoard';
 import { ChatBox, type ChatMessage } from './ChatBox';
 import { useTheme } from '../App';
-import { useLayoutConfig, useTextSizes, useIsMobile, useChessBoardConfig, useIsDesktopLayout } from '../utils/responsive';
+import { useTextSizes, useIsMobile, useChessBoardConfig, useIsDesktopLayout } from '../utils/responsive';
 import type { GameState } from '../types';
 
 export interface GameViewProps {
@@ -42,7 +42,6 @@ export const GameView: React.FC<GameViewProps> = ({
   betAmount
 }) => {
   const { theme } = useTheme();
-  const layoutConfig = useLayoutConfig();
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
   const { boardSize } = useChessBoardConfig();
@@ -50,10 +49,6 @@ export const GameView: React.FC<GameViewProps> = ({
 
   const canClaimWinnings = gameState.winner && !winningsClaimed;
   const isGameOver = gameState.winner || gameState.draw;
-
-  // Calculate the total width of chessboard + chatbox for desktop layout
-  const chatBoxWidth = isDesktopLayout ? 300 : (isMobile ? '100%' : '300px');
-  const totalGameWidth = isDesktopLayout ? boardSize + 300 + 20 : '100%'; // 20px for gap
 
   return (
     <div style={{ 
@@ -69,8 +64,8 @@ export const GameView: React.FC<GameViewProps> = ({
         padding: isMobile ? '15px' : '20px',
         borderRadius: '8px',
         border: `1px solid ${theme.border}`,
-        width: isDesktopLayout ? `${totalGameWidth}px` : '100%',
-        margin: isDesktopLayout ? '0 auto 20px auto' : '0 0 15px 0'
+        width: isDesktopLayout ? '800px' : '95%',
+        margin: isDesktopLayout ? '0 auto 20px auto' : '0 auto 15px auto'
       }}>
         <div style={{ 
           display: 'grid',
@@ -100,10 +95,12 @@ export const GameView: React.FC<GameViewProps> = ({
       {/* Main Game Area */}
       <div style={{ 
         display: 'flex',
-        flexDirection: layoutConfig.gameLayout === 'column' ? 'column' : 'row',
-        gap: layoutConfig.spacing,
-        alignItems: layoutConfig.gameLayout === 'column' ? 'center' : 'flex-start',
-        justifyContent: 'center'
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '15px' : '20px',
+        alignItems: isMobile ? 'center' : 'flex-start',
+        justifyContent: 'center',
+        width: isDesktopLayout ? '800px' : '95%',
+        margin: '0 auto'
       }}>
         
         {/* Chess Board */}
@@ -111,7 +108,7 @@ export const GameView: React.FC<GameViewProps> = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          maxWidth: layoutConfig.boardMaxWidth
+          flex: isMobile ? 'none' : '1'
         }}>
           <ChessBoard
             position={gameState.position}
@@ -127,10 +124,10 @@ export const GameView: React.FC<GameViewProps> = ({
         {/* Chat Box */}
         {onSendChatMessage && (
           <div style={{
-            width: layoutConfig.gameLayout === 'column' ? '100%' : '300px',
-            maxWidth: layoutConfig.gameLayout === 'column' ? '500px' : '300px',
-            height: layoutConfig.gameLayout === 'column' ? '200px' : `${boardSize}px`,
-            minHeight: layoutConfig.gameLayout === 'column' ? '200px' : `${boardSize}px`
+            width: isMobile ? '100%' : '300px',
+            height: isMobile ? '200px' : `${boardSize}px`,
+            minHeight: isMobile ? '200px' : `${boardSize}px`,
+            flex: isMobile ? 'none' : '0 0 300px'
           }}>
             <ChatBox
               roomId={roomId}
@@ -153,8 +150,7 @@ export const GameView: React.FC<GameViewProps> = ({
         padding: isMobile ? '12px' : '15px',
         borderRadius: '8px',
         color: theme.text,
-        width: '100%',
-        maxWidth: layoutConfig.gameLayout === 'column' ? '100%' : '800px',
+        width: isDesktopLayout ? '800px' : '95%',
         margin: `${isMobile ? '15px' : '20px'} auto`
       }}>
         <div style={{ textAlign: 'center', color: theme.text }}>
