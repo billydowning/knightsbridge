@@ -59,8 +59,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   }, []); // Runs once after mount
   
   // Calculate player count based on room status
-  const basePlayerCount = roomStatus?.playerCount || 0;
-  const playerCount = basePlayerCount + 1; // Include current player
+  const playerCount = roomStatus?.playerCount || 0;
   
   // Calculate escrow count including local escrow creation state
   const baseEscrowCount = roomStatus?.escrowCount || 0;
@@ -75,10 +74,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   React.useEffect(() => {
     console.log('🔍 LobbyView room status:', roomStatus);
     console.log('🔍 LobbyView counts:', {
-      basePlayerCount: roomStatus?.playerCount || 0,
-      playerCount,
-      baseEscrowCount: roomStatus?.escrowCount || 0,
-      escrowCount,
+      playerCount: roomStatus?.playerCount || 0,
+      escrowCount: roomStatus?.escrowCount || 0,
+      localEscrowCount: escrowCount,
       escrowCreated,
       opponentEscrowCreated
     });
