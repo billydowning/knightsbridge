@@ -37,6 +37,16 @@ export const MenuView: React.FC<MenuViewProps> = ({
   const smallBetAmounts = [0.01, 0.05, 0.1, 0.5, 1];
   const largeBetAmounts = [2, 5, 10, 50, 100];
 
+  // Dynamic width measurement for larger amounts container
+  const smallButtonsRef = React.useRef<HTMLDivElement>(null);
+  const [largerAmountsWidth, setLargerAmountsWidth] = React.useState('auto');
+
+  React.useEffect(() => {
+    if (smallButtonsRef.current) {
+      setLargerAmountsWidth(`${smallButtonsRef.current.offsetWidth}px`);
+    }
+  }, []);
+
   const handleCreateRoom = () => {
     // Generate a new room ID for creating
     const newRoomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -63,7 +73,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
         {/* Bet Amount Buttons */}
         <div style={{ marginBottom: '25px' }}>
           <h4 style={{ margin: '0 0 15px 0', color: theme.textSecondary }}>Choose Bet Amount:</h4>
-          <div style={{ 
+          <div ref={smallButtonsRef} style={{ 
             display: 'flex', 
             flexWrap: 'wrap', 
             gap: '10px', 
@@ -116,7 +126,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
               padding: '15px',
               backgroundColor: theme.background,
               borderRadius: '8px',
-              border: `1px solid ${theme.border}`
+              border: `1px solid ${theme.border}`,
+              width: largerAmountsWidth
             }}>
               <div style={{ 
                 display: 'flex', 
@@ -130,7 +141,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
                     onClick={() => setBetAmount(amount)}
                     style={{
                       padding: '12px 20px',
-                      backgroundColor: betAmount === amount ? theme.accent : theme.surface,
+                      backgroundColor: betAmount === amount ? theme.primary : theme.surface,
                       color: betAmount === amount ? 'white' : theme.text,
                       border: `2px solid ${theme.border}`,
                       borderRadius: '8px',
