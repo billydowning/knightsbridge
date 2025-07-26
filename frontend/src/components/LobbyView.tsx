@@ -61,12 +61,13 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       
       {/* Room ID Share Section */}
       <div style={{ 
-        margin: '20px 0',
+        margin: '20px auto',
         padding: '20px',
         backgroundColor: theme.surface,
         borderRadius: '10px',
         border: `2px solid ${theme.border}`,
-        boxShadow: theme.shadow
+        boxShadow: theme.shadow,
+        width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
       }}>
         <h3 style={{ margin: '0 0 15px 0', color: theme.text }}>📋 Share Room ID</h3>
         <div style={{ 
@@ -123,7 +124,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: '15px',
-        marginBottom: '20px'
+        marginBottom: '20px',
+        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
+        margin: '0 auto 20px auto' // Center the box
       }}>
         <div style={{ 
           padding: '15px', 
@@ -199,8 +202,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           background: theme.surface, 
           padding: '15px', 
           borderRadius: '8px', 
-          margin: '20px 0',
-          border: `1px solid ${theme.border}`
+          margin: '20px auto',
+          border: `1px solid ${theme.border}`,
+          width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
         }}>
           <h4 style={{ margin: '0 0 15px 0', color: theme.text }}>👥 Players in Room</h4>
           <div style={{ 
@@ -252,8 +256,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           background: theme.warningLight, 
           padding: '15px', 
           borderRadius: '8px', 
-          margin: '20px 0',
-          border: `1px solid ${theme.warning}`
+          margin: '20px auto',
+          border: `1px solid ${theme.warning}`,
+          width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
         }}>
           <h4 style={{ margin: '0 0 10px 0', color: theme.warning }}>⚠️ Waiting for Opponent!</h4>
           <p style={{ margin: '10px 0', color: theme.textSecondary }}>Share this room ID with your opponent:</p>
@@ -281,8 +286,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           background: theme.warningLight, 
           padding: '15px', 
           borderRadius: '8px', 
-          margin: '20px 0',
-          border: `1px solid ${theme.warning}`
+          margin: '20px auto',
+          border: `1px solid ${theme.warning}`,
+          width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
         }}>
           <h4 style={{ margin: '0 0 10px 0', color: theme.warning }}>🎮 Ready for New Game!</h4>
           <p style={{ margin: '0', color: theme.textSecondary }}>Both players need to create new escrows to start playing again.</p>
@@ -321,8 +327,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               background: theme.successLight, 
               padding: '15px', 
               borderRadius: '8px', 
-              margin: '20px 0',
-              border: `1px solid ${theme.success}`
+              margin: '20px auto',
+              border: `1px solid ${theme.success}`,
+              width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
             }}>
               <p style={{ margin: '0', fontWeight: 'bold', color: theme.successDark }}>
                 ✅ Your escrow created! 
