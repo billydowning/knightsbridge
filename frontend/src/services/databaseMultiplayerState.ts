@@ -577,6 +577,7 @@ class DatabaseMultiplayerStateManager {
     const eventTypes = ['roomUpdated', 'escrowUpdated', 'gameStarted', 'gameStateUpdated', 'chatMessage', 'connected'];
     
     console.log(`🔗 setupRealtimeSync called for room: ${roomId} with ${eventTypes.length} event types`);
+    console.log(`🔗 Callback function:`, callback.toString().substring(0, 100) + '...');
     
     // Add a unique ID to this callback for debugging
     const callbackId = Math.random().toString(36).substr(2, 9);
@@ -613,6 +614,7 @@ class DatabaseMultiplayerStateManager {
       callbacks.forEach(callback => {
         try {
           console.log(`🔔 Calling callback ${callbackIndex + 1}/${callbacks.size} for eventType: ${eventType}`);
+          console.log(`🔔 Callback function:`, callback.toString().substring(0, 100) + '...');
           callback({ eventType, data });
           console.log(`🔔 Successfully called callback ${callbackIndex + 1}/${callbacks.size} for eventType: ${eventType}`);
         } catch (error) {
