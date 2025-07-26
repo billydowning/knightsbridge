@@ -4,6 +4,16 @@ import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { clusterApiUrl } from '@solana/web3.js';
+import { useDatabaseMultiplayerState } from './services/databaseMultiplayerState';
+import { useSolanaWallet } from './hooks/useSolanaWallet';
+import { useScreenSize, useIsMobile, useIsTabletOrSmaller, useChessBoardConfig, useContainerWidth, useLayoutConfig, useTextSizes, useIsLaptopOrLarger, useIsMacBookAir, useIsDesktopLayout } from './utils/responsive';
+import { ChessEngine } from './engine/chessEngine';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { MenuView } from './components/MenuView';
+import { LobbyView } from './components/LobbyView';
+import { GameView } from './components/GameView';
+import type { RoomStatus } from './types';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -19,7 +29,6 @@ import { ENV_CONFIG } from './config/appConfig';
 import { ChessEngine } from './engine/chessEngine';
 import { useChessOptimizations, useDebounce, useThrottle } from './hooks/useChessOptimizations';
 import { useRenderPerformance } from './utils/performance';
-import { useIsMobile, useTextSizes, useIsLaptopOrLarger, useIsMacBookAir, useIsDesktopLayout } from './utils/responsive';
 // import { useMemoryCleanup } from './utils/memoryManager';
 import { performanceMonitor } from './utils/performance';
 // import { memoryManager } from './utils/memoryManager';
@@ -198,7 +207,7 @@ function ChessApp() {
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
   const [winningsClaimed, setWinningsClaimed] = useState<boolean>(false);
   const [appLoading, setAppLoading] = useState<boolean>(false);
-  const [roomStatus, setRoomStatus] = useState<any>(null);
+  const [roomStatus, setRoomStatus] = useState<RoomStatus | null>(null);
   
   // Multiplayer state tracking
   const [opponentEscrowCreated, setOpponentEscrowCreated] = useState<boolean>(false);
@@ -625,6 +634,12 @@ function ChessApp() {
     
     try {
       const playerWallet = publicKey.toString();
+      
+      // Log room status before creating escrow
+      console.log('🔍 Room status BEFORE creating escrow:');
+      const beforeStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+      console.log('📊 Before escrow - Room status:', beforeStatus);
+      
       await databaseMultiplayerState.addEscrow(roomId, playerWallet, betAmount);
       
       // Update local state to show escrow was created
@@ -633,9 +648,13 @@ function ChessApp() {
       setGameStatus(`Escrow created! Bet: ${betAmount} SOL. Waiting for opponent...`);
       console.log('✅ Escrow created successfully');
       
+      // Log room status after creating escrow
+      console.log('🔍 Room status AFTER creating escrow:');
+      const afterStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+      console.log('📊 After escrow - Room status:', afterStatus);
+      
       // Check if both players have created escrows
-      const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-      if (roomStatus && roomStatus.escrowCount >= 2) {
+      if (afterStatus && afterStatus.escrowCount >= 2) {
         setBothEscrowsReady(true);
         console.log('💰 Both escrows ready!');
       }
@@ -1622,9 +1641,15 @@ function ChessApp() {
   const fetchRoomStatus = useCallback(async () => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       try {
+        console.log('🔍 fetchRoomStatus called for room:', roomId);
         const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+        console.log('🔍 DEBUG - fetchRoomStatus returned:', roomStatus);
+        console.log('🔍 DEBUG - roomStatus.playerCount:', roomStatus?.playerCount);
+        console.log('🔍 DEBUG - roomStatus.escrowCount:', roomStatus?.escrowCount);
+        console.log('🔍 DEBUG - roomStatus.players:', roomStatus?.players);
+        console.log('🔍 DEBUG - roomStatus.escrows:', roomStatus?.escrows);
+        
         if (roomStatus) {
-          console.log('🔍 DEBUG - fetchRoomStatus returned:', roomStatus);
           setRoomStatus(roomStatus);
           console.log('✅ Room status updated:', roomStatus);
         }
