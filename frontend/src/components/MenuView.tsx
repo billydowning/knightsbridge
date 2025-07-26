@@ -96,7 +96,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
         <h2 style={{ 
           margin: '0 0 20px 0', 
           color: theme.text,
-          fontSize: isDesktopLayout ? '2rem' : textSizes.h2
+          fontSize: textSizes.h3
         }}>🎯 Create A Room</h2>
         
         {/* Bet Amount Buttons */}

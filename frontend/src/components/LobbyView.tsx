@@ -5,7 +5,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { useTheme } from '../App';
-import { useContainerWidth, useTextSizes, useIsMobile } from '../utils/responsive';
+import { useContainerWidth, useTextSizes, useIsMobile, useIsDesktopLayout } from '../utils/responsive';
 import type { RoomStatus } from '../types';
 
 export interface LobbyViewProps {
@@ -46,6 +46,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const containerWidth = useContainerWidth();
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
+  const isDesktopLayout = useIsDesktopLayout();
   
   // Dynamic width measurement hooks
   const topRef = useRef<HTMLDivElement>(null);
@@ -77,12 +78,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {/* Room ID Share Section */}
       <div ref={topRef} style={{ 
         margin: isMobile ? '10px auto' : '20px auto',
-        padding: isMobile ? '12px' : '20px',
+        padding: isMobile ? '12px' : (isDesktopLayout ? '20px' : '15px'),
         backgroundColor: theme.surface,
         borderRadius: '10px',
         border: `2px solid ${theme.border}`,
         boxShadow: theme.shadow,
-        width: isMobile ? '95%' : containerWidth
+        width: isDesktopLayout ? '800px' : (isMobile ? '95%' : containerWidth)
       }}>
         <h3 style={{ 
           margin: '0 0 12px 0', 
@@ -138,12 +139,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {/* Room Status Section */}
       <div style={{ 
         margin: isMobile ? '10px auto' : '20px auto',
-        padding: isMobile ? '12px' : '20px',
+        padding: isMobile ? '12px' : (isDesktopLayout ? '20px' : '15px'),
         backgroundColor: theme.surface,
         borderRadius: '10px',
         border: `2px solid ${theme.border}`,
         boxShadow: theme.shadow,
-        width: middleWidth
+        width: isDesktopLayout ? '800px' : middleWidth
       }}>
         <h3 style={{ 
           margin: '0 0 12px 0', 
@@ -261,12 +262,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {/* Player Info Section */}
       <div style={{ 
         margin: isMobile ? '10px auto' : '20px auto',
-        padding: isMobile ? '12px' : '20px',
+        padding: isMobile ? '12px' : (isDesktopLayout ? '20px' : '15px'),
         backgroundColor: theme.surface,
         borderRadius: '10px',
         border: `2px solid ${theme.border}`,
         boxShadow: theme.shadow,
-        width: middleWidth
+        width: isDesktopLayout ? '800px' : middleWidth
       }}>
         <h3 style={{ 
           margin: '0 0 12px 0', 
@@ -327,7 +328,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         flexWrap: 'wrap',
         gap: isMobile ? '8px' : '15px',
         justifyContent: 'center',
-        width: middleWidth
+        width: isDesktopLayout ? '800px' : middleWidth
       }}>
         {/* Create Escrow Button */}
         {!escrowCreated && connected && (
