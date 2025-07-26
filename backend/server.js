@@ -1373,6 +1373,13 @@ io.on('connection', (socket) => {
       if (!socket.lastSaveTimes) socket.lastSaveTimes = {};
       socket.lastSaveTimes[lastSaveKey] = now;
       
+      // Add debug logging to see what state we're receiving
+      console.log('🔍 Server received saveGameState request:');
+      console.log('🔍 Room ID:', roomId);
+      console.log('🔍 Current player in received state:', gameState.currentPlayer);
+      console.log('🔍 Move history length:', gameState.moveHistory?.length || 0);
+      console.log('🔍 Last move:', gameState.lastMove);
+      
       // Check if we have database access
       if (process.env.DATABASE_URL) {
         const poolInstance = initializePool();
@@ -1393,21 +1400,22 @@ io.on('connection', (socket) => {
         );
         
         console.log('✅ Game state saved to database:', roomId);
+        console.log('🔍 State saved with currentPlayer:', gameState.currentPlayer);
         
         // Broadcast game state update to OTHER players in the room (not the sender)
         // Only broadcast if there are other players in the room
         const room = io.sockets.adapter.rooms.get(roomId);
         if (room && room.size > 1) {
           // Broadcast the EXACT same state that was just saved (not from database)
-          setTimeout(() => {
-            socket.to(roomId).emit('gameStateUpdated', { 
-              roomId, 
-              gameState, // Use the exact state that was passed in, not from DB
-              senderId: socket.id,
-              timestamp: Date.now()
-            });
-            console.log('📢 Broadcasted game state update to other players in room:', roomId);
-          }, 100);
+          // Remove the setTimeout to avoid race conditions
+          socket.to(roomId).emit('gameStateUpdated', { 
+            roomId, 
+            gameState, // Use the exact state that was passed in, not from DB
+            senderId: socket.id,
+            timestamp: Date.now()
+          });
+          console.log('📢 Broadcasted game state update to other players in room:', roomId);
+          console.log('🔍 Broadcasted state with currentPlayer:', gameState.currentPlayer);
         }
       } else {
         // Use in-memory storage for testing
@@ -1416,20 +1424,21 @@ io.on('connection', (socket) => {
           room.gameState = gameState;
           room.last_updated = new Date();
           console.log('✅ Game state saved to memory (test mode):', roomId);
+          console.log('🔍 State saved with currentPlayer:', gameState.currentPlayer);
           
           // Broadcast to other players in test mode
           const roomSockets = io.sockets.adapter.rooms.get(roomId);
           if (roomSockets && roomSockets.size > 1) {
             // Broadcast the EXACT same state that was just saved (not from memory)
-            setTimeout(() => {
-              socket.to(roomId).emit('gameStateUpdated', { 
-                roomId, 
-                gameState, // Use the exact state that was passed in, not from memory
-                senderId: socket.id,
-                timestamp: Date.now()
-              });
-              console.log('📢 Broadcasted game state update to other players in room (test mode):', roomId);
-            }, 100);
+            // Remove the setTimeout to avoid race conditions
+            socket.to(roomId).emit('gameStateUpdated', { 
+              roomId, 
+              gameState, // Use the exact state that was passed in, not from memory
+              senderId: socket.id,
+              timestamp: Date.now()
+            });
+            console.log('📢 Broadcasted game state update to other players in room (test mode):', roomId);
+            console.log('🔍 Broadcasted state with currentPlayer:', gameState.currentPlayer);
           }
         }
       }

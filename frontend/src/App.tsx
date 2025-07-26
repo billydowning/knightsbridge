@@ -699,6 +699,8 @@ function ChessApp() {
       console.log('  - inCheckmate:', updatedGameState.inCheckmate);
       console.log('  - winner:', updatedGameState.winner);
       console.log('  - gameActive:', updatedGameState.gameActive);
+      console.log('  - currentPlayer:', updatedGameState.currentPlayer);
+      console.log('  - lastUpdated:', updatedGameState.lastUpdated);
       
       // Set flag to prevent receiving server updates during this operation
       setIsReceivingServerUpdate(true);
@@ -712,11 +714,11 @@ function ChessApp() {
           // Update local state AFTER successful database save
           setGameState(updatedGameState);
           
-          // Reset the receiving flag after a delay to allow for any server broadcasts
+          // Reset the receiving flag after a longer delay to ensure server broadcast is processed
           setTimeout(() => {
             setIsReceivingServerUpdate(false);
             console.log('✅ Move completed and synchronized');
-          }, 300);
+          }, 500); // Increased delay to 500ms
         })
         .catch(error => {
           console.error('❌ Failed to save game state:', error);
@@ -1676,6 +1678,7 @@ function ChessApp() {
           // Only update if the state has actually changed AND the received state is newer
           if (localStateHash !== receivedStateHash && receivedTimestamp >= localTimestamp) {
             console.log('🔄 State has changed and is newer, updating from server');
+            console.log('🔍 Updating from currentPlayer:', gameState.currentPlayer, 'to:', data.gameState.currentPlayer);
             
             // Set flag to prevent saving back to server
             setIsReceivingServerUpdate(true);
@@ -1690,6 +1693,7 @@ function ChessApp() {
               setIsReceivingServerUpdate(false);
               // Also reset the last saved state to prevent immediate re-save
               setLastSavedState('');
+              console.log('🔄 Server update processing completed');
             }, delay);
           } else if (localStateHash !== receivedStateHash && receivedTimestamp < localTimestamp) {
             console.log('🔄 Received state is older than local state, ignoring update');
