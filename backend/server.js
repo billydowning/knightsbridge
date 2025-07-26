@@ -1864,7 +1864,7 @@ io.on('connection', (socket) => {
       console.log('💬 Chat message sent:', roomId, playerWallet, message);
       if (typeof callback === 'function') callback({ success: true, message: newMessage });
 
-      // Broadcast message to all players in the room
+      // Broadcast message to all players in the room EXCEPT the sender
       console.log('📢 Broadcasting chat message to room:', roomId);
       console.log('📢 Message to broadcast:', newMessage);
       
@@ -1873,8 +1873,9 @@ io.on('connection', (socket) => {
       const socketCount = roomSockets ? roomSockets.size : 0;
       console.log('📢 Number of sockets in room:', roomId, '=', socketCount);
       
-      io.to(roomId).emit('chatMessageReceived', newMessage);
-      console.log('📢 Chat message broadcast completed');
+      // Broadcast to other players in the room (excluding sender)
+      socket.to(roomId).emit('chatMessageReceived', newMessage);
+      console.log('📢 Chat message broadcast completed (excluding sender)');
 
     } catch (error) {
       console.error('Error sending chat message:', error);
