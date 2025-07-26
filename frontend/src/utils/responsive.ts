@@ -9,9 +9,9 @@ import { useState, useEffect } from 'react';
 export const BREAKPOINTS = {
   MOBILE: 480,
   TABLET: 768,
-  LAPTOP: 1024,
-  DESKTOP: 1366,  // Common laptop width
-  WIDE: 1920,     // Full HD and above
+  LAPTOP: 900,   // Lowered to match desktop layout detection
+  DESKTOP: 1366, // Common laptop width
+  WIDE: 1920,    // Full HD and above
 } as const;
 
 // Screen size categories
@@ -60,6 +60,8 @@ export const useScreenSize = (): ScreenSize => {
   const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     const updateScreenSize = () => {
       const width = window.innerWidth;
       
@@ -86,10 +88,19 @@ export const useScreenSize = (): ScreenSize => {
       setScreenSize(newScreenSize);
     };
 
-    updateScreenSize();
-    window.addEventListener('resize', updateScreenSize);
+    // Debounce the resize event to prevent rapid switching
+    const debouncedUpdateScreenSize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateScreenSize, 150);
+    };
+
+    updateScreenSize(); // Initial check
+    window.addEventListener('resize', debouncedUpdateScreenSize);
     
-    return () => window.removeEventListener('resize', updateScreenSize);
+    return () => {
+      window.removeEventListener('resize', debouncedUpdateScreenSize);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   return screenSize;
@@ -113,6 +124,46 @@ export const useIsLaptopOrLarger = (): boolean => {
   return screenSize === 'laptop' || screenSize === 'desktop' || screenSize === 'wide';
 };
 
+// Hook for robust laptop/desktop detection that works with browser resizing
+export const useIsDesktopLayout = (): boolean => {
+  const [isDesktopLayout, setIsDesktopLayout] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    const checkLayout = () => {
+      const width = window.innerWidth;
+      // Use a lower threshold to ensure we get desktop layout even when console is open
+      // This prevents switching between desktop/tablet when opening dev tools
+      const shouldUseDesktopLayout = width >= 900;
+      
+      console.log('Desktop layout detection:', { 
+        width, 
+        shouldUseDesktopLayout,
+        threshold: '>= 900px (lowered from 1024px)'
+      });
+      
+      setIsDesktopLayout(shouldUseDesktopLayout);
+    };
+
+    // Debounce the resize event to prevent rapid switching
+    const debouncedCheckLayout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(checkLayout, 100);
+    };
+
+    checkLayout(); // Initial check
+    window.addEventListener('resize', debouncedCheckLayout);
+    
+    return () => {
+      window.removeEventListener('resize', debouncedCheckLayout);
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
+  return isDesktopLayout;
+};
+
 // Hook specifically for MacBook Air and similar laptop screens
 export const useIsMacBookAir = (): boolean => {
   const [isMacBookAir, setIsMacBookAir] = useState(false);
@@ -128,7 +179,15 @@ export const useIsMacBookAir = (): boolean => {
                                height >= 768 && height <= 1024 &&
                                (width / height) >= 1.4 && (width / height) <= 1.8;
       
-      console.log('MacBook Air detection:', { width, height, ratio: width/height, isMacBookAir: isMacBookAirSize });
+      console.log('MacBook Air detection:', { 
+        width, 
+        height, 
+        ratio: (width/height).toFixed(2), 
+        isMacBookAir: isMacBookAirSize,
+        widthRange: `${width >= 1366 && width <= 1600}`,
+        heightRange: `${height >= 768 && height <= 1024}`,
+        aspectRatio: `${(width / height) >= 1.4 && (width / height) <= 1.8}`
+      });
       setIsMacBookAir(isMacBookAirSize);
     };
 
