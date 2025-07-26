@@ -576,34 +576,45 @@ class DatabaseMultiplayerStateManager {
   setupRealtimeSync(roomId: string, callback: (data: any) => void): () => void {
     const eventTypes = ['roomUpdated', 'escrowUpdated', 'gameStarted', 'gameStateUpdated', 'chatMessage', 'connected'];
     
+    console.log(`🔗 setupRealtimeSync called for room: ${roomId} with ${eventTypes.length} event types`);
+    
     eventTypes.forEach(eventType => {
       if (!this.callbacks.has(eventType)) {
         this.callbacks.set(eventType, new Set());
+        console.log(`🔗 Created new callback set for eventType: ${eventType}`);
       }
       this.callbacks.get(eventType)!.add(callback);
+      console.log(`🔗 Added callback for eventType: ${eventType}, total callbacks: ${this.callbacks.get(eventType)!.size}`);
     });
 
     // Return cleanup function
     return () => {
+      console.log(`🔗 Cleaning up callbacks for room: ${roomId}`);
       eventTypes.forEach(eventType => {
         const callbacks = this.callbacks.get(eventType);
         if (callbacks) {
           callbacks.delete(callback);
+          console.log(`🔗 Removed callback for eventType: ${eventType}, remaining callbacks: ${callbacks.size}`);
         }
       });
     };
   }
 
   private notifyCallbacks(eventType: string, data: any): void {
+    console.log(`🔔 notifyCallbacks called with eventType: ${eventType}`, data);
     const callbacks = this.callbacks.get(eventType);
     if (callbacks) {
+      console.log(`🔔 Found ${callbacks.size} callbacks for eventType: ${eventType}`);
       callbacks.forEach(callback => {
         try {
+          console.log(`🔔 Calling callback for eventType: ${eventType}`);
           callback({ eventType, data });
         } catch (error) {
           console.error('❌ Error in callback:', error);
         }
       });
+    } else {
+      console.log(`🔔 No callbacks found for eventType: ${eventType}`);
     }
   }
 
