@@ -574,7 +574,7 @@ class DatabaseMultiplayerStateManager {
   }
 
   setupRealtimeSync(roomId: string, callback: (data: any) => void): () => void {
-    const eventTypes = ['roomUpdated', 'escrowUpdated', 'gameStarted', 'gameStateUpdated', 'chatMessage'];
+    const eventTypes = ['roomUpdated', 'escrowUpdated', 'gameStarted', 'gameStateUpdated', 'chatMessage', 'connected'];
     
     eventTypes.forEach(eventType => {
       if (!this.callbacks.has(eventType)) {
@@ -599,7 +599,7 @@ class DatabaseMultiplayerStateManager {
     if (callbacks) {
       callbacks.forEach(callback => {
         try {
-          callback(data);
+          callback({ eventType, data });
         } catch (error) {
           console.error('❌ Error in callback:', error);
         }

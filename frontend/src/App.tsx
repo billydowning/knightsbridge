@@ -1690,17 +1690,15 @@ function ChessApp() {
         });
       };
 
-      // Listen for chat message events
-      const socket = (databaseMultiplayerState as any).socket;
-      if (socket) {
-        console.log('🔗 Setting up chat message listener for room:', roomId);
-        socket.on('chatMessage', handleChatMessage);
-        
-        return () => {
-          console.log('🔗 Removing chat message listener for room:', roomId);
-          socket.off('chatMessage', handleChatMessage);
-        };
-      }
+      // Use the databaseMultiplayerState callback system instead of direct socket listeners
+      console.log('🔗 Setting up chat message listener for room:', roomId);
+      const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
+        if (eventData.eventType === 'chatMessage') {
+          handleChatMessage(eventData.data);
+        }
+      });
+      
+      return cleanup;
     }
   }, [roomId]);
 
@@ -1712,14 +1710,14 @@ function ChessApp() {
         fetchRoomStatus();
       };
 
-      const socket = (databaseMultiplayerState as any).socket;
-      if (socket) {
-        socket.on('escrowUpdated', handleEscrowUpdate);
-        
-        return () => {
-          socket.off('escrowUpdated', handleEscrowUpdate);
-        };
-      }
+      // Use the databaseMultiplayerState callback system
+      const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
+        if (eventData.eventType === 'escrowUpdated') {
+          handleEscrowUpdate();
+        }
+      });
+      
+      return cleanup;
     }
   }, [roomId, fetchRoomStatus]);
 
@@ -1816,14 +1814,14 @@ function ChessApp() {
         }
       };
 
-      const socket = (databaseMultiplayerState as any).socket;
-      if (socket) {
-        socket.on('gameStateUpdated', handleGameStateUpdated);
-        
-        return () => {
-          socket.off('gameStateUpdated', handleGameStateUpdated);
-        };
-      }
+      // Use the databaseMultiplayerState callback system
+      const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
+        if (eventData.eventType === 'gameStateUpdated') {
+          handleGameStateUpdated(eventData.data);
+        }
+      });
+      
+      return cleanup;
     }
   }, [roomId, gameMode]);
 
@@ -1896,16 +1894,16 @@ function ChessApp() {
         }
       };
 
-      const socket = (databaseMultiplayerState as any).socket;
-      if (socket) {
-        socket.on('gameStarted', handleGameStarted);
-        socket.on('roomUpdated', handleRoomUpdated);
-        
-        return () => {
-          socket.off('gameStarted', handleGameStarted);
-          socket.off('roomUpdated', handleRoomUpdated);
-        };
-      }
+      // Use the databaseMultiplayerState callback system
+      const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
+        if (eventData.eventType === 'gameStarted') {
+          handleGameStarted(eventData.data);
+        } else if (eventData.eventType === 'roomUpdated') {
+          handleRoomUpdated(eventData.data);
+        }
+      });
+      
+      return cleanup;
     }
   }, [roomId, gameMode]);
 
@@ -1925,14 +1923,13 @@ function ChessApp() {
       };
 
       // Check game state when connection is established
-      const socket = (databaseMultiplayerState as any).socket;
-      if (socket) {
-        socket.on('connect', checkGameState);
-        
-        return () => {
-          socket.off('connect', checkGameState);
-        };
-      }
+      const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
+        if (eventData.eventType === 'connected') {
+          checkGameState();
+        }
+      });
+      
+      return cleanup;
     }
   }, [roomId]);
 
