@@ -50,7 +50,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
   return (
     <div style={{
       width: '300px',
-      height: '600px',
+      height: '480px', // Match chessboard height (8 squares × 60px)
       border: '2px solid #ddd',
       borderRadius: '8px',
       backgroundColor: '#f8f9fa',
