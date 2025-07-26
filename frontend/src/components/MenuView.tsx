@@ -217,8 +217,9 @@ export const MenuView: React.FC<MenuViewProps> = ({
       <div style={{ 
         display: 'flex', 
         alignItems: 'center', 
-        margin: '30px 0',
-        color: theme.textSecondary
+        margin: '30px auto',
+        color: theme.textSecondary,
+        width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
       }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: theme.border }}></div>
         <span style={{ margin: '0 20px', fontSize: '18px', fontWeight: 'bold' }}>OR</span>
