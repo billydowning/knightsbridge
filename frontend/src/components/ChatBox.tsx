@@ -221,7 +221,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
                       fontSize: textSizes.small,
                       opacity: 0.8
                     }}>
-                      <span>{getMessageIcon(message.type)}</span>
                       {message.type !== 'system' && message.playerId !== playerRole && (
                         <span style={{ fontWeight: 'bold' }}>
                           {message.playerName}
