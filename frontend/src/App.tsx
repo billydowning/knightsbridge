@@ -457,8 +457,8 @@ function ChessApp() {
                               !gameState.inCheck &&
                               !gameState.inCheckmate;
         
-        if (isInitialState && playerRole === 'white') {
-          console.log('🔄 Skipping save - this appears to be initial state broadcast back to white player');
+        if (isInitialState && (playerRole === 'white' || playerRole === 'black')) {
+          console.log('🔄 Skipping save - this appears to be initial state broadcast back to player');
           return;
         }
         
@@ -468,6 +468,12 @@ function ChessApp() {
         
         if (hasRecentMove) {
           console.log('🔄 Skipping save - recent move already being saved');
+          return;
+        }
+        
+        // Additional check: don't save if we're in the middle of processing a server update
+        if (isReceivingServerUpdate) {
+          console.log('🔄 Skipping save - currently processing server update');
           return;
         }
         
@@ -1691,8 +1697,17 @@ function ChessApp() {
             const delay = playerRole === 'black' ? 1200 : 800;
             setTimeout(() => {
               setIsReceivingServerUpdate(false);
-              // Also reset the last saved state to prevent immediate re-save
-              setLastSavedState('');
+              // Update the last saved state to match the new state to prevent re-save
+              const newStateHash = JSON.stringify({
+                position: data.gameState.position,
+                currentPlayer: data.gameState.currentPlayer,
+                moveHistory: data.gameState.moveHistory,
+                winner: data.gameState.winner,
+                draw: data.gameState.draw,
+                inCheck: data.gameState.inCheck,
+                inCheckmate: data.gameState.inCheckmate
+              });
+              setLastSavedState(newStateHash);
               console.log('🔄 Server update processing completed');
             }, delay);
           } else if (localStateHash !== receivedStateHash && receivedTimestamp < localTimestamp) {
