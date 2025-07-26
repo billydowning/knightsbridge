@@ -251,6 +251,8 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
         backgroundColor: '#333',
         maxWidth: '100%',
         maxHeight: '100%',
+        padding: '8px',
+        boxSizing: 'border-box'
       }}
       role="grid"
       aria-label="Chess board"
