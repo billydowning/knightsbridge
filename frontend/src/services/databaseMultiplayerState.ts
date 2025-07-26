@@ -576,54 +576,34 @@ class DatabaseMultiplayerStateManager {
   setupRealtimeSync(roomId: string, callback: (data: any) => void): () => void {
     const eventTypes = ['roomUpdated', 'escrowUpdated', 'gameStarted', 'gameStateUpdated', 'chatMessage', 'connected'];
     
-    console.log(`🔗 setupRealtimeSync called for room: ${roomId} with ${eventTypes.length} event types`);
-    console.log(`🔗 Callback function:`, callback.toString().substring(0, 100) + '...');
-    
-    // Add a unique ID to this callback for debugging
-    const callbackId = Math.random().toString(36).substr(2, 9);
-    console.log(`🔗 Created callback with ID: ${callbackId}`);
-    
     eventTypes.forEach(eventType => {
       if (!this.callbacks.has(eventType)) {
         this.callbacks.set(eventType, new Set());
-        console.log(`🔗 Created new callback set for eventType: ${eventType}`);
       }
       this.callbacks.get(eventType)!.add(callback);
-      console.log(`🔗 Added callback ${callbackId} for eventType: ${eventType}, total callbacks: ${this.callbacks.get(eventType)!.size}`);
     });
 
     // Return cleanup function
     return () => {
-      console.log(`🔗 Cleaning up callbacks for room: ${roomId}, callback ID: ${callbackId}`);
       eventTypes.forEach(eventType => {
         const callbacks = this.callbacks.get(eventType);
         if (callbacks) {
           callbacks.delete(callback);
-          console.log(`🔗 Removed callback ${callbackId} for eventType: ${eventType}, remaining callbacks: ${callbacks.size}`);
         }
       });
     };
   }
 
   private notifyCallbacks(eventType: string, data: any): void {
-    console.log(`🔔 notifyCallbacks called with eventType: ${eventType}`, data);
     const callbacks = this.callbacks.get(eventType);
     if (callbacks) {
-      console.log(`🔔 Found ${callbacks.size} callbacks for eventType: ${eventType}`);
-      let callbackIndex = 0;
       callbacks.forEach(callback => {
         try {
-          console.log(`🔔 Calling callback ${callbackIndex + 1}/${callbacks.size} for eventType: ${eventType}`);
-          console.log(`🔔 Callback function:`, callback.toString().substring(0, 100) + '...');
           callback({ eventType, data });
-          console.log(`🔔 Successfully called callback ${callbackIndex + 1}/${callbacks.size} for eventType: ${eventType}`);
         } catch (error) {
-          console.error(`❌ Error in callback ${callbackIndex + 1}/${callbacks.size}:`, error);
+          console.error('❌ Error in callback:', error);
         }
-        callbackIndex++;
       });
-    } else {
-      console.log(`🔔 No callbacks found for eventType: ${eventType}`);
     }
   }
 

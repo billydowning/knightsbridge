@@ -1663,15 +1663,7 @@ function ChessApp() {
 
   // Listen for real-time chat messages
   useEffect(() => {
-    console.log('🔗 Chat message useEffect triggered with:', {
-      roomId,
-      isConnected: databaseMultiplayerState.isConnected(),
-      gameMode
-    });
-    
     if (roomId && databaseMultiplayerState.isConnected()) {
-      console.log('🔗 Chat message useEffect conditions met, setting up listener');
-      
       const handleChatMessage = (message: any) => {
         try {
           console.log('💬 Received real-time chat message:', message);
@@ -1708,17 +1700,13 @@ function ChessApp() {
       };
 
       // Use the databaseMultiplayerState callback system instead of direct socket listeners
-      console.log('🔗 Setting up chat message listener for room:', roomId);
-      const callbackId = Math.random().toString(36).substr(2, 9);
       const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
         try {
-          console.log(`🔗 Callback ${callbackId} received eventData:`, eventData);
           if (eventData.eventType === 'chatMessage') {
-            console.log(`🔗 Callback ${callbackId} processing chatMessage event:`, eventData.data);
             handleChatMessage(eventData.data);
           }
         } catch (error) {
-          console.error(`❌ Error in callback ${callbackId}:`, error);
+          console.error('❌ Error in chat message callback:', error);
           console.error('❌ Error details:', {
             message: error.message,
             stack: error.stack,
@@ -1728,11 +1716,6 @@ function ChessApp() {
       });
       
       return cleanup;
-    } else {
-      console.log('🔗 Chat message useEffect conditions not met:', {
-        roomId: !!roomId,
-        isConnected: databaseMultiplayerState.isConnected()
-      });
     }
   }, [roomId, databaseMultiplayerState.isConnected()]);
 

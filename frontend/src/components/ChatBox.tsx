@@ -36,12 +36,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
   const isMobile = useIsMobile();
   const isTabletOrSmaller = useIsTabletOrSmaller();
 
-  // Debug: Log when messages prop changes
-  useEffect(() => {
-    console.log('💬 ChatBox received messages prop:', messages);
-    console.log('💬 ChatBox messages count:', messages.length);
-    console.log('💬 ChatBox messages:', messages);
-  }, [messages]);
+
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -167,63 +162,19 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {/* Test message to verify rendering works */}
-            <div style={{ 
-              padding: '10px', 
-              backgroundColor: 'red', 
-              color: 'white', 
-              margin: '5px 0',
-              borderRadius: '8px'
-            }}>
-              🧪 TEST: Rendering {messages.length} messages | Current Role: {playerRole}
-              <button 
-                onClick={() => {
-                  const testMsg = { 
-                    id: Date.now().toString(),
-                    playerId: 'white', 
-                    playerName: 'white',
-                    message: 'Test from white', 
-                    timestamp: Date.now() 
-                  };
-                  console.log('🧪 Adding test message:', testMsg);
-                  // This would need to be passed up to parent to add to state
-                }}
-                style={{ 
-                  marginLeft: '10px', 
-                  padding: '5px 10px', 
-                  backgroundColor: 'white', 
-                  color: 'red', 
-                  border: 'none', 
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Add Test Message
-              </button>
-            </div>
-            
-            {messages.map((message, index) => {
-              console.log('💬 Rendering message:', index, message);
-              console.log('💬 Message playerId:', message.playerId);
-              console.log('💬 Current playerRole:', playerRole);
-              console.log('💬 Message playerName:', message.playerName);
-              console.log('💬 Message text:', message.message);
-              console.log('💬 Role comparison:', message.playerId === playerRole ? 'SAME ROLE' : 'DIFFERENT ROLE');
-              
-              return (
-                <div key={index} style={{
-                  alignSelf: message.playerId === playerRole ? 'flex-end' : 'flex-start',  // Self right, opponent left
-                  backgroundColor: message.playerId === playerRole ? '#007bff' : '#6c757d',  // Blue for self, gray for opponent
-                  color: 'white',
-                  padding: '8px 12px',
-                  borderRadius: '12px',
-                  maxWidth: '75%',
-                  marginBottom: '8px'
-                }}>
-                  <strong>{message.playerName || message.playerId}:</strong> {message.message}
-                </div>
-              );
-            })}
+            {messages.map((message, index) => (
+              <div key={index} style={{
+                alignSelf: message.playerId === playerRole ? 'flex-end' : 'flex-start',  // Self right, opponent left
+                backgroundColor: message.playerId === playerRole ? '#007bff' : '#6c757d',  // Blue for self, gray for opponent
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '12px',
+                maxWidth: '75%',
+                marginBottom: '8px'
+              }}>
+                <strong>{message.playerName || message.playerId}:</strong> {message.message}
+              </div>
+            ))}
             <div ref={messagesEndRef} />
           </div>
         )}
