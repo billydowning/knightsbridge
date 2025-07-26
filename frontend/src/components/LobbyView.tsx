@@ -67,7 +67,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         borderRadius: '10px',
         border: `2px solid ${theme.border}`,
         boxShadow: theme.shadow,
-        width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
+        width: '750px' // Match the actual rendered width of the two middle boxes
       }}>
         <h3 style={{ margin: '0 0 15px 0', color: theme.text }}>📋 Share Room ID</h3>
         <div style={{ 
@@ -124,10 +124,10 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         display: 'flex',
         gap: '15px',
         margin: '0 auto 20px auto',
-        width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
+        width: '750px' // Match the actual rendered width of all boxes
       }}>
         <div style={{ 
-          width: '392.5px', // (800px - 15px gap) / 2
+          width: '367.5px', // (750px - 15px gap) / 2
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
@@ -153,7 +153,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         </div>
 
         <div style={{ 
-          width: '392.5px', // (800px - 15px gap) / 2
+          width: '367.5px', // (750px - 15px gap) / 2
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
@@ -204,7 +204,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           borderRadius: '8px', 
           margin: '20px auto',
           border: `1px solid ${theme.border}`,
-          width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
+          width: '750px' // Match the actual rendered width of all boxes
         }}>
           <h4 style={{ margin: '0 0 15px 0', color: theme.text }}>👥 Players in Room</h4>
           <div style={{ 
@@ -258,7 +258,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           borderRadius: '8px', 
           margin: '20px auto',
           border: `1px solid ${theme.warning}`,
-          width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
+          width: '750px' // Match the actual rendered width of all boxes
         }}>
           <h4 style={{ margin: '0 0 10px 0', color: theme.warning }}>⚠️ Waiting for Opponent!</h4>
           <p style={{ margin: '10px 0', color: theme.textSecondary }}>Share this room ID with your opponent:</p>
@@ -288,7 +288,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           borderRadius: '8px', 
           margin: '20px auto',
           border: `1px solid ${theme.warning}`,
-          width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
+          width: '750px' // Match the actual rendered width of all boxes
         }}>
           <h4 style={{ margin: '0 0 10px 0', color: theme.warning }}>🎮 Ready for New Game!</h4>
           <p style={{ margin: '0', color: theme.textSecondary }}>Both players need to create new escrows to start playing again.</p>
@@ -329,7 +329,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               borderRadius: '8px', 
               margin: '20px auto',
               border: `1px solid ${theme.success}`,
-              width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
+              width: '750px' // Match the actual rendered width of all boxes
             }}>
               <p style={{ margin: '0', fontWeight: 'bold', color: theme.successDark }}>
                 ✅ Your escrow created! 
