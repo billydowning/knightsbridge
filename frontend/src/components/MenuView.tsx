@@ -45,7 +45,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
     if (normalBetSectionRef.current) {
       setLargerAmountsWidth(`${normalBetSectionRef.current.offsetWidth}px`);
     }
-  }, []);
+  }, [showLargerAmounts]); // Add showLargerAmounts to dependencies
 
   const sharedButtonStyle = {
     padding: '12px 20px',
@@ -56,7 +56,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
     borderRadius: '8px',
     border: undefined,
     cursor: 'pointer',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s ease',
+    textAlign: 'center' as const
   };
 
   const handleCreateRoom = () => {
@@ -78,12 +79,15 @@ export const MenuView: React.FC<MenuViewProps> = ({
         marginBottom: '30px',
         border: `1px solid ${theme.border}`,
         width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
-        margin: '0 auto'
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center'
       }}>
         <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Create A Room</h2>
         
         {/* Bet Amount Buttons */}
-        <div ref={normalBetSectionRef} style={{ marginBottom: '25px' }}>
+        <div ref={normalBetSectionRef} style={{ marginBottom: '25px', width: '100%' }}>
           <h4 style={{ margin: '0 0 15px 0', color: theme.textSecondary }}>Choose Bet Amount:</h4>
           <div style={{ 
             display: 'flex', 
@@ -135,7 +139,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
               borderRadius: '8px',
               border: `1px solid ${theme.border}`,
               width: largerAmountsWidth,
-              margin: '0 auto'
+              margin: '0 auto',
+              alignSelf: 'center'
             }}>
               <div style={{ 
                 display: 'flex', 
