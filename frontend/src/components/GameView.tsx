@@ -6,6 +6,7 @@
 import React from 'react';
 import { ChessBoard } from './ChessBoard';
 import { ChatBox, type ChatMessage } from './ChatBox';
+import { useTheme } from '../App';
 import type { GameState } from '../types';
 
 export interface GameViewProps {
@@ -45,6 +46,7 @@ export const GameView: React.FC<GameViewProps> = ({
   chatMessages = [],
   onSendChatMessage
 }) => {
+  const { theme } = useTheme();
   const isGameOver = gameState.winner || gameState.draw;
   const isMyTurn = gameState.currentPlayer === playerRole;
   const canClaimWinnings = (gameState.winner === playerRole || gameState.draw) && !winningsClaimed;
@@ -76,15 +78,15 @@ export const GameView: React.FC<GameViewProps> = ({
         justifyContent: 'space-between', 
         marginBottom: '20px',
         padding: '10px',
-        backgroundColor: '#f8f9fa',
+        backgroundColor: theme.surface,
         borderRadius: '8px',
         flexWrap: 'wrap',
         gap: '10px',
-        color: '#333',
+        color: theme.text,
         width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
         margin: '0 auto 20px auto' // Center the box
       }}>
-        <div style={{ fontSize: '14px', color: '#333' }}>
+        <div style={{ fontSize: '14px', color: theme.text }}>
           <strong>Room:</strong> {roomId} | <strong>Role:</strong> 
           <span style={{ 
             color: playerRole === 'white' ? '#4CAF50' : '#FF9800',
@@ -94,7 +96,7 @@ export const GameView: React.FC<GameViewProps> = ({
             {playerRole.toUpperCase()}
           </span>
         </div>
-        <div style={{ fontSize: '14px', color: '#333' }}>
+        <div style={{ fontSize: '14px', color: theme.text }}>
           <strong>Turn:</strong> {gameState.currentPlayer} | <strong>Pot:</strong> {potValue} SOL
         </div>
       </div>
@@ -102,18 +104,18 @@ export const GameView: React.FC<GameViewProps> = ({
       {/* Enhanced Status Display */}
       <div style={{ 
         padding: '15px', 
-        backgroundColor: gameState.inCheckmate ? '#ffebee' : gameState.inCheck ? '#ffe6e6' : '#f0f0f0', 
+        backgroundColor: theme.surface, 
         borderRadius: '8px',
-        border: gameState.inCheckmate ? '2px solid #d32f2f' : gameState.inCheck ? '2px solid #ff6b6b' : '1px solid #ddd',
-        color: '#333',
+        border: `2px solid ${theme.border}`,
+        color: theme.text,
         width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
         margin: '10px auto' // Center the box
       }}>
-        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
+        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: theme.text }}>
           <strong>Game Status:</strong> {getGameStatusMessage()}
         </div>
         
-        <div style={{ fontSize: '16px', color: '#555' }}>
+        <div style={{ fontSize: '16px', color: theme.textSecondary }}>
           {getPlayerStatusMessage()}
         </div>
 
@@ -182,26 +184,26 @@ export const GameView: React.FC<GameViewProps> = ({
         gap: '15px',
         marginTop: '20px',
         fontSize: '14px',
-        backgroundColor: '#f8f9fa',
+        backgroundColor: theme.surface,
         padding: '15px',
         borderRadius: '8px',
-        color: '#333',
+        color: theme.text,
         width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
         margin: '20px auto' // Center the box
       }}>
-        <div style={{ textAlign: 'center', color: '#333' }}>
+        <div style={{ textAlign: 'center', color: theme.text }}>
           <strong>Moves</strong><br/>
           {gameState.moveHistory.length}
         </div>
-        <div style={{ textAlign: 'center', color: '#333' }}>
+        <div style={{ textAlign: 'center', color: theme.text }}>
           <strong>50-move rule</strong><br/>
           {gameState.halfmoveClock}/100
         </div>
-        <div style={{ textAlign: 'center', color: '#333' }}>
+        <div style={{ textAlign: 'center', color: theme.text }}>
           <strong>Full moves</strong><br/>
           {gameState.fullmoveNumber}
         </div>
-        <div style={{ textAlign: 'center', color: '#333' }}>
+        <div style={{ textAlign: 'center', color: theme.text }}>
           <strong>Castling</strong><br/>
           {gameState.castlingRights || 'None'}
         </div>
