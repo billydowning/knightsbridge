@@ -132,6 +132,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {/* Player Info */}
       <div style={{ 
         display: 'flex',
+        gap: '15px',
         margin: '0 auto 20px auto',
         width: middleWidth
       }}>
