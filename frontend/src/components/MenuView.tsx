@@ -46,16 +46,6 @@ export const MenuView: React.FC<MenuViewProps> = ({
   const isMacBookAir = useIsMacBookAir();
   const isDesktopLayout = useIsDesktopLayout();
 
-  // Dynamic width measurement for larger amounts container
-  const normalBetSectionRef = React.useRef<HTMLDivElement>(null);
-  const [largerAmountsWidth, setLargerAmountsWidth] = React.useState('auto');
-
-  React.useEffect(() => {
-    if (normalBetSectionRef.current) {
-      setLargerAmountsWidth(`${normalBetSectionRef.current.offsetWidth}px`);
-    }
-  }, [showLargerAmounts]); // Add showLargerAmounts to dependencies
-
   const sharedButtonStyle = {
     padding: isDesktopLayout ? '16px 24px' : '10px 16px',
     minWidth: isDesktopLayout ? '140px' : '80px',
@@ -100,12 +90,14 @@ export const MenuView: React.FC<MenuViewProps> = ({
         }}>🎯 Create A Room</h2>
         
         {/* Bet Amount Buttons */}
-        <div ref={normalBetSectionRef} style={{ marginBottom: isDesktopLayout ? '30px' : '20px', width: '100%' }}>
+        <div style={{ marginBottom: isDesktopLayout ? '30px' : '20px', width: '100%' }}>
           <h4 style={{ 
             margin: '0 0 15px 0', 
             color: theme.textSecondary,
             fontSize: isDesktopLayout ? '1.5rem' : textSizes.h3
           }}>Choose Bet Amount:</h4>
+          
+          {/* Normal bet amounts */}
           <div style={{ 
             display: 'flex', 
             flexWrap: 'wrap', 
@@ -128,6 +120,32 @@ export const MenuView: React.FC<MenuViewProps> = ({
             ))}
           </div>
           
+          {/* Larger bet amounts (hidden by default) */}
+          {showLargerAmounts && (
+            <div style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: isDesktopLayout ? '15px' : '6px', 
+              justifyContent: 'center',
+              marginTop: isDesktopLayout ? '15px' : '10px'
+            }}>
+              {largeBetAmounts.map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => setBetAmount(amount)}
+                  style={{
+                    ...sharedButtonStyle,
+                    backgroundColor: betAmount === amount ? theme.primary : theme.surface,
+                    color: betAmount === amount ? 'white' : theme.text,
+                    border: `2px solid ${theme.border}`
+                  }}
+                >
+                  {amount} SOL
+                </button>
+              ))}
+            </div>
+          )}
+          
           {/* Toggle for larger amounts */}
           <button
             onClick={() => setShowLargerAmounts(!showLargerAmounts)}
@@ -146,42 +164,6 @@ export const MenuView: React.FC<MenuViewProps> = ({
           >
             {showLargerAmounts ? '▼ Hide larger amounts' : '▶ Click here to see larger amounts'}
           </button>
-          
-          {/* Larger bet amounts (hidden by default) */}
-          {showLargerAmounts && (
-            <div style={{ 
-              marginTop: isDesktopLayout ? '20px' : '12px',
-              padding: isDesktopLayout ? '20px' : '10px',
-              backgroundColor: theme.background,
-              borderRadius: '8px',
-              border: `1px solid ${theme.border}`,
-              width: largerAmountsWidth,
-              margin: '0 auto',
-              alignSelf: 'center'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: isDesktopLayout ? '15px' : '6px', 
-                justifyContent: 'center' 
-              }}>
-                {largeBetAmounts.map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => setBetAmount(amount)}
-                    style={{
-                      ...sharedButtonStyle,
-                      backgroundColor: betAmount === amount ? theme.primary : theme.surface,
-                      color: betAmount === amount ? 'white' : theme.text,
-                      border: `2px solid ${theme.border}`
-                    }}
-                  >
-                    {amount} SOL
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Create Room Button */}
