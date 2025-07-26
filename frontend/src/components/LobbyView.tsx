@@ -3,7 +3,7 @@
  * Room management screen showing players, escrows, and game start options
  */
 
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useTheme } from '../App';
 import type { RoomStatus } from '../types';
 
@@ -41,6 +41,16 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const { theme } = useTheme();
   const [copied, setCopied] = React.useState(false);
   
+  // Dynamic width measurement hooks
+  const topRef = useRef<HTMLDivElement>(null);
+  const [middleWidth, setMiddleWidth] = useState('auto');
+
+  useEffect(() => {
+    if (topRef.current) {
+      setMiddleWidth(`${topRef.current.offsetWidth}px`);
+    }
+  }, []); // Runs once after mount
+  
   // Debug: Log room status
   React.useEffect(() => {
     console.log('🔍 LobbyView room status:', roomStatus);
@@ -60,7 +70,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       <h2 style={{ color: theme.text }}>🏠 Room ID: {roomId}</h2>
       
       {/* Room ID Share Section */}
-      <div style={{ 
+      <div ref={topRef} style={{ 
         margin: '20px auto',
         padding: '20px',
         backgroundColor: theme.surface,
@@ -123,10 +133,10 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       <div style={{ 
         display: 'flex',
         margin: '0 auto 20px auto',
-        width: '785px'
+        width: middleWidth
       }}>
         <div style={{ 
-          width: '392.5px',
+          flex: 1,
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
@@ -153,7 +163,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         </div>
 
         <div style={{ 
-          width: '392.5px',
+          flex: 1,
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
