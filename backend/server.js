@@ -1874,7 +1874,7 @@ io.on('connection', (socket) => {
       console.log('📢 Number of sockets in room:', roomId, '=', socketCount);
       
       // Broadcast to other players in the room (excluding sender)
-      socket.to(roomId).emit('chatMessageReceived', newMessage);
+      socket.to(roomId).emit('chatMessage', newMessage);
       console.log('📢 Chat message broadcast completed (excluding sender)');
       
       // Debug: Log the socket IDs in the room
