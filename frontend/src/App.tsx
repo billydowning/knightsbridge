@@ -1479,17 +1479,10 @@ function ChessApp() {
   const fetchRoomStatus = useCallback(async () => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       try {
-        console.log('🔍 fetchRoomStatus called for room:', roomId);
         const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-        console.log('🔍 DEBUG - fetchRoomStatus returned:', roomStatus);
-        console.log('🔍 DEBUG - roomStatus.playerCount:', roomStatus?.playerCount);
-        console.log('🔍 DEBUG - roomStatus.escrowCount:', roomStatus?.escrowCount);
-        console.log('🔍 DEBUG - roomStatus.players:', roomStatus?.players);
-        console.log('🔍 DEBUG - roomStatus.escrows:', roomStatus?.escrows);
         
         if (roomStatus) {
           setRoomStatus(roomStatus);
-          console.log('✅ Room status updated:', roomStatus);
         }
       } catch (error) {
         console.error('Error fetching room status:', error);
@@ -1509,16 +1502,6 @@ function ChessApp() {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleChatMessage = (message: any) => {
         try {
-          console.log('💬 Received real-time chat message:', message);
-          console.log('💬 Message details:', {
-            id: message.id,
-            playerId: message.playerId,
-            playerRole: message.playerRole,
-            message: message.message,
-            timestamp: message.timestamp
-          });
-          console.log('💬 Current chat messages count:', chatMessages.length);
-          
           const newMessage = {
             ...message,
             playerId: message.playerRole || message.playerId, // Map playerRole to playerId
@@ -1526,19 +1509,12 @@ function ChessApp() {
             timestamp: typeof message.timestamp === 'string' ? new Date(message.timestamp).getTime() : message.timestamp
           };
           
-          console.log('💬 Adding new message to state:', newMessage);
           setChatMessages(prev => {
             const updated = [...prev, newMessage];
-            console.log('💬 Updated chat messages count:', updated.length);
             return updated;
           });
         } catch (error) {
           console.error('❌ Error in handleChatMessage:', error);
-          console.error('❌ Error details:', {
-            message: error.message,
-            stack: error.stack,
-            inputMessage: message
-          });
         }
       };
 
@@ -1566,7 +1542,6 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleEscrowUpdate = () => {
-        console.log('💰 Escrow updated, refreshing room status');
         fetchRoomStatus();
       };
 
@@ -1585,23 +1560,14 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStateUpdated = (data: any) => {
-        console.log('📢 Game state updated event received:', data);
-        
         // Skip if this is our own broadcast
         const currentSocketId = (databaseMultiplayerState as any).socket?.id;
-        console.log('🔍 Socket ID comparison - Current:', currentSocketId, 'Sender:', data.senderId);
         
         if (data.senderId && currentSocketId === data.senderId) {
-          console.log('🔄 Skipping own broadcast');
           return;
         }
         
         if (data.gameState && gameMode === 'game') {
-          console.log('🎮 Updating game state from server:', data.gameState);
-          console.log('🔍 Current local state:', gameState);
-          console.log('🔍 Received state currentPlayer:', data.gameState.currentPlayer);
-          console.log('🔍 Local state currentPlayer:', gameState.currentPlayer);
-          
           // Check if this is a meaningful state update (not just a duplicate)
           const localStateHash = JSON.stringify({
             position: gameState.position,
@@ -1627,13 +1593,8 @@ function ChessApp() {
           const localTimestamp = gameState.lastUpdated || 0;
           const receivedTimestamp = data.gameState.lastUpdated || 0;
           
-          console.log('🔍 Timestamp comparison - Local:', localTimestamp, 'Received:', receivedTimestamp);
-          
           // Only update if the state has actually changed AND the received state is newer
           if (localStateHash !== receivedStateHash && receivedTimestamp >= localTimestamp) {
-            console.log('🔄 State has changed and is newer, updating from server');
-            console.log('🔍 Updating from currentPlayer:', gameState.currentPlayer, 'to:', data.gameState.currentPlayer);
-            
             sendLogToBackend('info', 'State has changed and is newer, updating from server', {
               fromPlayer: gameState.currentPlayer,
               toPlayer: data.gameState.currentPlayer,
@@ -1663,13 +1624,8 @@ function ChessApp() {
                 inCheckmate: data.gameState.inCheckmate
               });
               setLastSavedState(newStateHash);
-              console.log('🔄 Server update processing completed');
               sendLogToBackend('info', 'Server update processing completed', { delay });
             }, delay);
-          } else if (localStateHash !== receivedStateHash && receivedTimestamp < localTimestamp) {
-            console.log('🔄 Received state is older than local state, ignoring update');
-          } else {
-            console.log('🔄 Received state is identical to local state, skipping update');
           }
         }
       };
@@ -1689,7 +1645,6 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStarted = (data: any) => {
-        console.log('🎮 Game started event received:', data);
         setGameMode('game');
         // Reset game state for new game
         setGameState({
@@ -1720,10 +1675,8 @@ function ChessApp() {
       };
 
       const handleRoomUpdated = (data: any) => {
-        console.log('📢 Room updated event received:', data);
         // Check if game state is active as a fallback for gameStarted event
         if (data.gameState === 'active' && gameMode === 'lobby') {
-          console.log('🎮 Game state is active, switching to game mode');
           setGameMode('game');
           // Reset game state for new game
           setGameState({
@@ -1774,7 +1727,6 @@ function ChessApp() {
         try {
           const gameState = await databaseMultiplayerState.getGameState(roomId);
           if (gameState && gameState.gameActive) {
-            console.log('🎮 Game is already active, switching to game mode');
             setGameMode('game');
           }
         } catch (error) {
@@ -1797,7 +1749,6 @@ function ChessApp() {
   useEffect(() => {
     if (gameMode === 'lobby' && roomId) {
       // Disable polling to prevent connection issues - rely only on WebSocket events
-      console.log('⏳ Polling disabled to prevent connection issues');
       
       // Only use WebSocket events for game state updates
       return () => {
