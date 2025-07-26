@@ -7,7 +7,7 @@ import React from 'react';
 import { ChessBoard } from './ChessBoard';
 import { ChatBox, type ChatMessage } from './ChatBox';
 import { useTheme } from '../App';
-import { useLayoutConfig, useTextSizes, useIsMobile } from '../utils/responsive';
+import { useLayoutConfig, useTextSizes, useIsMobile, useChessBoardConfig, useIsDesktopLayout } from '../utils/responsive';
 import type { GameState } from '../types';
 
 export interface GameViewProps {
@@ -45,9 +45,15 @@ export const GameView: React.FC<GameViewProps> = ({
   const layoutConfig = useLayoutConfig();
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
+  const { boardSize } = useChessBoardConfig();
+  const isDesktopLayout = useIsDesktopLayout();
 
   const canClaimWinnings = gameState.winner && !winningsClaimed;
   const isGameOver = gameState.winner || gameState.draw;
+
+  // Calculate the total width of chessboard + chatbox for desktop layout
+  const chatBoxWidth = isDesktopLayout ? 300 : (isMobile ? '100%' : '300px');
+  const totalGameWidth = isDesktopLayout ? boardSize + 300 + 20 : '100%'; // 20px for gap
 
   return (
     <div style={{ 
@@ -62,13 +68,10 @@ export const GameView: React.FC<GameViewProps> = ({
         backgroundColor: theme.surface,
         padding: isMobile ? '15px' : '20px',
         borderRadius: '8px',
-        border: `1px solid ${theme.border}`
+        border: `1px solid ${theme.border}`,
+        width: isDesktopLayout ? `${totalGameWidth}px` : '100%',
+        margin: isDesktopLayout ? '0 auto 20px auto' : '0 0 15px 0'
       }}>
-        <h2 style={{ 
-          margin: '0 0 10px 0', 
-          color: theme.text,
-          fontSize: textSizes.h2
-        }}>♟️ Chess Game</h2>
         <div style={{ 
           display: 'grid',
           gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
@@ -126,7 +129,8 @@ export const GameView: React.FC<GameViewProps> = ({
           <div style={{
             width: layoutConfig.gameLayout === 'column' ? '100%' : '300px',
             maxWidth: layoutConfig.gameLayout === 'column' ? '500px' : '300px',
-            minHeight: layoutConfig.gameLayout === 'column' ? '200px' : '480px'
+            height: layoutConfig.gameLayout === 'column' ? '200px' : `${boardSize}px`,
+            minHeight: layoutConfig.gameLayout === 'column' ? '200px' : `${boardSize}px`
           }}>
             <ChatBox
               roomId={roomId}
