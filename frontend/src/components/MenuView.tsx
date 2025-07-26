@@ -151,15 +151,21 @@ export const MenuView: React.FC<MenuViewProps> = ({
         {/* Balance Display */}
         {connected && (
           <div style={{ 
-            marginBottom: '20px', 
-            padding: '12px', 
-            backgroundColor: theme.background, 
-            borderRadius: '8px',
-            fontSize: '14px',
-            color: theme.textSecondary,
-            border: `1px solid ${theme.border}`
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: '20px'
           }}>
-            <strong>Your Balance:</strong> {balance.toFixed(3)} SOL
+            <div style={{ 
+              padding: '12px 20px', 
+              backgroundColor: theme.background, 
+              borderRadius: '8px',
+              fontSize: '14px',
+              color: theme.textSecondary,
+              border: `1px solid ${theme.border}`,
+              textAlign: 'center'
+            }}>
+              <strong>Your Balance:</strong> {balance.toFixed(3)} SOL
+            </div>
           </div>
         )}
 
