@@ -63,6 +63,10 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
   }, [disabled]);
 
   const getPieceStyle = useCallback((): React.CSSProperties => {
+    // Determine if piece is white or black
+    const isWhitePiece = ['♔', '♕', '♖', '♗', '♘', '♙'].includes(piece);
+    const isBlackPiece = ['♚', '♛', '♜', '♝', '♞', '♟'].includes(piece);
+    
     const baseStyle: React.CSSProperties = {
       fontSize: '2.5rem',
       fontWeight: 'bold',
@@ -71,12 +75,21 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
       filter: disabled ? 'grayscale(50%)' : 'none',
     };
 
+    // Apply color based on piece type
+    if (isWhitePiece) {
+      baseStyle.color = '#ffffff'; // White pieces
+      baseStyle.textShadow = '2px 2px 4px rgba(0,0,0,0.8)'; // Darker shadow for contrast
+    } else if (isBlackPiece) {
+      baseStyle.color = '#000000'; // Black pieces
+      baseStyle.textShadow = '2px 2px 4px rgba(255,255,255,0.3)'; // Lighter shadow for contrast
+    }
+
     if (isHovered && !disabled) {
       baseStyle.transform = 'scale(1.1)';
     }
 
     return baseStyle;
-  }, [isHovered, disabled]);
+  }, [isHovered, disabled, piece]);
 
   return (
     <div
