@@ -433,6 +433,23 @@ function ChessApp() {
   const [lastSavedState, setLastSavedState] = useState<string>('');
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  // Function to send console logs to backend for debugging
+  const sendLogToBackend = (level: string, message: string, data?: any) => {
+    if (databaseMultiplayerState.isConnected()) {
+      const socket = (databaseMultiplayerState as any).socket;
+      if (socket) {
+        socket.emit('clientLog', {
+          level,
+          message,
+          data,
+          timestamp: Date.now(),
+          roomId,
+          playerRole
+        });
+      }
+    }
+  };
+
   // Save game state to database when it changes (but not on every change)
   useEffect(() => {
     if (roomId && gameMode === 'game' && gameState.gameActive && !isReceivingServerUpdate) {
@@ -459,6 +476,7 @@ function ChessApp() {
         
         if (isInitialState && (playerRole === 'white' || playerRole === 'black')) {
           console.log('🔄 Skipping save - this appears to be initial state broadcast back to player');
+          sendLogToBackend('info', 'Skipping save - initial state broadcast back to player', { playerRole });
           return;
         }
         
@@ -468,12 +486,14 @@ function ChessApp() {
         
         if (hasRecentMove) {
           console.log('🔄 Skipping save - recent move already being saved');
+          sendLogToBackend('info', 'Skipping save - recent move already being saved', { lastMove: gameState.lastMove });
           return;
         }
         
         // Additional check: don't save if we're in the middle of processing a server update
         if (isReceivingServerUpdate) {
           console.log('🔄 Skipping save - currently processing server update');
+          sendLogToBackend('info', 'Skipping save - currently processing server update');
           return;
         }
         
@@ -485,9 +505,15 @@ function ChessApp() {
         // Debounce the save operation with longer delay
         const timeout = setTimeout(() => {
           console.log('💾 Saving game state to database for sync');
+          sendLogToBackend('info', 'Saving game state to database for sync', { 
+            currentPlayer: gameState.currentPlayer,
+            moveHistoryLength: gameState.moveHistory?.length || 0,
+            lastMove: gameState.lastMove
+          });
           setLastSavedState(stateHash);
           databaseMultiplayerState.saveGameState(roomId, gameState).catch(error => {
             console.error('Error saving game state:', error);
+            sendLogToBackend('error', 'Error saving game state', { error: error.message });
           });
         }, 800); // Increased debounce to 800ms
         
@@ -1686,6 +1712,13 @@ function ChessApp() {
             console.log('🔄 State has changed and is newer, updating from server');
             console.log('🔍 Updating from currentPlayer:', gameState.currentPlayer, 'to:', data.gameState.currentPlayer);
             
+            sendLogToBackend('info', 'State has changed and is newer, updating from server', {
+              fromPlayer: gameState.currentPlayer,
+              toPlayer: data.gameState.currentPlayer,
+              localTimestamp,
+              receivedTimestamp
+            });
+            
             // Set flag to prevent saving back to server
             setIsReceivingServerUpdate(true);
             
@@ -1709,6 +1742,7 @@ function ChessApp() {
               });
               setLastSavedState(newStateHash);
               console.log('🔄 Server update processing completed');
+              sendLogToBackend('info', 'Server update processing completed', { delay });
             }, delay);
           } else if (localStateHash !== receivedStateHash && receivedTimestamp < localTimestamp) {
             console.log('🔄 Received state is older than local state, ignoring update');

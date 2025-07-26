@@ -1636,6 +1636,29 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle client logs for debugging
+  socket.on('clientLog', (data) => {
+    const { level, message, data: logData, timestamp, roomId, playerRole } = data;
+    const logPrefix = `[CLIENT-${level.toUpperCase()}] [${playerRole}] [${roomId}]`;
+    
+    switch (level.toLowerCase()) {
+      case 'error':
+        console.error(`${logPrefix} ${message}`, logData || '');
+        break;
+      case 'warn':
+        console.warn(`${logPrefix} ${message}`, logData || '');
+        break;
+      case 'info':
+        console.log(`${logPrefix} ${message}`, logData || '');
+        break;
+      case 'debug':
+        console.log(`${logPrefix} ${message}`, logData || '');
+        break;
+      default:
+        console.log(`${logPrefix} ${message}`, logData || '');
+    }
+  });
+
   // Handle chess moves with validation
   socket.on('makeMove', async ({ gameId, move, playerId, color }) => {
     try {
