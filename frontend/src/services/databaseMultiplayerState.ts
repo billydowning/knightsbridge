@@ -84,17 +84,6 @@ class DatabaseMultiplayerStateManager {
   constructor() {
     // Use production backend URL
     this.serverUrl = 'https://knightsbridge-app-35xls.ondigitalocean.app';
-    
-    console.log('🔌 Initializing WebSocket-only multiplayer state with server:', this.serverUrl);
-    
-    // Debug environment variables
-    console.log('🔍 Environment check - VITE_WS_URL:', import.meta.env.VITE_WS_URL);
-    console.log('🔍 Environment check - VITE_API_URL:', import.meta.env.VITE_API_URL);
-    console.log('🔍 Environment check - VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
-    console.log('🔍 All env vars:', import.meta.env);
-    
-    // Using production backend URL
-    console.log('🔍 Using production backend URL');
   }
 
   /**
@@ -102,12 +91,10 @@ class DatabaseMultiplayerStateManager {
    */
   async connect(): Promise<void> {
     if (this.socket?.connected) {
-      console.log('✅ Already connected to server');
       return;
     }
 
     if (this.isConnecting) {
-      console.log('⏳ Connection already in progress, waiting...');
       while (this.isConnecting) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -115,7 +102,6 @@ class DatabaseMultiplayerStateManager {
     }
 
     if (this.connectionAttempts >= this.maxConnectionAttempts) {
-      console.log('❌ Max WebSocket connection attempts reached');
       throw new Error('Failed to connect to server after maximum attempts');
     }
 
@@ -123,7 +109,6 @@ class DatabaseMultiplayerStateManager {
     this.connectionAttempts++;
 
     try {
-      console.log('🔌 Connecting to server:', this.serverUrl, `(attempt ${this.connectionAttempts}/${this.maxConnectionAttempts})`);
       
       // Clean up any existing socket
       if (this.socket) {
@@ -147,7 +132,6 @@ class DatabaseMultiplayerStateManager {
       });
 
       this.socket.on('connect', () => {
-        console.log('✅ Connected to server with ID:', this.socket?.id);
         this.isConnecting = false;
         this.connectionAttempts = 0;
         this.startHeartbeat();
@@ -160,7 +144,6 @@ class DatabaseMultiplayerStateManager {
       });
 
       this.socket.on('disconnect', (reason) => {
-        console.log('❌ Disconnected from server:', reason);
         this.isConnecting = false;
         this.stopHeartbeat();
         
@@ -172,17 +155,13 @@ class DatabaseMultiplayerStateManager {
         
         // Only attempt reconnection for certain disconnect reasons
         if (reason === 'io server disconnect' || reason === 'transport close') {
-          console.log('🔄 Attempting to reconnect...');
           // Use exponential backoff: 2s, 4s, 8s
           const backoffDelay = Math.min(2000 * Math.pow(2, this.connectionAttempts), 8000);
           setTimeout(() => this.connect(), backoffDelay);
-        } else {
-          console.log('🛑 Not attempting reconnection for reason:', reason);
         }
       });
 
       this.socket.on('reconnect', (attemptNumber) => {
-        console.log('🔄 Reconnected to server after', attemptNumber, 'attempts');
         this.isConnecting = false;
         this.connectionAttempts = 0;
         this.startHeartbeat();
@@ -196,8 +175,6 @@ class DatabaseMultiplayerStateManager {
       });
 
       this.socket.on('reconnect_attempt', (attemptNumber) => {
-        console.log('🔄 Reconnection attempt:', attemptNumber);
-        
         // Notify UI about reconnection attempt
         this.notifyCallbacks('reconnectAttempt', {
           attemptNumber,
@@ -247,27 +224,22 @@ class DatabaseMultiplayerStateManager {
 
       // Game events
       this.socket.on('roomUpdated', (data) => {
-        console.log('📢 Room updated:', data);
         this.notifyCallbacks('roomUpdated', data);
       });
 
       this.socket.on('escrowUpdated', (data) => {
-        console.log('📢 Escrow updated:', data);
         this.notifyCallbacks('escrowUpdated', data);
       });
 
       this.socket.on('gameStarted', (data) => {
-        console.log('📢 Game started:', data);
         this.notifyCallbacks('gameStarted', data);
       });
 
       this.socket.on('gameStateUpdated', (data) => {
-        console.log('📢 Game state updated:', data);
         this.notifyCallbacks('gameStateUpdated', data);
       });
 
       this.socket.on('chatMessage', (data) => {
-        console.log('📢 Chat message:', data);
         this.notifyCallbacks('chatMessage', data);
       });
 
@@ -345,7 +317,6 @@ class DatabaseMultiplayerStateManager {
         this.socket.emit('createRoom', { playerWallet }, (response: any) => {
           clearTimeout(timeout);
           if (response.success) {
-            console.log('✅ Room created:', response);
             resolve({ role: 'white', roomId: response.roomId });
           } else {
             console.error('❌ Failed to create room:', response.error);
@@ -377,7 +348,6 @@ class DatabaseMultiplayerStateManager {
         this.socket.emit('joinRoom', { roomId, playerWallet }, (response: any) => {
           clearTimeout(timeout);
           if (response.success) {
-            console.log('✅ Joined room:', response);
             resolve(response.role);
           } else {
             console.error('❌ Failed to join room:', response.error);
@@ -403,7 +373,6 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('getRoomStatus', { roomId }, (response: any) => {
           if (response.success) {
-            console.log('✅ Room status:', response.roomStatus);
             resolve(response.roomStatus);
           } else {
             console.error('❌ Failed to get room status:', response.error);
@@ -429,7 +398,6 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('addEscrow', { roomId, playerWallet, amount }, (response: any) => {
           if (response.success) {
-            console.log('✅ Escrow added:', response);
             resolve();
           } else {
             console.error('❌ Failed to add escrow:', response.error);
@@ -455,7 +423,6 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('clearEscrows', { roomId }, (response: any) => {
           if (response.success) {
-            console.log('✅ Escrows cleared:', response);
             resolve();
           } else {
             console.error('❌ Failed to clear escrows:', response.error);
@@ -481,7 +448,6 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('saveGameState', { roomId, gameState }, (response: any) => {
           if (response.success) {
-            console.log('✅ Game state saved:', response);
             resolve();
           } else {
             console.error('❌ Failed to save game state:', response.error);
@@ -507,7 +473,6 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('getGameState', { roomId }, (response: any) => {
           if (response.success) {
-            console.log('✅ Game state retrieved:', response.data);
             resolve(response.data);
           } else {
             console.error('❌ Failed to get game state:', response.error);
@@ -533,7 +498,6 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('sendChatMessage', { roomId, message, playerWallet, playerRole }, (response: any) => {
           if (response.success) {
-            console.log('✅ Chat message sent:', response);
             resolve(response);
           } else {
             console.error('❌ Failed to send chat message:', response.error);
@@ -559,7 +523,6 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('getChatMessages', { roomId }, (response: any) => {
           if (response.success) {
-            console.log('✅ Chat messages retrieved:', response.data);
             resolve(response.data);
           } else {
             console.error('❌ Failed to get chat messages:', response.error);
@@ -610,7 +573,6 @@ class DatabaseMultiplayerStateManager {
   async debugRoom(roomId: string): Promise<RoomStatus | undefined> {
     try {
       const status = await this.getRoomStatus(roomId);
-      console.log('🔍 Debug room status:', status);
       return status as any;
     } catch (error) {
       console.error('❌ Error debugging room:', error);
@@ -630,7 +592,6 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('clearAllRooms', {}, (response: any) => {
           if (response.success) {
-            console.log('✅ All rooms cleared:', response);
             resolve();
           } else {
             console.error('❌ Failed to clear rooms:', response.error);

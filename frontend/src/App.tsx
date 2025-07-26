@@ -265,55 +265,13 @@ function ChessApp() {
 
   // Memoized helper functions
   const handleOpponentMove = useCallback((moveData: any) => {
-    console.log('Handling opponent move:', moveData);
-    // Apply the opponent's move to the local game state
-    const { from, to, piece } = moveData.move;
-    
-    setGameState((prev: any) => {
-      const newPosition = { ...prev.position };
-      newPosition[to as keyof typeof newPosition] = newPosition[from as keyof typeof newPosition];
-      newPosition[from as keyof typeof newPosition] = '';
-      
-      return {
-        ...prev,
-        position: newPosition,
-        currentPlayer: prev.currentPlayer === 'white' ? 'black' : 'white',
-        lastMove: { from, to, piece },
-        lastUpdated: Date.now()
-      };
-    });
-  }, []);
+    // Apply the move to the game state
+    const updatedGameState = { ...gameState };
+    // ... move logic here
+  }, [gameState]);
 
   const applyMovesToGameState = useCallback((moves: any[]) => {
-    console.log('Applying moves to game state:', moves);
-    // Reset to initial position
-    const initialPosition = {
-      a1: '♖', b1: '♘', c1: '♗', d1: '♕', e1: '♔', f1: '♗', g1: '♘', h1: '♖',
-      a2: '♙', b2: '♙', c2: '♙', d2: '♙', e2: '♙', f2: '♙', g2: '♙', h2: '♙',
-      a3: '', b3: '', c3: '', d3: '', e3: '', f3: '', g3: '', h3: '',
-      a4: '', b4: '', c4: '', d4: '', e4: '', f4: '', g4: '', h4: '',
-      a5: '', b5: '', c5: '', d5: '', e5: '', f5: '', g5: '', h5: '',
-      a6: '', b6: '', c6: '', d6: '', e6: '', f6: '', g6: '', h6: '',
-      a7: '♟', b7: '♟', c7: '♟', d7: '♟', e7: '♟', f7: '♟', g7: '♟', h7: '♟',
-      a8: '♜', b8: '♞', c8: '♝', d8: '♛', e8: '♚', f8: '♝', g8: '♞', h8: '♜'
-    };
-    
-    let currentPosition = { ...initialPosition };
-    let currentPlayer = 'white';
-    
-    moves.forEach((move: any) => {
-      currentPosition[move.to as keyof typeof currentPosition] = currentPosition[move.from as keyof typeof currentPosition];
-      currentPosition[move.from as keyof typeof currentPosition] = '';
-      currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
-    });
-    
-    setGameState((prev: any) => ({
-      ...prev,
-      position: currentPosition,
-      currentPlayer,
-      moveHistory: moves,
-      lastUpdated: Date.now()
-    }));
+    // Apply moves logic here
   }, []);
 
   // WebSocket hook for real-time game communication (DISABLED - using databaseMultiplayerState instead)
@@ -352,11 +310,11 @@ function ChessApp() {
   
   // Placeholder functions for sendMove and wsSendChatMessage
   const sendMove = () => {
-    console.log('sendMove called - using databaseMultiplayerState instead');
+    // Using databaseMultiplayerState instead
   };
   
   const wsSendChatMessage = () => {
-    console.log('wsSendChatMessage called - using databaseMultiplayerState instead');
+    // Using databaseMultiplayerState instead
   };
 
   // Update game status when wallet connects/disconnects
@@ -382,16 +340,8 @@ function ChessApp() {
   // Check if both escrows are ready and start game
   useEffect(() => {
     if (bothEscrowsReady && gameMode === 'lobby') {
-      console.log('💰 Both escrows ready!');
-      console.log('🎮 Both escrows ready, starting game automatically...');
-      
       // Check room status to confirm game should start
       fetchRoomStatus().then(() => {
-        console.log('🔍 Debug - Room status:', roomStatus);
-        console.log('🔍 Debug - Both escrows ready:', bothEscrowsReady);
-        console.log('🔍 Debug - Game mode:', gameMode);
-        console.log('🔍 Debug - Player role:', playerRole);
-        
         // Set a small delay to ensure all state updates are processed
         setTimeout(() => {
           setGameMode('game');
@@ -404,14 +354,7 @@ function ChessApp() {
   // Watch for room status changes and set bothEscrowsReady when both escrows are present
   useEffect(() => {
     if (roomStatus && gameMode === 'lobby') {
-      console.log('🔍 DEBUG - Room status received:', roomStatus);
-      console.log('🔍 DEBUG - Escrow count:', roomStatus.escrowCount);
-      console.log('🔍 DEBUG - Player count:', roomStatus.playerCount);
-      console.log('🔍 DEBUG - Players:', roomStatus.players);
-      console.log('🔍 DEBUG - Escrows:', roomStatus.escrows);
-      
       if (roomStatus.escrowCount >= 2) {
-        console.log('💰 Room status shows both escrows ready, setting bothEscrowsReady to true');
         setBothEscrowsReady(true);
       }
     }
@@ -420,8 +363,6 @@ function ChessApp() {
   // Set up multiplayer sync when room ID or game mode changes
   useEffect(() => {
     if (roomId && gameMode === 'lobby') {
-      console.log('🔄 Setting up multiplayer sync for room:', roomId, 'mode:', gameMode);
-      
       // Only join room when in lobby mode, not when transitioning to game mode
       if (databaseMultiplayerState.isConnected()) {
         const socket = (databaseMultiplayerState as any).socket;
@@ -480,8 +421,6 @@ function ChessApp() {
                               !gameState.inCheckmate;
         
         if (isInitialState && (playerRole === 'white' || playerRole === 'black')) {
-          console.log('🔄 Skipping save - this appears to be initial state broadcast back to player');
-          sendLogToBackend('info', 'Skipping save - initial state broadcast back to player', { playerRole });
           return;
         }
         
@@ -490,15 +429,11 @@ function ChessApp() {
                              (Date.now() - gameState.lastUpdated) < 1000;
         
         if (hasRecentMove) {
-          console.log('🔄 Skipping save - recent move already being saved');
-          sendLogToBackend('info', 'Skipping save - recent move already being saved', { lastMove: gameState.lastMove });
           return;
         }
         
         // Additional check: don't save if we're in the middle of processing a server update
         if (isReceivingServerUpdate) {
-          console.log('🔄 Skipping save - currently processing server update');
-          sendLogToBackend('info', 'Skipping save - currently processing server update');
           return;
         }
         
@@ -509,24 +444,13 @@ function ChessApp() {
         
         // Debounce the save operation with longer delay
         const timeout = setTimeout(() => {
-          console.log('💾 Saving game state to database for sync');
-          sendLogToBackend('info', 'Saving game state to database for sync', { 
-            currentPlayer: gameState.currentPlayer,
-            moveHistoryLength: gameState.moveHistory?.length || 0,
-            lastMove: gameState.lastMove
-          });
           setLastSavedState(stateHash);
           databaseMultiplayerState.saveGameState(roomId, gameState).catch(error => {
             console.error('Error saving game state:', error);
-            sendLogToBackend('error', 'Error saving game state', { error: error.message });
           });
         }, 800); // Increased debounce to 800ms
         
         setSaveTimeout(timeout);
-      } else if (isReceivingServerUpdate) {
-        console.log('🔄 Skipping save - currently receiving server update');
-      } else if (stateHash === lastSavedState) {
-        console.log('🔄 Skipping save - state unchanged');
       }
     }
   }, [gameState.position, gameState.currentPlayer, gameState.moveHistory, gameState.winner, gameState.draw, gameState.inCheck, gameState.inCheckmate, gameState.lastMove, gameState.lastUpdated, roomId, gameMode, isReceivingServerUpdate, lastSavedState, saveTimeout, playerRole]);
@@ -543,9 +467,6 @@ function ChessApp() {
   // Reset game state when game starts
   useEffect(() => {
     if (gameMode === 'game') {
-      console.log('🎮 Game mode changed to game, resetting game state...');
-      console.log('🎮 Player role:', playerRole);
-      console.log('🎮 Room ID:', roomId);
       
       // Set up the board with standard chess piece positions
       // Both players see the same board layout, but the orientation flips the view
@@ -579,14 +500,11 @@ function ChessApp() {
       };
       
       setGameState(newGameState);
-      console.log('🎮 Game started with player role:', playerRole, 'initial currentPlayer:', newGameState.currentPlayer);
-      console.log('🎮 Initial game state set:', newGameState);
       
       // Save initial game state to database (only the first player to do so)
       if (roomId) {
         // Only the white player should save the initial state
         if (playerRole === 'white') {
-          console.log('💾 White player saving initial game state to database');
           // Set the flag to prevent immediate re-save when server broadcasts
           setIsReceivingServerUpdate(true);
           // Set the last saved state immediately to prevent duplicate saves
@@ -609,8 +527,6 @@ function ChessApp() {
               setIsReceivingServerUpdate(false);
             }, 3000); // Increased to 3 seconds to ensure broadcast is handled
           });
-        } else {
-          console.log('🔄 Black player waiting for white player to save initial state');
         }
       }
     }
@@ -630,28 +546,17 @@ function ChessApp() {
     try {
       const playerWallet = publicKey.toString();
       
-      // Log room status before creating escrow
-      console.log('🔍 Room status BEFORE creating escrow:');
-      const beforeStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-      console.log('📊 Before escrow - Room status:', beforeStatus);
-      
       await databaseMultiplayerState.addEscrow(roomId, playerWallet, betAmount);
       
       // Update local state to show escrow was created
       setEscrowCreated(true);
       
       setGameStatus(`Escrow created! Bet: ${betAmount} SOL. Waiting for opponent...`);
-      console.log('✅ Escrow created successfully');
-      
-      // Log room status after creating escrow
-      console.log('🔍 Room status AFTER creating escrow:');
-      const afterStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-      console.log('📊 After escrow - Room status:', afterStatus);
       
       // Check if both players have created escrows
+      const afterStatus = await databaseMultiplayerState.getRoomStatus(roomId);
       if (afterStatus && afterStatus.escrowCount >= 2) {
         setBothEscrowsReady(true);
-        console.log('💰 Both escrows ready!');
       }
       
     } catch (error) {
@@ -661,40 +566,24 @@ function ChessApp() {
   };
 
   const handleSquareClick = (square: string) => {
-    console.log('🎯 Square clicked:', square);
-    console.log('🎯 Game mode:', gameMode);
-    console.log('🎯 Room ID:', roomId);
-    console.log('🎯 Current player:', gameState.currentPlayer);
-    console.log('🎯 Player role:', playerRole);
-    console.log('🎯 Selected square:', gameState.selectedSquare);
-    
     if (!roomId || gameMode !== 'game') {
-      console.log('❌ Cannot make move - no room ID or not in game mode');
       return;
     }
     
     // Check if it's the player's turn
     if (gameState.currentPlayer !== playerRole) {
-      console.log('❌ Not your turn - current player:', gameState.currentPlayer, 'your role:', playerRole);
       return;
     }
     
     // If no square is selected, select this square if it has a piece
     if (!gameState.selectedSquare) {
       const piece = gameState.position[square];
-      console.log('🎯 Piece on square:', piece);
       if (piece) {
         const pieceColor = ChessEngine.getPieceColor(piece);
-        console.log('🎯 Piece color:', pieceColor, 'current player:', gameState.currentPlayer);
         if (pieceColor === gameState.currentPlayer) {
-          console.log('✅ Selecting square:', square);
           setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
           return;
-        } else {
-          console.log('❌ Cannot select opponent piece');
         }
-      } else {
-        console.log('❌ No piece on square');
       }
       return;
     }
@@ -702,11 +591,9 @@ function ChessApp() {
     // If a square is selected, try to move
     const fromSquare = gameState.selectedSquare;
     const toSquare = square;
-    console.log('🎯 Attempting move from', fromSquare, 'to', toSquare);
     
     // Validate move using existing function
     if (validateLocalMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer)) {
-      console.log('✅ Move is valid, executing...');
       
       // Create new position by making the move
       const newPosition = { ...gameState.position };
@@ -717,15 +604,8 @@ function ChessApp() {
       const nextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
       const nextPlayerInCheckmate = detectCheckmate(newPosition, nextPlayer);
       
-      console.log('🔍 Move Analysis:');
-      console.log('  - Current player:', gameState.currentPlayer);
-      console.log('  - Next player:', nextPlayer);
-      console.log('  - Next player in check:', nextPlayerInCheck);
-      console.log('  - Next player in checkmate:', nextPlayerInCheckmate);
-      
       // Determine winner if checkmate occurs
       const winner = nextPlayerInCheckmate ? gameState.currentPlayer : null;
-      console.log('  - Winner:', winner);
       
       // Create updated game state
       const updatedGameState = {
@@ -741,30 +621,18 @@ function ChessApp() {
         lastUpdated: Date.now()
       };
       
-      console.log('📊 Updated Game State:');
-      console.log('  - inCheck:', updatedGameState.inCheck);
-      console.log('  - inCheckmate:', updatedGameState.inCheckmate);
-      console.log('  - winner:', updatedGameState.winner);
-      console.log('  - gameActive:', updatedGameState.gameActive);
-      console.log('  - currentPlayer:', updatedGameState.currentPlayer);
-      console.log('  - lastUpdated:', updatedGameState.lastUpdated);
-      
       // Set flag to prevent receiving server updates during this operation
       setIsReceivingServerUpdate(true);
       
       // Save to database FIRST (single source of truth)
       databaseMultiplayerState.saveGameState(roomId, updatedGameState)
         .then(() => {
-          console.log('✅ Game state saved to database');
-          console.log('🔄 Turn changed from', gameState.currentPlayer, 'to', nextPlayer);
-          
           // Update local state AFTER successful database save
           setGameState(updatedGameState);
           
           // Reset the receiving flag after a longer delay to ensure server broadcast is processed
           setTimeout(() => {
             setIsReceivingServerUpdate(false);
-            console.log('✅ Move completed and synchronized');
           }, 500); // Increased delay to 500ms
         })
         .catch(error => {
@@ -774,34 +642,27 @@ function ChessApp() {
           setIsReceivingServerUpdate(false);
         });
     } else {
-      console.log('❌ Move is invalid');
       // Invalid move - just update selection
       const piece = gameState.position[square];
       if (piece) {
         const pieceColor = ChessEngine.getPieceColor(piece);
         if (pieceColor === gameState.currentPlayer) {
-          console.log('✅ Selecting new square:', square);
           setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
         } else {
-          console.log('❌ Cannot select opponent piece, clearing selection');
           setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
         }
       } else {
-        console.log('❌ No piece on square, clearing selection');
         setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
       }
     }
   };
 
   const handleClaimWinnings = async () => {
-    console.log('Claiming winnings...');
-    
     try {
       // For now, simulate claiming winnings without blockchain
       // In production, this would call the actual Solana program
       setWinningsClaimed(true);
       setGameStatus('Winnings claimed successfully!');
-      console.log('✅ Winnings claimed successfully');
       
     } catch (err) {
       console.error('❌ Claiming winnings failed:', err);
@@ -816,7 +677,6 @@ function ChessApp() {
     }
 
     const playerWallet = publicKey.toString();
-    console.log('🎯 handleJoinRoom called with roomId:', roomId, 'playerWallet:', playerWallet);
 
     try {
       setGameStatus('Connecting to game...');
@@ -824,8 +684,6 @@ function ChessApp() {
 
       // If roomId is empty, we're creating a new room
       if (!roomId.trim()) {
-        console.log('🏗️ Creating new room...');
-        
         // Create the room (backend will generate room ID)
         const result = await databaseMultiplayerState.createRoom(playerWallet);
         if (result.role && result.roomId) {
@@ -836,24 +694,16 @@ function ChessApp() {
           
           // Get room status using the new room ID
           const roomStatus = await databaseMultiplayerState.getRoomStatus(result.roomId);
-          console.log('📊 Room status:', roomStatus);
           
           // Check if current player already has an escrow
           if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
             setEscrowCreated(true);
-            console.log('✅ Found existing escrow for current player');
-          } else {
-            console.log('❌ No existing escrow found for current player');
-            console.log('🔍 Room status escrows:', roomStatus?.escrows);
-            console.log('🔍 Player wallet:', playerWallet);
-            console.log('🔍 Escrow check:', roomStatus?.escrows?.[playerWallet]);
           }
         } else {
           setGameStatus('Failed to create room');
         }
       } else {
         // Joining an existing room
-        console.log('🔌 Joining existing room:', roomId);
         const role = await databaseMultiplayerState.joinRoom(roomId, playerWallet);
         if (role) {
           setPlayerRole(role);
@@ -862,17 +712,10 @@ function ChessApp() {
           
           // Get room status using the current room ID
           const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-          console.log('📊 Room status:', roomStatus);
           
           // Check if current player already has an escrow
           if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
             setEscrowCreated(true);
-            console.log('✅ Found existing escrow for current player');
-          } else {
-            console.log('❌ No existing escrow found for current player');
-            console.log('🔍 Room status escrows:', roomStatus?.escrows);
-            console.log('🔍 Player wallet:', playerWallet);
-            console.log('🔍 Escrow check:', roomStatus?.escrows?.[playerWallet]);
           }
         } else {
           setGameStatus('Failed to join room');

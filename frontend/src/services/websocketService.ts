@@ -96,14 +96,12 @@ class WebSocketService {
 
     // Connection events
     this.socket.on('connect', () => {
-      console.log('✅ WebSocket connected');
       this.reconnectAttempts = 0;
       this.reconnectDelay = 1000;
       this.eventHandlers.onConnect?.();
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('❌ WebSocket disconnected:', reason);
       this.eventHandlers.onDisconnect?.();
     });
 
@@ -188,7 +186,6 @@ class WebSocketService {
       this.reconnectDelay *= 2; // Exponential backoff
       
       setTimeout(() => {
-        console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
         this.setupSocket();
       }, this.reconnectDelay);
     } else {

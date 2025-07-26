@@ -104,13 +104,11 @@ export const useSolanaWallet = (): SolanaWalletHook => {
 
       // Prevent infinite retries
       if (balanceCheckAttempts >= maxBalanceCheckAttempts) {
-        console.log('⚠️ Max balance check attempts reached, skipping balance check');
         return;
       }
 
       // Prevent concurrent balance checks
       if (isLoading) {
-        console.log('⚠️ Balance check already in progress, skipping');
         return;
       }
 
@@ -121,7 +119,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         
         const walletBalance = await connection.getBalance(publicKey);
         setBalance(walletBalance / LAMPORTS_PER_SOL);
-        console.log('✅ Balance check successful:', walletBalance / LAMPORTS_PER_SOL, 'SOL');
       } catch (err) {
         const errorMessage = `Error checking balance: ${(err as Error).message}`;
         setError(errorMessage);
@@ -129,7 +126,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         
         // If it's a network error, don't retry immediately
         if (err.message?.includes('Failed to fetch') || err.message?.includes('ERR_INSUFFICIENT_RESOURCES')) {
-          console.log('⚠️ Network error detected, stopping balance checks');
           setBalanceCheckAttempts(maxBalanceCheckAttempts); // Prevent further attempts
         }
       } finally {

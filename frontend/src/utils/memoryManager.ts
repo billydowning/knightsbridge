@@ -55,15 +55,11 @@ class MemoryManager {
         this.triggerCleanup();
       }
 
-      // Log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🧠 Memory usage:', usage.percentage.toFixed(2) + '%');
-      }
+
     }
   }
 
   private triggerCleanup() {
-    console.log('🧹 Triggering memory cleanup...');
     
     // Run all cleanup tasks
     this.cleanupTasks.forEach(task => {

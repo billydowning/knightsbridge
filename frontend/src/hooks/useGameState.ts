@@ -175,10 +175,7 @@ export const useGameState = (): GameStateHook => {
           // Record move on blockchain
           const blockchainSuccess = await recordMoveOnChain(roomId, moveNotation, positionHash);
           if (!blockchainSuccess) {
-            console.warn('⚠️ Move recorded locally but failed on blockchain');
             statusMessage += ' (blockchain sync failed)';
-          } else {
-            console.log('✅ Move recorded on blockchain:', moveNotation);
           }
         }
       } catch (error) {
@@ -237,7 +234,6 @@ export const useGameState = (): GameStateHook => {
     // Save reset state to multiplayer if roomId provided
     if (roomId) {
       databaseMultiplayerState.saveGameState(roomId, initialState);
-      console.log('🔄 Game reset and synced to multiplayer state');
     }
   };
 
@@ -319,7 +315,6 @@ export const useGameState = (): GameStateHook => {
       }
 
       const result = await declareResult(roomId, winner, reason);
-      console.log('✅ Game result declared on blockchain:', result);
       return true;
     } catch (error) {
       console.error('❌ Error declaring game result on blockchain:', error);
@@ -354,7 +349,7 @@ export const useGameState = (): GameStateHook => {
         lastUpdated: Date.now()
       };
       databaseMultiplayerState.saveGameState(roomId, updatedState);
-      console.log(`🏳️ Player ${resigningPlayer} resigned. ${winner} wins by resignation.`);
+  
     }
   };
 

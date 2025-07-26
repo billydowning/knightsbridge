@@ -86,7 +86,6 @@ export const useWebSocket = ({
 
     // Connection events
     newSocket.on('connect', () => {
-      console.log('WebSocket connected');
       setIsConnected(true);
       setError(null);
       
@@ -102,7 +101,6 @@ export const useWebSocket = ({
     });
 
     newSocket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
       setIsConnected(false);
     });
 
@@ -119,23 +117,19 @@ export const useWebSocket = ({
 
     // Game events
     newSocket.on('assignedColor', ({ color, isTurn }) => {
-      console.log('Assigned color:', color, 'isTurn:', isTurn);
       setAssignedColor(color);
       setIsMyTurn(isTurn);
     });
 
     newSocket.on('playerJoined', (player) => {
-      console.log('Player joined:', player);
       onPlayerJoinedRef.current?.(player);
     });
 
     newSocket.on('gameStarted', (gameData) => {
-      console.log('Game started:', gameData);
       onGameStartedRef.current?.(gameData);
     });
 
     newSocket.on('moveMade', (moveData) => {
-      console.log('Move received:', moveData);
       const messageTime = Date.now();
       onMoveReceivedRef.current?.(moveData);
       setIsMyTurn(moveData.nextTurn === assignedColor);
@@ -148,7 +142,6 @@ export const useWebSocket = ({
     });
 
     newSocket.on('moveConfirmed', (moveData) => {
-      console.log('Move confirmed:', moveData);
       setIsMyTurn(moveData.nextTurn === assignedColor);
     });
 
@@ -159,12 +152,10 @@ export const useWebSocket = ({
 
     // Chat events
     newSocket.on('newMessage', (message) => {
-      console.log('Chat message received:', message);
       onChatMessageReceivedRef.current?.(message);
     });
 
     newSocket.on('chatHistory', (messages) => {
-      console.log('Chat history received:', messages);
       // Handle chat history
     });
 
@@ -175,27 +166,22 @@ export const useWebSocket = ({
 
     // Game state events
     newSocket.on('gameState', (gameState) => {
-      console.log('Game state received:', gameState);
       onGameStateUpdateRef.current?.(gameState);
     });
 
     newSocket.on('playerDisconnected', (player) => {
-      console.log('Player disconnected:', player);
       onPlayerDisconnectedRef.current?.(player);
     });
 
     newSocket.on('gameResigned', (data) => {
-      console.log('Game resigned:', data);
       // Handle game resignation
     });
 
     newSocket.on('drawOffered', (data) => {
-      console.log('Draw offered:', data);
       // Handle draw offer
     });
 
     newSocket.on('drawResponse', (data) => {
-      console.log('Draw response:', data);
       // Handle draw response
     });
 

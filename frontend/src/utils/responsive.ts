@@ -65,9 +65,6 @@ export const useScreenSize = (): ScreenSize => {
     const updateScreenSize = () => {
       const width = window.innerWidth;
       
-      // Debug logging
-      console.log('Screen width:', width, 'px');
-      
       let newScreenSize: ScreenSize;
       
       if (width < BREAKPOINTS.MOBILE) {
@@ -84,7 +81,6 @@ export const useScreenSize = (): ScreenSize => {
         newScreenSize = 'wide';
       }
       
-      console.log('Detected screen size:', newScreenSize);
       setScreenSize(newScreenSize);
     };
 
@@ -137,12 +133,6 @@ export const useIsDesktopLayout = (): boolean => {
       // This prevents switching between desktop/tablet when opening dev tools
       const shouldUseDesktopLayout = width >= 900;
       
-      console.log('Desktop layout detection:', { 
-        width, 
-        shouldUseDesktopLayout,
-        threshold: '>= 900px (lowered from 1024px)'
-      });
-      
       setIsDesktopLayout(shouldUseDesktopLayout);
     };
 
@@ -179,15 +169,6 @@ export const useIsMacBookAir = (): boolean => {
                                height >= 768 && height <= 1024 &&
                                (width / height) >= 1.4 && (width / height) <= 1.8;
       
-      console.log('MacBook Air detection:', { 
-        width, 
-        height, 
-        ratio: (width/height).toFixed(2), 
-        isMacBookAir: isMacBookAirSize,
-        widthRange: `${width >= 1366 && width <= 1600}`,
-        heightRange: `${height >= 768 && height <= 1024}`,
-        aspectRatio: `${(width / height) >= 1.4 && (width / height) <= 1.8}`
-      });
       setIsMacBookAir(isMacBookAirSize);
     };
 

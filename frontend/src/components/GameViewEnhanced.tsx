@@ -54,22 +54,19 @@ export const GameViewEnhanced: React.FC<GameViewEnhancedProps> = ({
     playerId,
     playerName,
     onMoveReceived: (move) => {
-      console.log('Move received:', move);
       // Handle incoming move - this would typically update the chess engine
     },
     onChatMessageReceived: (message) => {
-      console.log('Chat message received:', message);
+      // Handle chat message
     },
     onPlayerJoined: (player) => {
-      console.log('Player joined:', player);
       setOpponentDisconnected(false);
     },
     onPlayerDisconnected: (player) => {
-      console.log('Player disconnected:', player);
       setOpponentDisconnected(true);
     },
     onGameStarted: (data) => {
-      console.log('Game started:', data);
+      // Handle game started
     }
   });
 

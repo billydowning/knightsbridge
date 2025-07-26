@@ -59,21 +59,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const bothEscrowsCreated = escrowCount === 2 || (escrowCreated && opponentEscrowCreated);
   const readyToStart = bothPlayersPresent && bothEscrowsCreated;
 
-  // Debug: Log room status
-  React.useEffect(() => {
-    console.log('🔍 LobbyView room status:', roomStatus);
-    console.log('🔍 LobbyView counts:', {
-      playerCount: roomStatus?.playerCount || 0,
-      escrowCount: roomStatus?.escrowCount || 0,
-      escrowCreated,
-      opponentEscrowCreated
-    });
-    console.log('🔍 LobbyView responsive settings:', {
-      isDesktopLayout,
-      isMobile,
-      containerWidth
-    });
-  }, [roomStatus, playerCount, escrowCount, escrowCreated, opponentEscrowCreated, isDesktopLayout, isMobile, containerWidth]);
+
 
   return (
     <div style={{ textAlign: 'center', color: theme.text }}>
