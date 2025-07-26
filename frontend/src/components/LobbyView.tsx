@@ -68,7 +68,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       escrowCreated,
       opponentEscrowCreated
     });
-  }, [roomStatus, playerCount, escrowCount, escrowCreated, opponentEscrowCreated]);
+    console.log('🔍 LobbyView responsive settings:', {
+      isDesktopLayout,
+      isMobile,
+      containerWidth
+    });
+  }, [roomStatus, playerCount, escrowCount, escrowCreated, opponentEscrowCreated, isDesktopLayout, isMobile, containerWidth]);
 
   return (
     <div style={{ textAlign: 'center', color: theme.text }}>
@@ -142,7 +147,10 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         borderRadius: '10px',
         border: `2px solid ${theme.border}`,
         boxShadow: theme.shadow,
-        width: isDesktopLayout ? '800px' : '95%'
+        width: isDesktopLayout ? '800px' : '95%',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center'
       }}>
         <h3 style={{ 
           margin: '0 0 12px 0', 
@@ -265,7 +273,10 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         borderRadius: '10px',
         border: `2px solid ${theme.border}`,
         boxShadow: theme.shadow,
-        width: isDesktopLayout ? '800px' : '95%'
+        width: isDesktopLayout ? '800px' : '95%',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center'
       }}>
         <h3 style={{ 
           margin: '0 0 12px 0', 
