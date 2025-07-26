@@ -92,7 +92,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
                   cursor: 'pointer',
                   fontSize: '14px',
                   fontWeight: 'bold',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  minWidth: '80px'
                 }}
               >
                 {amount} SOL
@@ -127,7 +128,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
               backgroundColor: theme.background,
               borderRadius: '8px',
               border: `1px solid ${theme.border}`,
-              width: largerAmountsWidth
+              width: largerAmountsWidth,
+              margin: '0 auto'
             }}>
               <div style={{ 
                 display: 'flex', 
@@ -148,7 +150,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
                       cursor: 'pointer',
                       fontSize: '14px',
                       fontWeight: 'bold',
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.2s ease',
+                      minWidth: '80px'
                     }}
                   >
                     {amount} SOL
