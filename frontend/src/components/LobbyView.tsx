@@ -121,13 +121,13 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       
       {/* Player Info */}
       <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        display: 'flex',
         gap: '15px',
         margin: '0 auto 20px auto',
         width: '800px' // Match chessboard (480px) + chat box (300px) + gap (20px)
       }}>
         <div style={{ 
+          width: '392.5px', // (800px - 15px gap) / 2
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
@@ -153,6 +153,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         </div>
 
         <div style={{ 
+          width: '392.5px', // (800px - 15px gap) / 2
           padding: '15px', 
           backgroundColor: theme.surface, 
           borderRadius: '8px',
