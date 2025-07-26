@@ -462,19 +462,28 @@ function ChessApp() {
           return;
         }
         
+        // Additional check: don't save if we just made a move (it's already being saved)
+        const hasRecentMove = gameState.lastMove && 
+                             (Date.now() - gameState.lastUpdated) < 1000;
+        
+        if (hasRecentMove) {
+          console.log('🔄 Skipping save - recent move already being saved');
+          return;
+        }
+        
         // Clear any existing timeout
         if (saveTimeout) {
           clearTimeout(saveTimeout);
         }
         
-        // Debounce the save operation
+        // Debounce the save operation with longer delay
         const timeout = setTimeout(() => {
           console.log('💾 Saving game state to database for sync');
           setLastSavedState(stateHash);
           databaseMultiplayerState.saveGameState(roomId, gameState).catch(error => {
             console.error('Error saving game state:', error);
           });
-        }, 500); // Increased debounce to 500ms
+        }, 800); // Increased debounce to 800ms
         
         setSaveTimeout(timeout);
       } else if (isReceivingServerUpdate) {
@@ -483,7 +492,7 @@ function ChessApp() {
         console.log('🔄 Skipping save - state unchanged');
       }
     }
-  }, [gameState.position, gameState.currentPlayer, gameState.moveHistory, gameState.winner, gameState.draw, gameState.inCheck, gameState.inCheckmate, roomId, gameMode, isReceivingServerUpdate, lastSavedState, saveTimeout]);
+  }, [gameState.position, gameState.currentPlayer, gameState.moveHistory, gameState.winner, gameState.draw, gameState.inCheck, gameState.inCheckmate, gameState.lastMove, gameState.lastUpdated, roomId, gameMode, isReceivingServerUpdate, lastSavedState, saveTimeout, playerRole]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -561,7 +570,7 @@ function ChessApp() {
             // Keep the flag set for longer to prevent the broadcast from triggering a save
             setTimeout(() => {
               setIsReceivingServerUpdate(false);
-            }, 2000); // Increased to 2 seconds to ensure broadcast is handled
+            }, 3000); // Increased to 3 seconds to ensure broadcast is handled
           });
         } else {
           console.log('🔄 Black player waiting for white player to save initial state');
@@ -691,22 +700,29 @@ function ChessApp() {
       console.log('  - winner:', updatedGameState.winner);
       console.log('  - gameActive:', updatedGameState.gameActive);
       
+      // Set flag to prevent receiving server updates during this operation
+      setIsReceivingServerUpdate(true);
+      
       // Save to database FIRST (single source of truth)
       databaseMultiplayerState.saveGameState(roomId, updatedGameState)
         .then(() => {
           console.log('✅ Game state saved to database');
           console.log('🔄 Turn changed from', gameState.currentPlayer, 'to', nextPlayer);
-          // Only update local state AFTER successful database save
+          
+          // Update local state AFTER successful database save
           setGameState(updatedGameState);
           
-          // Add a small delay before allowing real-time sync to prevent race conditions
+          // Reset the receiving flag after a delay to allow for any server broadcasts
           setTimeout(() => {
+            setIsReceivingServerUpdate(false);
             console.log('✅ Move completed and synchronized');
-          }, 100);
+          }, 300);
         })
         .catch(error => {
           console.error('❌ Failed to save game state:', error);
           setGameStatus('Error saving move. Please try again.');
+          // Reset the receiving flag on error
+          setIsReceivingServerUpdate(false);
         });
     } else {
       console.log('❌ Move is invalid');
@@ -1614,26 +1630,69 @@ function ChessApp() {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStateUpdated = (data: any) => {
         console.log('📢 Game state updated event received:', data);
+        
+        // Skip if this is our own broadcast
+        if (data.senderId && (databaseMultiplayerState as any).socket?.id === data.senderId) {
+          console.log('🔄 Skipping own broadcast');
+          return;
+        }
+        
         if (data.gameState && gameMode === 'game') {
           console.log('🎮 Updating game state from server:', data.gameState);
           console.log('🔍 Current local state:', gameState);
           console.log('🔍 Received state currentPlayer:', data.gameState.currentPlayer);
           console.log('🔍 Local state currentPlayer:', gameState.currentPlayer);
           
-          // Set flag to prevent saving back to server
-          setIsReceivingServerUpdate(true);
+          // Check if this is a meaningful state update (not just a duplicate)
+          const localStateHash = JSON.stringify({
+            position: gameState.position,
+            currentPlayer: gameState.currentPlayer,
+            moveHistory: gameState.moveHistory,
+            winner: gameState.winner,
+            draw: gameState.draw,
+            inCheck: gameState.inCheck,
+            inCheckmate: gameState.inCheckmate
+          });
           
-          // Update game state
-          setGameState(data.gameState);
+          const receivedStateHash = JSON.stringify({
+            position: data.gameState.position,
+            currentPlayer: data.gameState.currentPlayer,
+            moveHistory: data.gameState.moveHistory,
+            winner: data.gameState.winner,
+            draw: data.gameState.draw,
+            inCheck: data.gameState.inCheck,
+            inCheckmate: data.gameState.inCheckmate
+          });
           
-          // Reset flag after a longer delay to ensure state has settled
-          // Use longer delay for black player to avoid race conditions
-          const delay = playerRole === 'black' ? 800 : 500;
-          setTimeout(() => {
-            setIsReceivingServerUpdate(false);
-            // Also reset the last saved state to prevent immediate re-save
-            setLastSavedState('');
-          }, delay);
+          // Check if the received state is newer than our local state
+          const localTimestamp = gameState.lastUpdated || 0;
+          const receivedTimestamp = data.gameState.lastUpdated || 0;
+          
+          console.log('🔍 Timestamp comparison - Local:', localTimestamp, 'Received:', receivedTimestamp);
+          
+          // Only update if the state has actually changed AND the received state is newer
+          if (localStateHash !== receivedStateHash && receivedTimestamp >= localTimestamp) {
+            console.log('🔄 State has changed and is newer, updating from server');
+            
+            // Set flag to prevent saving back to server
+            setIsReceivingServerUpdate(true);
+            
+            // Update game state
+            setGameState(data.gameState);
+            
+            // Reset flag after a longer delay to ensure state has settled
+            // Use longer delay for black player to avoid race conditions
+            const delay = playerRole === 'black' ? 1200 : 800;
+            setTimeout(() => {
+              setIsReceivingServerUpdate(false);
+              // Also reset the last saved state to prevent immediate re-save
+              setLastSavedState('');
+            }, delay);
+          } else if (localStateHash !== receivedStateHash && receivedTimestamp < localTimestamp) {
+            console.log('🔄 Received state is older than local state, ignoring update');
+          } else {
+            console.log('🔄 Received state is identical to local state, skipping update');
+          }
         }
       };
 

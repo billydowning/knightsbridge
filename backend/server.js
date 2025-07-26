@@ -1358,12 +1358,12 @@ io.on('connection', (socket) => {
     try {
       const { roomId, gameState } = data;
       
-      // Simple rate limiting: prevent multiple saves within 1 second
+      // Simple rate limiting: prevent multiple saves within 500ms (reduced from 1 second)
       const lastSaveKey = `lastSave_${roomId}`;
       const lastSaveTime = socket.lastSaveTimes?.[lastSaveKey] || 0;
       const now = Date.now();
       
-      if (now - lastSaveTime < 1000) {
+      if (now - lastSaveTime < 500) {
         console.log('⏱️ Rate limiting: skipping save for room', roomId);
         if (typeof callback === 'function') callback({ success: true });
         return;
@@ -1377,65 +1377,59 @@ io.on('connection', (socket) => {
       if (process.env.DATABASE_URL) {
         const poolInstance = initializePool();
         
-        // Get current game state to check if it has actually changed
-        const currentStateResult = await poolInstance.query('SELECT game_state FROM game_states WHERE room_id = $1', [roomId]);
-        const currentState = currentStateResult.rows[0]?.game_state;
+        // Always save the new state to database first
+        await poolInstance.query(
+          'UPDATE games SET game_state = $1, updated_at = $2 WHERE room_id = $3',
+          ['active', new Date(), roomId]
+        );
         
-        // Debug logging
-        console.log('🔍 State comparison for room:', roomId);
-        console.log('🔍 Current state in DB:', currentState);
-        console.log('🔍 New state to save:', JSON.stringify(gameState));
-        console.log('🔍 States are equal:', currentState === JSON.stringify(gameState));
+        // Save full game state to game_states table (always overwrite)
+        await poolInstance.query(
+          `INSERT INTO game_states (room_id, game_state, updated_at) 
+           VALUES ($1, $2, $3) 
+           ON CONFLICT (room_id) 
+           DO UPDATE SET game_state = $2, updated_at = $3`,
+          [roomId, JSON.stringify(gameState), new Date()]
+        );
         
-        // Only proceed if the state has actually changed
-        if (!currentState || currentState !== JSON.stringify(gameState)) {
-          // Update games table status
-          await poolInstance.query(
-            'UPDATE games SET game_state = $1, updated_at = $2 WHERE room_id = $3',
-            ['active', new Date(), roomId]
-          );
-          
-          // Save full game state to game_states table
-          await poolInstance.query(
-            `INSERT INTO game_states (room_id, game_state, updated_at) 
-             VALUES ($1, $2, $3) 
-             ON CONFLICT (room_id) 
-             DO UPDATE SET game_state = $2, updated_at = $3`,
-            [roomId, JSON.stringify(gameState), new Date()]
-          );
-          
-          console.log('✅ Game state saved to database:', roomId);
-          
-          // Broadcast game state update to OTHER players in the room (not the sender)
-          // Only broadcast if there are other players in the room
-          const room = io.sockets.adapter.rooms.get(roomId);
-          if (room && room.size > 1) {
-            socket.to(roomId).emit('gameStateUpdated', { roomId, gameState });
+        console.log('✅ Game state saved to database:', roomId);
+        
+        // Broadcast game state update to OTHER players in the room (not the sender)
+        // Only broadcast if there are other players in the room
+        const room = io.sockets.adapter.rooms.get(roomId);
+        if (room && room.size > 1) {
+          // Add a small delay to ensure database write is complete
+          setTimeout(() => {
+            socket.to(roomId).emit('gameStateUpdated', { 
+              roomId, 
+              gameState,
+              senderId: socket.id,
+              timestamp: Date.now()
+            });
             console.log('📢 Broadcasted game state update to other players in room:', roomId);
-          }
-        } else {
-          console.log('🔄 Game state unchanged, skipping save and broadcast');
+          }, 100);
         }
       } else {
         // Use in-memory storage for testing
         const room = testRooms.get(roomId);
         if (room) {
-          const currentState = JSON.stringify(room.gameState);
-          const newState = JSON.stringify(gameState);
+          room.gameState = gameState;
+          room.last_updated = new Date();
+          console.log('✅ Game state saved to memory (test mode):', roomId);
           
-          if (currentState !== newState) {
-            room.gameState = gameState;
-            room.last_updated = new Date();
-            console.log('✅ Game state saved to memory (test mode):', roomId);
-            
-            // Broadcast to other players in test mode
-            const roomSockets = io.sockets.adapter.rooms.get(roomId);
-            if (roomSockets && roomSockets.size > 1) {
-              socket.to(roomId).emit('gameStateUpdated', { roomId, gameState });
+          // Broadcast to other players in test mode
+          const roomSockets = io.sockets.adapter.rooms.get(roomId);
+          if (roomSockets && roomSockets.size > 1) {
+            // Add a small delay to ensure state is updated
+            setTimeout(() => {
+              socket.to(roomId).emit('gameStateUpdated', { 
+                roomId, 
+                gameState,
+                senderId: socket.id,
+                timestamp: Date.now()
+              });
               console.log('📢 Broadcasted game state update to other players in room (test mode):', roomId);
-            }
-          } else {
-            console.log('🔄 Game state unchanged, skipping save and broadcast (test mode)');
+            }, 100);
           }
         }
       }

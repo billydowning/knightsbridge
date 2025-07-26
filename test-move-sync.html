@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Move Sync Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Move Synchronization Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Instructions</h2>
+        <ol>
+            <li>Open this page in two different browser windows/tabs</li>
+            <li>Connect both to the same room</li>
+            <li>Start a game</li>
+            <li>Make a move in one window</li>
+            <li>Observe if the piece bounces back or moves smoothly</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Connection Status</h2>
+        <div id="connectionStatus" class="status info">Connecting...</div>
+        <button onclick="testConnection()">Test Connection</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Logs</h2>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        let socket = null;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push(logEntry);
+            
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = logs.join('\n');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        async function testConnection() {
+            try {
+                log('Testing connection to backend...');
+                
+                const response = await fetch('https://knightsbridge-app-35xls.ondigitalocean.app/');
+                const data = await response.json();
+                
+                log(`Backend response: ${JSON.stringify(data)}`, 'success');
+                updateStatus('Backend is reachable', 'success');
+                
+                // Test WebSocket connection
+                if (!socket) {
+                    socket = io('https://knightsbridge-app-35xls.ondigitalocean.app', {
+                        transports: ['websocket'],
+                        timeout: 20000
+                    });
+
+                    socket.on('connect', () => {
+                        log('WebSocket connected successfully', 'success');
+                        updateStatus('WebSocket connected', 'success');
+                    });
+
+                    socket.on('disconnect', () => {
+                        log('WebSocket disconnected', 'error');
+                        updateStatus('WebSocket disconnected', 'error');
+                    });
+
+                    socket.on('connect_error', (error) => {
+                        log(`WebSocket connection error: ${error}`, 'error');
+                        updateStatus('WebSocket connection failed', 'error');
+                    });
+
+                    socket.on('gameStateUpdated', (data) => {
+                        log(`Game state updated: ${JSON.stringify(data)}`, 'info');
+                    });
+                }
+                
+            } catch (error) {
+                log(`Connection test failed: ${error}`, 'error');
+                updateStatus('Connection test failed', 'error');
+            }
+        }
+
+        // Auto-test connection on page load
+        window.addEventListener('load', () => {
+            log('Page loaded, testing connection...');
+            testConnection();
+        });
+    </script>
+</body>
+</html> 
