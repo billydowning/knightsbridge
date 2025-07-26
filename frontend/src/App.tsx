@@ -1676,11 +1676,11 @@ function ChessApp() {
       const socket = (databaseMultiplayerState as any).socket;
       if (socket) {
         console.log('🔗 Setting up chat message listener for room:', roomId);
-        socket.on('chatMessageReceived', handleChatMessage);
+        socket.on('chatMessage', handleChatMessage);
         
         return () => {
           console.log('🔗 Removing chat message listener for room:', roomId);
-          socket.off('chatMessageReceived', handleChatMessage);
+          socket.off('chatMessage', handleChatMessage);
         };
       }
     }
