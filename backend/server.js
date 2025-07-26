@@ -1391,12 +1391,16 @@ io.on('connection', (socket) => {
         );
         
         // Save full game state to game_states table (always overwrite)
+        const gameStateJson = JSON.stringify(gameState);
+        console.log('🔍 Saving game state to DB:', gameStateJson);
+        console.log('🔍 Game state JSON length:', gameStateJson.length);
+        
         await poolInstance.query(
           `INSERT INTO game_states (room_id, game_state, updated_at) 
            VALUES ($1, $2, $3) 
            ON CONFLICT (room_id) 
            DO UPDATE SET game_state = $2, updated_at = $3`,
-          [roomId, JSON.stringify(gameState), new Date()]
+          [roomId, gameStateJson, new Date()]
         );
         
         console.log('✅ Game state saved to database:', roomId);
@@ -1465,17 +1469,91 @@ io.on('connection', (socket) => {
         const gameStateRow = result.rows[0];
 
         if (gameStateRow) {
-          const gameState = JSON.parse(gameStateRow.game_state);
-          if (typeof callback === 'function') callback({ success: true, gameState });
+          console.log('🔍 Retrieved game state from DB:', gameStateRow.game_state);
+          console.log('🔍 Game state type:', typeof gameStateRow.game_state);
+          console.log('🔍 Game state length:', gameStateRow.game_state?.length);
+          
+          try {
+            // Check if the stored data is valid JSON
+            if (typeof gameStateRow.game_state === 'string' && gameStateRow.game_state.startsWith('{')) {
+              const gameState = JSON.parse(gameStateRow.game_state);
+              console.log('🔍 Parsed game state currentPlayer:', gameState.currentPlayer);
+              if (typeof callback === 'function') callback({ success: true, gameState });
+            } else if (typeof gameStateRow.game_state === 'object' && gameStateRow.game_state !== null) {
+              // Handle case where it's already an object (shouldn't happen but just in case)
+              console.log('🔍 Game state is already an object, using directly');
+              console.log('🔍 Game state currentPlayer:', gameStateRow.game_state.currentPlayer);
+              if (typeof callback === 'function') callback({ success: true, gameState: gameStateRow.game_state });
+            } else {
+              console.error('❌ Invalid game state format in database:', gameStateRow.game_state);
+              // Return a default game state instead of failing
+              const defaultGameState = {
+                position: {
+                  'a1': 'white-rook', 'b1': 'white-knight', 'c1': 'white-bishop', 'd1': 'white-queen',
+                  'e1': 'white-king', 'f1': 'white-bishop', 'g1': 'white-knight', 'h1': 'white-rook',
+                  'a2': 'white-pawn', 'b2': 'white-pawn', 'c2': 'white-pawn', 'd2': 'white-pawn',
+                  'e2': 'white-pawn', 'f2': 'white-pawn', 'g2': 'white-pawn', 'h2': 'white-pawn',
+                  'a7': 'black-pawn', 'b7': 'black-pawn', 'c7': 'black-pawn', 'd7': 'black-pawn',
+                  'e7': 'black-pawn', 'f7': 'black-pawn', 'g7': 'black-pawn', 'h7': 'black-pawn',
+                  'a8': 'black-rook', 'b8': 'black-knight', 'c8': 'black-bishop', 'd8': 'black-queen',
+                  'e8': 'black-king', 'f8': 'black-bishop', 'g8': 'black-knight', 'h8': 'black-rook'
+                },
+                currentPlayer: 'white',
+                selectedSquare: null,
+                gameActive: true,
+                winner: null,
+                draw: false,
+                inCheck: false,
+                inCheckmate: false,
+                moveHistory: [],
+                lastMove: null,
+                lastUpdated: Date.now()
+              };
+              console.log('🔍 Returning default game state due to corrupted data');
+              if (typeof callback === 'function') callback({ success: true, gameState: defaultGameState });
+            }
+          } catch (parseError) {
+            console.error('❌ JSON parsing error:', parseError);
+            console.error('❌ Raw game state data:', gameStateRow.game_state);
+            
+            // Return a default game state instead of failing
+            const defaultGameState = {
+              position: {
+                'a1': 'white-rook', 'b1': 'white-knight', 'c1': 'white-bishop', 'd1': 'white-queen',
+                'e1': 'white-king', 'f1': 'white-bishop', 'g1': 'white-knight', 'h1': 'white-rook',
+                'a2': 'white-pawn', 'b2': 'white-pawn', 'c2': 'white-pawn', 'd2': 'white-pawn',
+                'e2': 'white-pawn', 'f2': 'white-pawn', 'g2': 'white-pawn', 'h2': 'white-pawn',
+                'a7': 'black-pawn', 'b7': 'black-pawn', 'c7': 'black-pawn', 'd7': 'black-pawn',
+                'e7': 'black-pawn', 'f7': 'black-pawn', 'g7': 'black-pawn', 'h7': 'black-pawn',
+                'a8': 'black-rook', 'b8': 'black-knight', 'c8': 'black-bishop', 'd8': 'black-queen',
+                'e8': 'black-king', 'f8': 'black-bishop', 'g8': 'black-knight', 'h8': 'black-rook'
+              },
+              currentPlayer: 'white',
+              selectedSquare: null,
+              gameActive: true,
+              winner: null,
+              draw: false,
+              inCheck: false,
+              inCheckmate: false,
+              moveHistory: [],
+              lastMove: null,
+              lastUpdated: Date.now()
+            };
+            console.log('🔍 Returning default game state due to JSON parsing error');
+            if (typeof callback === 'function') callback({ success: true, gameState: defaultGameState });
+          }
         } else {
+          console.log('❌ No game state found for room:', roomId);
           if (typeof callback === 'function') callback({ success: false, error: 'Game state not found' });
         }
       } else {
         // Use in-memory storage for testing
         const room = testRooms.get(roomId);
         if (room) {
+          console.log('🔍 Retrieved game state from memory:', room.gameState);
           if (typeof callback === 'function') callback({ success: true, gameState: room.gameState || 'waiting' });
         } else {
+          console.log('❌ No game state found in memory for room:', roomId);
           if (typeof callback === 'function') callback({ success: false, error: 'Game state not found' });
         }
       }
@@ -1496,6 +1574,7 @@ io.on('connection', (socket) => {
         await poolInstance.query('DELETE FROM escrows');
         await poolInstance.query('DELETE FROM moves');
         await poolInstance.query('DELETE FROM chat_messages');
+        await poolInstance.query('DELETE FROM game_states');
         
         console.log('🧹 All rooms cleared from database');
       } else {
@@ -1510,6 +1589,50 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Error clearing rooms:', error);
       if (typeof callback === 'function') callback({ success: false, error: 'Failed to clear rooms' });
+    }
+  });
+
+  // Clean up corrupted game states
+  socket.on('cleanupCorruptedGameStates', async (data, callback) => {
+    try {
+      if (process.env.DATABASE_URL) {
+        const poolInstance = initializePool();
+        
+        // Get all game states
+        const result = await poolInstance.query('SELECT room_id, game_state FROM game_states');
+        let cleanedCount = 0;
+        
+        for (const row of result.rows) {
+          try {
+            // Try to parse the game state
+            if (typeof row.game_state === 'string') {
+              JSON.parse(row.game_state);
+            } else if (typeof row.game_state === 'object' && row.game_state !== null) {
+              // This is valid
+            } else {
+              // Invalid format, delete this entry
+              await poolInstance.query('DELETE FROM game_states WHERE room_id = $1', [row.room_id]);
+              console.log('🧹 Cleaned up corrupted game state for room:', row.room_id);
+              cleanedCount++;
+            }
+          } catch (parseError) {
+            // JSON parsing failed, delete this entry
+            await poolInstance.query('DELETE FROM game_states WHERE room_id = $1', [row.room_id]);
+            console.log('🧹 Cleaned up corrupted game state for room:', row.room_id);
+            cleanedCount++;
+          }
+        }
+        
+        console.log(`🧹 Cleanup completed. Removed ${cleanedCount} corrupted game states.`);
+        if (typeof callback === 'function') callback({ success: true, cleanedCount });
+      } else {
+        console.log('🧹 No database connection, skipping cleanup');
+        if (typeof callback === 'function') callback({ success: true, cleanedCount: 0 });
+      }
+      
+    } catch (error) {
+      console.error('Error cleaning up corrupted game states:', error);
+      if (typeof callback === 'function') callback({ success: false, error: 'Failed to cleanup corrupted game states' });
     }
   });
 
