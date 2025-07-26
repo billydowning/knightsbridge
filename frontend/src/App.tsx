@@ -823,6 +823,12 @@ function ChessApp() {
           // Get room status using the new room ID
           const roomStatus = await databaseMultiplayerState.getRoomStatus(result.roomId);
           console.log('📊 Room status:', roomStatus);
+          
+          // Check if current player already has an escrow
+          if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
+            setEscrowCreated(true);
+            console.log('✅ Found existing escrow for current player');
+          }
         } else {
           setGameStatus('Failed to create room');
         }
@@ -838,6 +844,12 @@ function ChessApp() {
           // Get room status using the current room ID
           const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
           console.log('📊 Room status:', roomStatus);
+          
+          // Check if current player already has an escrow
+          if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
+            setEscrowCreated(true);
+            console.log('✅ Found existing escrow for current player');
+          }
         } else {
           setGameStatus('Failed to join room');
         }
