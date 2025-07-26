@@ -216,24 +216,13 @@ export const MenuView: React.FC<MenuViewProps> = ({
 
       {/* Divider */}
       <div style={{ 
-        position: 'relative',
-        margin: '30px auto',
-        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
-        height: '1px',
-        backgroundColor: theme.border,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+        textAlign: 'center',
+        margin: '30px 0',
+        fontSize: '18px', 
+        fontWeight: 'bold',
+        color: theme.textSecondary
       }}>
-        <span style={{ 
-          backgroundColor: theme.background,
-          padding: '0 20px',
-          fontSize: '18px', 
-          fontWeight: 'bold',
-          color: theme.textSecondary
-        }}>
-          OR
-        </span>
+        OR
       </div>
 
       {/* Join Room Section */}
