@@ -1677,6 +1677,8 @@ function ChessApp() {
         
         const newMessage = {
           ...message,
+          playerId: message.playerRole || message.playerId, // Map playerRole to playerId
+          playerName: message.playerRole || message.playerName, // Use playerRole as playerName
           timestamp: typeof message.timestamp === 'string' ? new Date(message.timestamp).getTime() : message.timestamp
         };
         
