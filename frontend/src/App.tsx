@@ -1666,10 +1666,26 @@ function ChessApp() {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleChatMessage = (message: any) => {
         console.log('💬 Received real-time chat message:', message);
-        setChatMessages(prev => [...prev, {
+        console.log('💬 Message details:', {
+          id: message.id,
+          playerId: message.playerId,
+          playerRole: message.playerRole,
+          message: message.message,
+          timestamp: message.timestamp
+        });
+        console.log('💬 Current chat messages count:', chatMessages.length);
+        
+        const newMessage = {
           ...message,
           timestamp: typeof message.timestamp === 'string' ? new Date(message.timestamp).getTime() : message.timestamp
-        }]);
+        };
+        
+        console.log('💬 Adding new message to state:', newMessage);
+        setChatMessages(prev => {
+          const updated = [...prev, newMessage];
+          console.log('💬 Updated chat messages count:', updated.length);
+          return updated;
+        });
       };
 
       // Listen for chat message events
