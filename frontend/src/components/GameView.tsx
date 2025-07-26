@@ -186,7 +186,9 @@ export const GameView: React.FC<GameViewProps> = ({
         backgroundColor: '#f8f9fa',
         padding: '15px',
         borderRadius: '8px',
-        color: '#333'
+        color: '#333',
+        width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
+        margin: '20px auto' // Center the box
       }}>
         <div style={{ textAlign: 'center', color: '#333' }}>
           <strong>Moves</strong><br/>
