@@ -1542,9 +1542,10 @@ function ChessApp() {
   const handleSendChatMessage = (message: string) => {
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
-      player: playerRole,
+      playerId: playerRole,
+      playerName: playerRole,
       message,
-      timestamp: new Date()
+      timestamp: Date.now()
     };
     
     console.log('💬 Sending chat message:', newMessage);
@@ -1579,13 +1580,13 @@ function ChessApp() {
       databaseMultiplayerState.getChatMessages(roomId)
         .then((messages) => {
           if (messages && Array.isArray(messages)) {
-            // Convert timestamp strings back to Date objects
-            const messagesWithDates = messages.map((msg: any) => ({
+            // Convert timestamp strings back to numbers
+            const messagesWithTimestamps = messages.map((msg: any) => ({
               ...msg,
-              timestamp: new Date(msg.timestamp)
+              timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp
             }));
-            setChatMessages(messagesWithDates);
-            console.log('✅ Loaded', messagesWithDates.length, 'chat messages');
+            setChatMessages(messagesWithTimestamps);
+            console.log('✅ Loaded', messagesWithTimestamps.length, 'chat messages');
           }
         })
         .catch(error => {
@@ -1624,7 +1625,7 @@ function ChessApp() {
         console.log('💬 Received real-time chat message:', message);
         setChatMessages(prev => [...prev, {
           ...message,
-          timestamp: new Date(message.timestamp)
+          timestamp: typeof message.timestamp === 'string' ? new Date(message.timestamp).getTime() : message.timestamp
         }]);
       };
 
@@ -1638,13 +1639,9 @@ function ChessApp() {
           console.log('🔗 Removing chat message listener for room:', roomId);
           socket.off('chatMessageReceived', handleChatMessage);
         };
-      } else {
-        console.log('⚠️ Socket not available for chat listener');
       }
-    } else {
-      console.log('⚠️ Room ID or connection not available for chat listener. RoomId:', roomId, 'Connected:', databaseMultiplayerState.isConnected());
     }
-  }, [roomId, databaseMultiplayerState.isConnected()]);
+  }, [roomId]);
 
   // Listen for escrow updates and refresh room status
   useEffect(() => {
@@ -1932,20 +1929,17 @@ function ChessApp() {
           <GameView
             roomId={roomId}
             playerRole={playerRole}
-            betAmount={betAmount}
             gameState={gameState}
             onSquareClick={handleSquareClick}
+            onSendChatMessage={handleSendChatMessage}
+            chatMessages={chatMessages}
             onResignGame={handleResignGame}
             onClaimWinnings={handleClaimWinnings}
             onStartNewGame={handleStartNewGameWithEscrow}
             onBackToMenu={handleBackToMenu}
             winningsClaimed={winningsClaimed}
             isLoading={appLoading}
-            onDeclareWinner={handleDeclareWinner}
-            onTestCheckmate={handleTestCheckmate}
-            onTestCurrentBoard={handleTestCurrentBoard}
-            chatMessages={chatMessages}
-            onSendChatMessage={handleSendChatMessage}
+            betAmount={betAmount}
           />
         );
       
