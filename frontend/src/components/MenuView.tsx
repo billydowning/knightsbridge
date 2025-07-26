@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useTheme } from '../App';
-import { useContainerWidth, useTextSizes, useIsMobile, useIsLaptopOrLarger } from '../utils/responsive';
+import { useContainerWidth, useTextSizes, useIsMobile, useIsLaptopOrLarger, useIsMacBookAir } from '../utils/responsive';
 
 export interface MenuViewProps {
   roomId: string;
@@ -43,6 +43,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
   const isLaptopOrLarger = useIsLaptopOrLarger();
+  const isMacBookAir = useIsMacBookAir();
 
   // Dynamic width measurement for larger amounts container
   const normalBetSectionRef = React.useRef<HTMLDivElement>(null);
@@ -55,10 +56,10 @@ export const MenuView: React.FC<MenuViewProps> = ({
   }, [showLargerAmounts]); // Add showLargerAmounts to dependencies
 
   const sharedButtonStyle = {
-    padding: isLaptopOrLarger ? '12px 20px' : '10px 16px',
-    minWidth: isLaptopOrLarger ? '120px' : '80px',
+    padding: isMacBookAir ? '16px 24px' : (isLaptopOrLarger ? '12px 20px' : '10px 16px'),
+    minWidth: isMacBookAir ? '140px' : (isLaptopOrLarger ? '120px' : '80px'),
     boxSizing: 'border-box' as const,
-    fontSize: textSizes.body,
+    fontSize: isMacBookAir ? '16px' : textSizes.body,
     fontWeight: 'bold',
     borderRadius: '8px',
     border: undefined,
@@ -80,34 +81,34 @@ export const MenuView: React.FC<MenuViewProps> = ({
       {/* Create Room Section */}
       <div style={{ 
         backgroundColor: theme.surface, 
-        padding: isLaptopOrLarger ? '30px' : '15px', 
+        padding: isMacBookAir ? '40px' : (isLaptopOrLarger ? '30px' : '15px'), 
         borderRadius: '10px', 
         boxShadow: theme.shadow,
-        marginBottom: isLaptopOrLarger ? '30px' : '20px',
+        marginBottom: isMacBookAir ? '40px' : (isLaptopOrLarger ? '30px' : '20px'),
         border: `1px solid ${theme.border}`,
-        width: isLaptopOrLarger ? containerWidth : '95%',
+        width: isMacBookAir ? '800px' : (isLaptopOrLarger ? containerWidth : '95%'),
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column' as const,
         alignItems: 'center'
       }}>
         <h2 style={{ 
-          margin: '0 0 15px 0', 
+          margin: '0 0 20px 0', 
           color: theme.text,
-          fontSize: textSizes.h2
+          fontSize: isMacBookAir ? '2rem' : textSizes.h2
         }}>🎯 Create A Room</h2>
         
         {/* Bet Amount Buttons */}
-        <div ref={normalBetSectionRef} style={{ marginBottom: isLaptopOrLarger ? '25px' : '20px', width: '100%' }}>
+        <div ref={normalBetSectionRef} style={{ marginBottom: isMacBookAir ? '30px' : (isLaptopOrLarger ? '25px' : '20px'), width: '100%' }}>
           <h4 style={{ 
-            margin: '0 0 12px 0', 
+            margin: '0 0 15px 0', 
             color: theme.textSecondary,
-            fontSize: textSizes.h3
+            fontSize: isMacBookAir ? '1.5rem' : textSizes.h3
           }}>Choose Bet Amount:</h4>
           <div style={{ 
             display: 'flex', 
             flexWrap: 'wrap', 
-            gap: isLaptopOrLarger ? '10px' : '6px', 
+            gap: isMacBookAir ? '15px' : (isLaptopOrLarger ? '10px' : '6px'), 
             justifyContent: 'center' 
           }}>
             {smallBetAmounts.map((amount) => (
@@ -130,14 +131,14 @@ export const MenuView: React.FC<MenuViewProps> = ({
           <button
             onClick={() => setShowLargerAmounts(!showLargerAmounts)}
             style={{
-              marginTop: isLaptopOrLarger ? '15px' : '12px',
-              padding: isLaptopOrLarger ? '8px 16px' : '6px 10px',
+              marginTop: isMacBookAir ? '20px' : (isLaptopOrLarger ? '15px' : '12px'),
+              padding: isMacBookAir ? '12px 20px' : (isLaptopOrLarger ? '8px 16px' : '6px 10px'),
               backgroundColor: 'transparent',
               color: theme.primary,
               border: `1px solid ${theme.primary}`,
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: textSizes.small,
+              fontSize: isMacBookAir ? '14px' : textSizes.small,
               fontWeight: 'bold',
               transition: 'all 0.2s ease'
             }}
@@ -148,8 +149,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
           {/* Larger bet amounts (hidden by default) */}
           {showLargerAmounts && (
             <div style={{ 
-              marginTop: isLaptopOrLarger ? '15px' : '12px',
-              padding: isLaptopOrLarger ? '15px' : '10px',
+              marginTop: isMacBookAir ? '20px' : (isLaptopOrLarger ? '15px' : '12px'),
+              padding: isMacBookAir ? '20px' : (isLaptopOrLarger ? '15px' : '10px'),
               backgroundColor: theme.background,
               borderRadius: '8px',
               border: `1px solid ${theme.border}`,
@@ -160,7 +161,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
               <div style={{ 
                 display: 'flex', 
                 flexWrap: 'wrap', 
-                gap: isLaptopOrLarger ? '10px' : '6px', 
+                gap: isMacBookAir ? '15px' : (isLaptopOrLarger ? '10px' : '6px'), 
                 justifyContent: 'center' 
               }}>
                 {largeBetAmounts.map((amount) => (
@@ -187,15 +188,15 @@ export const MenuView: React.FC<MenuViewProps> = ({
           onClick={handleCreateRoom}
           disabled={isButtonDisabled || betAmount === 0}
           style={{
-            padding: isLaptopOrLarger ? '15px 40px' : '12px 24px',
+            padding: isMacBookAir ? '20px 50px' : (isLaptopOrLarger ? '15px 40px' : '12px 24px'),
             backgroundColor: (isButtonDisabled || betAmount === 0) ? theme.border : theme.secondary,
             color: 'white',
             border: 'none',
             borderRadius: '8px',
             cursor: (isButtonDisabled || betAmount === 0) ? 'not-allowed' : 'pointer',
-            fontSize: textSizes.h3,
+            fontSize: isMacBookAir ? '1.25rem' : textSizes.h3,
             fontWeight: 'bold',
-            minWidth: isLaptopOrLarger ? '200px' : '140px',
+            minWidth: isMacBookAir ? '250px' : (isLaptopOrLarger ? '200px' : '140px'),
             transition: 'all 0.2s ease'
           }}
         >
@@ -206,11 +207,11 @@ export const MenuView: React.FC<MenuViewProps> = ({
         {hasInsufficientBalance && connected && (
           <div style={{ 
             color: theme.accent, 
-            marginTop: isLaptopOrLarger ? '15px' : '12px',
-            padding: isLaptopOrLarger ? '10px' : '8px',
+            marginTop: isMacBookAir ? '20px' : (isLaptopOrLarger ? '15px' : '12px'),
+            padding: isMacBookAir ? '15px' : (isLaptopOrLarger ? '10px' : '8px'),
             backgroundColor: theme.background,
             borderRadius: '8px',
-            fontSize: textSizes.body,
+            fontSize: isMacBookAir ? '16px' : textSizes.body,
             border: `1px solid ${theme.accent}`
           }}>
             <strong>⚠️ Insufficient Balance!</strong><br/>
@@ -221,11 +222,11 @@ export const MenuView: React.FC<MenuViewProps> = ({
         {!connected && (
           <div style={{ 
             color: '#f39c12', 
-            marginTop: isLaptopOrLarger ? '15px' : '12px',
-            padding: isLaptopOrLarger ? '10px' : '8px',
+            marginTop: isMacBookAir ? '20px' : (isLaptopOrLarger ? '15px' : '12px'),
+            padding: isMacBookAir ? '15px' : (isLaptopOrLarger ? '10px' : '8px'),
             backgroundColor: theme.background,
             borderRadius: '8px',
-            fontSize: textSizes.body,
+            fontSize: isMacBookAir ? '16px' : textSizes.body,
             border: `1px solid #f39c12`
           }}>
             <strong>💡 Connect your wallet to create a room</strong>

@@ -19,7 +19,7 @@ import { ENV_CONFIG } from './config/appConfig';
 import { ChessEngine } from './engine/chessEngine';
 import { useChessOptimizations, useDebounce, useThrottle } from './hooks/useChessOptimizations';
 import { useRenderPerformance } from './utils/performance';
-import { useIsMobile, useTextSizes, useIsLaptopOrLarger } from './utils/responsive';
+import { useIsMobile, useTextSizes, useIsLaptopOrLarger, useIsMacBookAir } from './utils/responsive';
 // import { useMemoryCleanup } from './utils/memoryManager';
 import { performanceMonitor } from './utils/performance';
 // import { memoryManager } from './utils/memoryManager';
@@ -151,23 +151,24 @@ const DarkModeToggle: React.FC = () => {
   const { isDarkMode, toggleDarkMode, theme } = useTheme();
   const isMobile = useIsMobile();
   const isLaptopOrLarger = useIsLaptopOrLarger();
+  const isMacBookAir = useIsMacBookAir();
   const textSizes = useTextSizes();
 
   return (
     <button
       onClick={toggleDarkMode}
       style={{
-        padding: isLaptopOrLarger ? '8px 12px' : '6px 8px',
+        padding: isMacBookAir ? '12px 16px' : (isLaptopOrLarger ? '8px 12px' : '6px 8px'),
         backgroundColor: theme.surface,
         color: theme.text,
         border: `2px solid ${theme.border}`,
         borderRadius: '8px',
         cursor: 'pointer',
-        fontSize: isLaptopOrLarger ? '14px' : textSizes.small,
+        fontSize: isMacBookAir ? '16px' : (isLaptopOrLarger ? '14px' : textSizes.small),
         fontWeight: 'bold',
         display: 'flex',
         alignItems: 'center',
-        gap: isLaptopOrLarger ? '6px' : '4px',
+        gap: isMacBookAir ? '8px' : (isLaptopOrLarger ? '6px' : '4px'),
         transition: 'all 0.2s ease',
         whiteSpace: 'nowrap'
       }}
@@ -183,6 +184,7 @@ function ChessApp() {
   const isMobile = useIsMobile();
   const textSizes = useTextSizes();
   const isLaptopOrLarger = useIsLaptopOrLarger();
+  const isMacBookAir = useIsMacBookAir();
   
   // Performance monitoring
   useRenderPerformance('ChessApp');
@@ -1959,7 +1961,7 @@ function ChessApp() {
         <div style={{
           backgroundColor: theme.surface,
           color: theme.text,
-          padding: isLaptopOrLarger ? '1rem' : '0.75rem',
+          padding: isMacBookAir ? '1.5rem' : (isLaptopOrLarger ? '1rem' : '0.75rem'),
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -1969,7 +1971,7 @@ function ChessApp() {
         }}>
           <h1 style={{ 
             margin: 0, 
-            fontSize: isLaptopOrLarger ? '1.5rem' : textSizes.h2,
+            fontSize: isMacBookAir ? '2rem' : (isLaptopOrLarger ? '1.5rem' : textSizes.h2),
             flexShrink: 0
           }}>
             ♟️ Knightsbridge Chess
@@ -1977,7 +1979,7 @@ function ChessApp() {
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: isLaptopOrLarger ? '1rem' : '0.5rem',
+            gap: isMacBookAir ? '1.5rem' : (isLaptopOrLarger ? '1rem' : '0.5rem'),
             flexWrap: 'wrap',
             justifyContent: isMobile ? 'center' : 'flex-end',
             width: isMobile ? '100%' : 'auto'
@@ -1989,7 +1991,7 @@ function ChessApp() {
 
         {/* Main Content */}
         <div style={{ 
-          padding: isLaptopOrLarger ? '2rem' : '1rem',
+          padding: isMacBookAir ? '3rem' : (isLaptopOrLarger ? '2rem' : '1rem'),
           maxWidth: '100vw',
           overflow: 'hidden'
         }}>

@@ -10,8 +10,8 @@ export const BREAKPOINTS = {
   MOBILE: 480,
   TABLET: 768,
   LAPTOP: 1024,
-  DESKTOP: 1200,
-  WIDE: 1440,
+  DESKTOP: 1366,  // Common laptop width
+  WIDE: 1920,     // Full HD and above
 } as const;
 
 // Screen size categories
@@ -63,19 +63,27 @@ export const useScreenSize = (): ScreenSize => {
     const updateScreenSize = () => {
       const width = window.innerWidth;
       
+      // Debug logging
+      console.log('Screen width:', width, 'px');
+      
+      let newScreenSize: ScreenSize;
+      
       if (width < BREAKPOINTS.MOBILE) {
-        setScreenSize('mobile');
+        newScreenSize = 'mobile';
       } else if (width < BREAKPOINTS.TABLET) {
-        setScreenSize('mobile');
+        newScreenSize = 'tablet';
       } else if (width < BREAKPOINTS.LAPTOP) {
-        setScreenSize('tablet');
+        newScreenSize = 'tablet';
       } else if (width < BREAKPOINTS.DESKTOP) {
-        setScreenSize('laptop');
+        newScreenSize = 'laptop';
       } else if (width < BREAKPOINTS.WIDE) {
-        setScreenSize('desktop');
+        newScreenSize = 'desktop';
       } else {
-        setScreenSize('wide');
+        newScreenSize = 'wide';
       }
+      
+      console.log('Detected screen size:', newScreenSize);
+      setScreenSize(newScreenSize);
     };
 
     updateScreenSize();
@@ -103,6 +111,34 @@ export const useIsTabletOrSmaller = (): boolean => {
 export const useIsLaptopOrLarger = (): boolean => {
   const screenSize = useScreenSize();
   return screenSize === 'laptop' || screenSize === 'desktop' || screenSize === 'wide';
+};
+
+// Hook specifically for MacBook Air and similar laptop screens
+export const useIsMacBookAir = (): boolean => {
+  const [isMacBookAir, setIsMacBookAir] = useState(false);
+
+  useEffect(() => {
+    const checkScreen = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      // MacBook Air typically has 1440x900 or similar aspect ratio
+      // Check if width is around 1440px and aspect ratio is roughly 16:10
+      const isMacBookAirSize = width >= 1366 && width <= 1600 && 
+                               height >= 768 && height <= 1024 &&
+                               (width / height) >= 1.4 && (width / height) <= 1.8;
+      
+      console.log('MacBook Air detection:', { width, height, ratio: width/height, isMacBookAir: isMacBookAirSize });
+      setIsMacBookAir(isMacBookAirSize);
+    };
+
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    
+    return () => window.removeEventListener('resize', checkScreen);
+  }, []);
+
+  return isMacBookAir;
 };
 
 // Hook to get chess board configuration for current screen size
