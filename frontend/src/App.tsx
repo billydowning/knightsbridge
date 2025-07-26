@@ -1632,7 +1632,10 @@ function ChessApp() {
         console.log('📢 Game state updated event received:', data);
         
         // Skip if this is our own broadcast
-        if (data.senderId && (databaseMultiplayerState as any).socket?.id === data.senderId) {
+        const currentSocketId = (databaseMultiplayerState as any).socket?.id;
+        console.log('🔍 Socket ID comparison - Current:', currentSocketId, 'Sender:', data.senderId);
+        
+        if (data.senderId && currentSocketId === data.senderId) {
           console.log('🔄 Skipping own broadcast');
           return;
         }

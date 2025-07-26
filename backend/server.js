@@ -1398,11 +1398,11 @@ io.on('connection', (socket) => {
         // Only broadcast if there are other players in the room
         const room = io.sockets.adapter.rooms.get(roomId);
         if (room && room.size > 1) {
-          // Add a small delay to ensure database write is complete
+          // Broadcast the EXACT same state that was just saved (not from database)
           setTimeout(() => {
             socket.to(roomId).emit('gameStateUpdated', { 
               roomId, 
-              gameState,
+              gameState, // Use the exact state that was passed in, not from DB
               senderId: socket.id,
               timestamp: Date.now()
             });
@@ -1420,11 +1420,11 @@ io.on('connection', (socket) => {
           // Broadcast to other players in test mode
           const roomSockets = io.sockets.adapter.rooms.get(roomId);
           if (roomSockets && roomSockets.size > 1) {
-            // Add a small delay to ensure state is updated
+            // Broadcast the EXACT same state that was just saved (not from memory)
             setTimeout(() => {
               socket.to(roomId).emit('gameStateUpdated', { 
                 roomId, 
-                gameState,
+                gameState, // Use the exact state that was passed in, not from memory
                 senderId: socket.id,
                 timestamp: Date.now()
               });
