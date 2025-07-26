@@ -273,17 +273,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         </div>
       )}
 
-      {/* Real-time Sync Indicator */}
-      <div style={{ 
-        background: theme.infoLight, 
-        padding: '8px', 
-        borderRadius: '4px', 
-        margin: '15px 0', 
-        fontSize: '12px',
-        color: theme.info
-      }}>
-        🔄 Real-time sync active - updates automatically
-      </div>
+
 
       {/* New Game Indicator */}
       {escrowCount === 0 && (
