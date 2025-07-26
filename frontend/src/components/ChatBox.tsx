@@ -227,11 +227,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
                           {message.playerName}
                         </span>
                       )}
-                      {!isTabletOrSmaller && (
-                        <span>
-                          {formatTimestamp(message.timestamp)}
-                        </span>
-                      )}
                     </div>
                     <div style={{ 
                       fontSize: textSizes.body,
