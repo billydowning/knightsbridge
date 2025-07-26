@@ -1078,6 +1078,15 @@ io.on('connection', (socket) => {
         );
         console.log('✅ Player joined room:', roomId, 'player:', playerWallet, 'role:', newRole);
 
+        // Join the socket to the room
+        socket.join(roomId);
+        console.log('🔗 Socket joined room (DB):', roomId, 'socket ID:', socket.id);
+        
+        // Debug: Check room occupancy after join
+        const roomSockets = io.sockets.adapter.rooms.get(roomId);
+        const socketCount = roomSockets ? roomSockets.size : 0;
+        console.log('🔗 Room occupancy after join (DB):', roomId, '=', socketCount, 'sockets');
+
         // Broadcast room update
         io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
         
@@ -1116,6 +1125,12 @@ io.on('connection', (socket) => {
 
         // Join the socket to the room
         socket.join(roomId);
+        console.log('🔗 Socket joined room:', roomId, 'socket ID:', socket.id);
+        
+        // Debug: Check room occupancy after join
+        const roomSockets = io.sockets.adapter.rooms.get(roomId);
+        const socketCount = roomSockets ? roomSockets.size : 0;
+        console.log('🔗 Room occupancy after join:', roomId, '=', socketCount, 'sockets');
 
         // Broadcast room update
         io.to(roomId).emit('roomUpdated', { roomId, gameState: 'waiting' });
@@ -1852,6 +1867,12 @@ io.on('connection', (socket) => {
       // Broadcast message to all players in the room
       console.log('📢 Broadcasting chat message to room:', roomId);
       console.log('📢 Message to broadcast:', newMessage);
+      
+      // Debug: Check how many sockets are in the room
+      const roomSockets = io.sockets.adapter.rooms.get(roomId);
+      const socketCount = roomSockets ? roomSockets.size : 0;
+      console.log('📢 Number of sockets in room:', roomId, '=', socketCount);
+      
       io.to(roomId).emit('chatMessageReceived', newMessage);
       console.log('📢 Chat message broadcast completed');
 
