@@ -167,16 +167,23 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '6px',
-                  flexDirection: message.playerId === playerRole ? 'row-reverse' : 'row'
-                }}
-              >
+            {messages.map((message, index) => {
+              console.log('💬 Rendering message:', index, message);
+              console.log('💬 Message playerId:', message.playerId);
+              console.log('💬 Current playerRole:', playerRole);
+              console.log('💬 Message playerName:', message.playerName);
+              console.log('💬 Message text:', message.message);
+              
+              return (
+                <div
+                  key={message.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '6px',
+                    flexDirection: message.playerId === playerRole ? 'row-reverse' : 'row'
+                  }}
+                >
                 {/* Avatar */}
                 <div style={{
                   flexShrink: 0,
@@ -243,7 +250,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
             <div ref={messagesEndRef} />
           </div>
         )}
