@@ -1665,38 +1665,56 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleChatMessage = (message: any) => {
-        console.log('💬 Received real-time chat message:', message);
-        console.log('💬 Message details:', {
-          id: message.id,
-          playerId: message.playerId,
-          playerRole: message.playerRole,
-          message: message.message,
-          timestamp: message.timestamp
-        });
-        console.log('💬 Current chat messages count:', chatMessages.length);
-        
-        const newMessage = {
-          ...message,
-          playerId: message.playerRole || message.playerId, // Map playerRole to playerId
-          playerName: message.playerRole || message.playerName, // Use playerRole as playerName
-          timestamp: typeof message.timestamp === 'string' ? new Date(message.timestamp).getTime() : message.timestamp
-        };
-        
-        console.log('💬 Adding new message to state:', newMessage);
-        setChatMessages(prev => {
-          const updated = [...prev, newMessage];
-          console.log('💬 Updated chat messages count:', updated.length);
-          return updated;
-        });
+        try {
+          console.log('💬 Received real-time chat message:', message);
+          console.log('💬 Message details:', {
+            id: message.id,
+            playerId: message.playerId,
+            playerRole: message.playerRole,
+            message: message.message,
+            timestamp: message.timestamp
+          });
+          console.log('💬 Current chat messages count:', chatMessages.length);
+          
+          const newMessage = {
+            ...message,
+            playerId: message.playerRole || message.playerId, // Map playerRole to playerId
+            playerName: message.playerRole || message.playerName, // Use playerRole as playerName
+            timestamp: typeof message.timestamp === 'string' ? new Date(message.timestamp).getTime() : message.timestamp
+          };
+          
+          console.log('💬 Adding new message to state:', newMessage);
+          setChatMessages(prev => {
+            const updated = [...prev, newMessage];
+            console.log('💬 Updated chat messages count:', updated.length);
+            return updated;
+          });
+        } catch (error) {
+          console.error('❌ Error in handleChatMessage:', error);
+          console.error('❌ Error details:', {
+            message: error.message,
+            stack: error.stack,
+            inputMessage: message
+          });
+        }
       };
 
       // Use the databaseMultiplayerState callback system instead of direct socket listeners
       console.log('🔗 Setting up chat message listener for room:', roomId);
       const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
-        console.log('🔗 Callback received eventData:', eventData);
-        if (eventData.eventType === 'chatMessage') {
-          console.log('🔗 Processing chatMessage event:', eventData.data);
-          handleChatMessage(eventData.data);
+        try {
+          console.log('🔗 Callback received eventData:', eventData);
+          if (eventData.eventType === 'chatMessage') {
+            console.log('🔗 Processing chatMessage event:', eventData.data);
+            handleChatMessage(eventData.data);
+          }
+        } catch (error) {
+          console.error('❌ Error in callback function:', error);
+          console.error('❌ Error details:', {
+            message: error.message,
+            stack: error.stack,
+            eventData: eventData
+          });
         }
       });
       
