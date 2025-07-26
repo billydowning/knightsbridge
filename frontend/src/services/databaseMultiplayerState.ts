@@ -402,8 +402,8 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('getRoomStatus', { roomId }, (response: any) => {
           if (response.success) {
-            console.log('✅ Room status:', response.data);
-            resolve(response.data);
+            console.log('✅ Room status:', response.roomStatus);
+            resolve(response.roomStatus);
           } else {
             console.error('❌ Failed to get room status:', response.error);
             resolve(null);
