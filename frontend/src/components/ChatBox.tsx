@@ -159,14 +159,14 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {messages.map((message) => (
               <div
                 key={message.id}
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',
-                  gap: '8px',
+                  gap: '6px',
                   flexDirection: message.playerId === playerRole ? 'row-reverse' : 'row'
                 }}
               >
@@ -199,7 +199,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
                 }}>
                   <div style={{
                     display: 'inline-block',
-                    padding: isMobile ? '8px 12px' : '10px 15px',
+                    padding: isMobile ? '6px 10px' : '8px 12px',
                     borderRadius: '12px',
                     backgroundColor: message.playerId === playerRole 
                       ? theme.primary 
