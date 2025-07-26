@@ -167,90 +167,62 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {/* Test message to verify rendering works */}
+            <div style={{ 
+              padding: '10px', 
+              backgroundColor: 'red', 
+              color: 'white', 
+              margin: '5px 0',
+              borderRadius: '8px'
+            }}>
+              🧪 TEST: Rendering {messages.length} messages | Current Role: {playerRole}
+              <button 
+                onClick={() => {
+                  const testMsg = { 
+                    id: Date.now().toString(),
+                    playerId: 'white', 
+                    playerName: 'white',
+                    message: 'Test from white', 
+                    timestamp: Date.now() 
+                  };
+                  console.log('🧪 Adding test message:', testMsg);
+                  // This would need to be passed up to parent to add to state
+                }}
+                style={{ 
+                  marginLeft: '10px', 
+                  padding: '5px 10px', 
+                  backgroundColor: 'white', 
+                  color: 'red', 
+                  border: 'none', 
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Add Test Message
+              </button>
+            </div>
+            
             {messages.map((message, index) => {
               console.log('💬 Rendering message:', index, message);
               console.log('💬 Message playerId:', message.playerId);
               console.log('💬 Current playerRole:', playerRole);
               console.log('💬 Message playerName:', message.playerName);
               console.log('💬 Message text:', message.message);
+              console.log('💬 Role comparison:', message.playerId === playerRole ? 'SAME ROLE' : 'DIFFERENT ROLE');
               
               return (
-                <div
-                  key={message.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '6px',
-                    flexDirection: message.playerId === playerRole ? 'row-reverse' : 'row'
-                  }}
-                >
-                {/* Avatar */}
-                <div style={{
-                  flexShrink: 0,
-                  width: isMobile ? '24px' : '32px',
-                  height: isMobile ? '24px' : '32px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: textSizes.small,
-                  fontWeight: 'bold',
-                  backgroundColor: message.playerId === playerRole 
-                    ? theme.primary 
-                    : theme.border,
-                  color: message.playerId === playerRole 
-                    ? 'white' 
-                    : theme.text
+                <div key={index} style={{
+                  alignSelf: message.playerId === playerRole ? 'flex-end' : 'flex-start',  // Self right, opponent left
+                  backgroundColor: message.playerId === playerRole ? '#007bff' : '#6c757d',  // Blue for self, gray for opponent
+                  color: 'white',
+                  padding: '8px 12px',
+                  borderRadius: '12px',
+                  maxWidth: '75%',
+                  marginBottom: '8px'
                 }}>
-                  {message.playerId === playerRole ? 'You' : message.playerName?.charAt(0) || 'P'}
+                  <strong>{message.playerName || message.playerId}:</strong> {message.message}
                 </div>
-
-                {/* Message Content */}
-                <div style={{
-                  flex: 1,
-                  maxWidth: isMobile ? 'calc(100% - 40px)' : 'calc(100% - 50px)',
-                  textAlign: message.playerId === playerRole ? 'right' : 'left'
-                }}>
-                  <div style={{
-                    display: 'inline-block',
-                    padding: isMobile ? '4px 8px' : '6px 10px',
-                    borderRadius: '12px',
-                    backgroundColor: message.playerId === playerRole 
-                      ? theme.primary 
-                      : theme.surface,
-                    color: message.playerId === playerRole 
-                      ? 'white' 
-                      : theme.text,
-                    border: `1px solid ${message.playerId === playerRole 
-                      ? theme.primary 
-                      : theme.border}`,
-                    maxWidth: '100%',
-                    wordBreak: 'break-word'
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      marginBottom: '4px',
-                      fontSize: textSizes.small,
-                      opacity: 0.8
-                    }}>
-                      {message.type !== 'system' && message.playerId !== playerRole && (
-                        <span style={{ fontWeight: 'bold' }}>
-                          {message.playerName}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ 
-                      fontSize: textSizes.body,
-                      lineHeight: '1.4'
-                    }}>
-                      {message.message}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
+              );
             })}
             <div ref={messagesEndRef} />
           </div>
