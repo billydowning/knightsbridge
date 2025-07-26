@@ -83,11 +83,16 @@ export const GameView: React.FC<GameViewProps> = ({
           </div>
           <div style={{ textAlign: 'center', color: theme.text }}>
             <strong>Turn:</strong><br/>
-            {gameState.currentPlayer}
+            {gameState.currentPlayer.charAt(0).toUpperCase() + gameState.currentPlayer.slice(1)}
           </div>
           <div style={{ textAlign: 'center', color: theme.text }}>
             <strong>Status:</strong><br/>
-            {gameState.gameActive ? 'Active' : 'Game Over'}
+            {gameState.draw 
+              ? 'Draw'
+              : gameState.winner 
+                ? `${gameState.winner.charAt(0).toUpperCase() + gameState.winner.slice(1)} Wins! 🎉`
+                : gameState.gameActive ? 'Active' : 'Game Over'
+            }
           </div>
         </div>
       </div>
