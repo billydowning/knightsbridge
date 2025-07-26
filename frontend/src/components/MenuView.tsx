@@ -316,7 +316,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
 
       {/* Instructions */}
       <div style={{ 
-        marginTop: '30px', 
+        marginTop: '50px', 
         padding: '20px', 
         backgroundColor: theme.background, 
         borderRadius: '10px',
@@ -325,7 +325,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
         border: `1px solid ${theme.border}`,
         color: theme.text,
         width: '800px', // Match chessboard (480px) + chat box (300px) + gap (20px)
-        margin: '0 auto'
+        margin: '50px auto 0 auto'
       }}>
         <h4 style={{ margin: '0 0 15px 0', color: theme.text }}>📋 How to Play:</h4>
         <ul style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
