@@ -1850,7 +1850,10 @@ io.on('connection', (socket) => {
       if (typeof callback === 'function') callback({ success: true, message: newMessage });
 
       // Broadcast message to all players in the room
+      console.log('📢 Broadcasting chat message to room:', roomId);
+      console.log('📢 Message to broadcast:', newMessage);
       io.to(roomId).emit('chatMessageReceived', newMessage);
+      console.log('📢 Chat message broadcast completed');
 
     } catch (error) {
       console.error('Error sending chat message:', error);
