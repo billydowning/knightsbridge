@@ -110,7 +110,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
                 onClick={() => setBetAmount(amount)}
                 style={{
                   ...sharedButtonStyle,
-                  backgroundColor: betAmount === amount ? theme.primary : theme.surface,
+                  backgroundColor: betAmount === amount ? theme.primary : theme.background,
                   color: betAmount === amount ? 'white' : theme.text,
                   border: `2px solid ${theme.border}`
                 }}
@@ -135,7 +135,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
                   onClick={() => setBetAmount(amount)}
                   style={{
                     ...sharedButtonStyle,
-                    backgroundColor: betAmount === amount ? theme.primary : theme.surface,
+                    backgroundColor: betAmount === amount ? theme.primary : theme.background,
                     color: betAmount === amount ? 'white' : theme.text,
                     border: `2px solid ${theme.border}`
                   }}
