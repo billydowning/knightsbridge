@@ -72,12 +72,21 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     const isWhitePiece = ['♔', '♕', '♖', '♗', '♘', '♙'].includes(piece);
     const isBlackPiece = ['♚', '♛', '♜', '♝', '♞', '♟'].includes(piece);
     
+    // Calculate piece size as 60% of square size to prevent overflow
+    const pieceSize = Math.floor(squareSize * 0.6);
+    
     const baseStyle: React.CSSProperties = {
-      fontSize,
+      fontSize: `${pieceSize}px`,
       fontWeight: 'bold',
       textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
       transition: 'transform 0.2s ease',
       filter: disabled ? 'grayscale(50%)' : 'none',
+      lineHeight: '1',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%'
     };
 
     // Apply color based on piece type
@@ -94,7 +103,7 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     }
 
     return baseStyle;
-  }, [isHovered, disabled, piece, fontSize]);
+  }, [isHovered, disabled, piece, squareSize]);
 
   // Calculate indicator size based on square size
   const indicatorSize = Math.max(8, squareSize * 0.3);
@@ -119,6 +128,8 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
         opacity: disabled ? 0.6 : 1,
         userSelect: 'none',
         boxShadow: isSelected ? 'inset 0 0 10px rgba(255, 215, 0, 0.5)' : 'none',
+        padding: '2px',
+        boxSizing: 'border-box'
       }}
       title={`${square}${piece ? ` - ${piece}` : ''}`}
       role="button"
@@ -250,9 +261,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
         boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
         backgroundColor: '#333',
         maxWidth: '100%',
-        maxHeight: '100%',
-        padding: '8px',
-        boxSizing: 'border-box'
+        maxHeight: '100%'
       }}
       role="grid"
       aria-label="Chess board"
