@@ -80,9 +80,10 @@ export const GameView: React.FC<GameViewProps> = ({
         backgroundColor: '#f8f9fa',
         borderRadius: '8px',
         flexWrap: 'wrap',
-        gap: '10px'
+        gap: '10px',
+        color: '#333'
       }}>
-        <div style={{ fontSize: '14px' }}>
+        <div style={{ fontSize: '14px', color: '#333' }}>
           <strong>Room:</strong> {roomId} | <strong>Role:</strong> 
           <span style={{ 
             color: playerRole === 'white' ? '#4CAF50' : '#FF9800',
@@ -92,7 +93,7 @@ export const GameView: React.FC<GameViewProps> = ({
             {playerRole.toUpperCase()}
           </span>
         </div>
-        <div style={{ fontSize: '14px' }}>
+        <div style={{ fontSize: '14px', color: '#333' }}>
           <strong>Turn:</strong> {gameState.currentPlayer} | <strong>Pot:</strong> {potValue} SOL
         </div>
       </div>
@@ -103,13 +104,14 @@ export const GameView: React.FC<GameViewProps> = ({
         padding: '15px', 
         backgroundColor: gameState.inCheckmate ? '#ffebee' : gameState.inCheck ? '#ffe6e6' : '#f0f0f0', 
         borderRadius: '8px',
-        border: gameState.inCheckmate ? '2px solid #d32f2f' : gameState.inCheck ? '2px solid #ff6b6b' : '1px solid #ddd'
+        border: gameState.inCheckmate ? '2px solid #d32f2f' : gameState.inCheck ? '2px solid #ff6b6b' : '1px solid #ddd',
+        color: '#333'
       }}>
-        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
+        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
           <strong>Game Status:</strong> {getGameStatusMessage()}
         </div>
         
-        <div style={{ fontSize: '16px', color: '#666' }}>
+        <div style={{ fontSize: '16px', color: '#555' }}>
           {getPlayerStatusMessage()}
         </div>
 
