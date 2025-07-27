@@ -712,4 +712,27 @@ router.get('/health', async (req, res) => {
   }
 });
 
+// Debug endpoint to check database contents
+router.get('/debug/database', async (req, res) => {
+  try {
+    const pool = getPool();
+    
+    // Get all games
+    const games = await pool.query('SELECT * FROM games ORDER BY created_at DESC LIMIT 10');
+    
+    // Get all escrows  
+    const escrows = await pool.query('SELECT * FROM escrows ORDER BY created_at DESC LIMIT 10');
+    
+    res.json({
+      success: true,
+      games: games.rows,
+      escrows: escrows.rows,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Debug database error:', error);
+    res.status(500).json({ error: 'Failed to query database', details: error.message });
+  }
+});
+
 module.exports = router; 
