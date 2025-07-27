@@ -140,6 +140,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
      * @returns Success status
      */
     const createEscrow = async (roomId: string, betAmount: number): Promise<boolean> => {
+      console.log('🔍 Debug - CreateEscrow - Starting function');
+      console.log('🔍 Debug - CreateEscrow - Room ID:', roomId);
+      console.log('🔍 Debug - CreateEscrow - Bet Amount:', betAmount);
+      console.log('🔍 Debug - CreateEscrow - Connected:', connected);
+      console.log('🔍 Debug - CreateEscrow - Public Key:', publicKey?.toString());
+      console.log('🔍 Debug - CreateEscrow - Balance:', balance);
+      
       if (!connected || !publicKey) {
         setError('Please connect your wallet first');
         return false;
@@ -150,7 +157,9 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return false;
       }
 
+      console.log('🔍 Debug - CreateEscrow - About to get program');
       const program = getProgram();
+      console.log('🔍 Debug - CreateEscrow - Program:', program ? 'Found' : 'Not found');
       if (!program) {
         setError('Failed to connect to program');
         return false;
