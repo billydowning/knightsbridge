@@ -65,7 +65,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     /**
      * Get Anchor program instance
      */
-    const getProgram = (): Program<ChessEscrow> | null => {
+    const getProgram = async (): Promise<Program<ChessEscrow> | null> => {
       console.log('🔍 Debug - GetProgram - Starting function');
       console.log('🔍 Debug - GetProgram - Public Key:', publicKey?.toString());
       console.log('🔍 Debug - GetProgram - Sign Transaction:', signTransaction ? 'Available' : 'Not available');
@@ -94,8 +94,20 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       
       console.log('🔍 Debug - GetProgram - Created provider');
       
-      // Use static import to avoid truncation issues
-      console.log('🔍 Debug - GetProgram - Using static IDL import');
+      // Try to fetch IDL from the program itself first
+      try {
+        console.log('🔍 Debug - GetProgram - Attempting to fetch IDL from chain...');
+        const programId = new web3.PublicKey(CHESS_PROGRAM_ID);
+        const program = await Program.at(programId, provider);
+        console.log('🔍 Debug - GetProgram - Successfully loaded program from chain');
+        return program;
+      } catch (chainError) {
+        console.log('🔍 Debug - GetProgram - Chain IDL fetch failed, using local IDL');
+        console.log('🔍 Debug - GetProgram - Chain error:', chainError);
+        
+        // Fall back to local IDL
+        console.log('🔍 Debug - GetProgram - Using static IDL import');
+      }
       
       // Validate IDL completeness
       console.log('🔍 Debug - GetProgram - ChessEscrowIDL:', ChessEscrowIDL ? 'Available' : 'Not available');
@@ -128,6 +140,45 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       
       if (!depositStake || !depositStake.accounts || depositStake.accounts.some(acc => !acc.name)) {
         throw new Error('IDL is incomplete or corrupted - deposit_stake instruction missing');
+      }
+      
+      // Debug account structures specifically
+      console.log('🔍 Debug - Checking account types in IDL:');
+      if (ChessEscrowIDL.accounts) {
+        ChessEscrowIDL.accounts.forEach((account, i) => {
+          console.log(`🔍 Debug - Account ${i} (${account.name}):`, {
+            hasType: !!account.type,
+            hasFields: !!account.type?.fields,
+            fieldCount: account.type?.fields?.length
+          });
+          
+          // Check each field has proper type definitions
+          if (account.type?.fields) {
+            account.type.fields.forEach((field, j) => {
+              console.log(`🔍 Debug -   Field ${j} (${field.name}):`, {
+                hasType: !!field.type,
+                typeValue: field.type
+              });
+            });
+          }
+        });
+      } else {
+        console.log('🔍 Debug - NO ACCOUNTS SECTION FOUND IN IDL!');
+      }
+
+      // Check custom types
+      console.log('🔍 Debug - Custom types in IDL:');
+      if (ChessEscrowIDL.types) {
+        ChessEscrowIDL.types.forEach((type, i) => {
+          console.log(`🔍 Debug - Type ${i} (${type.name}):`, {
+            hasType: !!type.type,
+            typeKind: type.type?.kind,
+            hasFields: !!type.type?.fields,
+            hasVariants: !!type.type?.variants
+          });
+        });
+      } else {
+        console.log('🔍 Debug - NO TYPES SECTION FOUND IN IDL!');
       }
       
       // Try using the IDL directly without Program constructor
@@ -223,7 +274,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       }
 
       console.log('🔍 Debug - CreateEscrow - About to get program');
-      const program = getProgram();
+      const program = await getProgram();
       console.log('🔍 Debug - CreateEscrow - Program:', program ? 'Found' : 'Not found');
       if (!program) {
         setError('Failed to connect to program');
@@ -349,7 +400,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return false;
       }
 
-      const program = getProgram();
+      const program = await getProgram();
       if (!program) {
         setError('Failed to connect to program');
         return false;
@@ -470,7 +521,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return errorMsg;
       }
 
-      const program = getProgram();
+      const program = await getProgram();
       if (!program) {
         const errorMsg = 'Failed to connect to program';
         setError(errorMsg);
