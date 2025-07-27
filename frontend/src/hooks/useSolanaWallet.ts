@@ -10,13 +10,14 @@ if (typeof window !== 'undefined') {
   window.Buffer = Buffer;
 }
 
-import { useState, useEffect } from 'react';
-import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
-import { Program, AnchorProvider, BN, web3, Idl } from '@coral-xyz/anchor';
-import type { ChessEscrow } from '../idl/chess_escrow';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { LAMPORTS_PER_SOL, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
+import { useCallback, useEffect, useState } from 'react';
 import ChessEscrowIDL from '../idl/chess_escrow.json';
 import { databaseMultiplayerState } from '../services/databaseMultiplayerState';
+import { ChessEscrow } from '../idl/chess_escrow';
 import { CHESS_PROGRAM_ID, FEE_WALLET_ADDRESS } from '../config/solanaConfig';
 
 export interface SolanaWalletHook {
@@ -470,6 +471,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
                 console.log('🔍 Initialize game complete definition:', initializeGame);
                 console.log('🔍 Deposit stake complete definition:', depositStake);
                 
+                // Get the account types that the instructions reference
+                const gameEscrowAccount = ChessEscrowIDL.accounts?.find(a => a.name === 'GameEscrow');
+                const tournamentAccount = ChessEscrowIDL.accounts?.find(a => a.name === 'Tournament');
+                
+                console.log('🔍 GameEscrow account type:', gameEscrowAccount);
+                console.log('🔍 Tournament account type:', tournamentAccount);
+                
                 return {
                   address: CHESS_PROGRAM_ID,
                   metadata: {
@@ -482,7 +490,11 @@ export const useSolanaWallet = (): SolanaWalletHook => {
                     ...(initializeGame ? [initializeGame] : []),
                     ...(depositStake ? [depositStake] : [])
                   ],
-                  accounts: [], // Keep empty to avoid the size errors
+                  accounts: [
+                    // Include the account types that the instructions reference
+                    ...(gameEscrowAccount ? [gameEscrowAccount] : []),
+                    ...(tournamentAccount ? [tournamentAccount] : [])
+                  ],
                   types: [],    // Keep empty initially
                   events: [],
                   errors: []
@@ -644,25 +656,93 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           });
         }
         
+        // Add detailed argument debugging
+        console.log('🔍 Detailed argument debugging:');
+        if (initInstruction?.args) {
+          initInstruction.args.forEach((arg, i) => {
+            console.log(`  Arg ${i}:`, {
+              name: arg.name,
+              type: arg.type,
+              typeString: JSON.stringify(arg.type)
+            });
+          });
+        } else {
+          console.log('  No args found in instruction');
+        }
+        
+        // Check what's actually in the minimal IDL
+        console.log('🔍 Minimal IDL types count:', program.idl.types?.length || 0);
+        console.log('🔍 Minimal IDL types:', program.idl.types?.map(t => t.name) || []);
+        
+        // Debug the exact argument types expected from IDL
+        console.log('🔍 InitializeGame args types:', JSON.stringify(program.idl.instructions.find(i => i.name === 'initialize_game')?.args, null, 2));
+        
         console.log('🔍 Calling initializeGame with arguments:', {
           roomId,
           betAmountLamports: betAmount * LAMPORTS_PER_SOL,
           timeLimitSeconds: 300
         });
         
-        const tx = await program.methods
-          .initializeGame(
-            roomId,
-            new BN(betAmount * LAMPORTS_PER_SOL),
-            new BN(300) // 5 minute time limit
-          )
-          .accounts({
-            gameEscrow: gameEscrowPda,
-            player: publicKey,
-            feeCollector: FEE_WALLET_ADDRESS,
-            systemProgram: SystemProgram.programId,
-          } as any)
-          .rpc();
+        // Try different argument formats
+        let initializeTx;
+        try {
+          console.log('🔍 Attempt 1: Using BN for numbers...');
+          
+          initializeTx = await program.methods
+            .initializeGame(
+              roomId,                           // string
+              new BN(betAmount * LAMPORTS_PER_SOL), // BN for u64
+              new BN(300)                       // BN for i64
+            )
+            .accounts({
+              gameEscrow: gameEscrowPda,
+              player: publicKey,
+              feeCollector: FEE_WALLET_ADDRESS,
+              systemProgram: SystemProgram.programId,
+            } as any)
+            .rpc();
+          
+          console.log('✅ Success with BN:', initializeTx);
+          
+        } catch (error1) {
+          console.log('❌ BN approach failed:', error1.message);
+          
+          try {
+            console.log('🔍 Attempt 2: Using raw numbers...');
+            initializeTx = await program.methods
+              .initializeGame(
+                roomId,                    // string
+                betAmount * LAMPORTS_PER_SOL, // number
+                300                        // number
+              )
+              .accounts({
+                gameEscrow: gameEscrowPda,
+                player: publicKey,
+                feeCollector: FEE_WALLET_ADDRESS,
+                systemProgram: SystemProgram.programId,
+              } as any)
+              .rpc();
+            
+            console.log('✅ Success with numbers:', initializeTx);
+            
+          } catch (error2) {
+            console.log('❌ Numbers approach failed:', error2.message);
+            
+            // Try without arguments
+            console.log('🔍 Attempt 3: No arguments...');
+            initializeTx = await program.methods
+              .initializeGame()
+              .accounts({
+                gameEscrow: gameEscrowPda,
+                player: publicKey,
+                feeCollector: FEE_WALLET_ADDRESS,
+                systemProgram: SystemProgram.programId,
+              } as any)
+              .rpc();
+            
+            console.log('✅ Success without args:', initializeTx);
+          }
+        }
         
         // Now deposit stake
         console.log('🔍 Debug - CreateEscrow - About to call depositStake with accounts:', {
