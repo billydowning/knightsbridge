@@ -188,6 +188,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       console.log('🔍 Debug - GameEscrow type definition:', gameEscrowType);
       console.log('🔍 Debug - Tournament type definition:', tournamentType);
       
+      // Check if the type definitions are valid
+      if (gameEscrowType?.type?.fields) {
+        console.log('🔍 Debug - GameEscrow fields:', gameEscrowType.type.fields.map(f => ({ name: f.name, type: f.type })));
+      }
+      if (tournamentType?.type?.fields) {
+        console.log('🔍 Debug - Tournament fields:', tournamentType.type.fields.map(f => ({ name: f.name, type: f.type })));
+      }
+      
       // Manually fix the accounts section
       if (ChessEscrowIDL.accounts) {
         ChessEscrowIDL.accounts.forEach(account => {
@@ -200,7 +208,37 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             console.log('🔍 Debug - Fixed Tournament account type');
           }
         });
+        
+        // Verify the fix worked
+        console.log('🔍 Debug - After fix - Account 0 (GameEscrow):', {
+          hasType: !!ChessEscrowIDL.accounts[0]?.type,
+          hasFields: !!ChessEscrowIDL.accounts[0]?.type?.fields,
+          fieldCount: ChessEscrowIDL.accounts[0]?.type?.fields?.length
+        });
+        console.log('🔍 Debug - After fix - Account 1 (Tournament):', {
+          hasType: !!ChessEscrowIDL.accounts[1]?.type,
+          hasFields: !!ChessEscrowIDL.accounts[1]?.type?.fields,
+          fieldCount: ChessEscrowIDL.accounts[1]?.type?.fields?.length
+        });
       }
+      
+      // Check for any malformed defined types that might cause the size error
+      const checkDefinedTypes = (obj: any, path: string = '') => {
+        if (obj && typeof obj === 'object') {
+          if (obj.defined && typeof obj.defined === 'object' && obj.defined.name) {
+            console.log(`🔍 Debug - Found malformed defined type at ${path}:`, obj.defined);
+            // Fix it
+            obj.defined = obj.defined.name;
+            console.log(`🔍 Debug - Fixed defined type at ${path}:`, obj.defined);
+          }
+          Object.keys(obj).forEach(key => {
+            checkDefinedTypes(obj[key], `${path}.${key}`);
+          });
+        }
+      };
+      
+      // Check and fix any malformed defined types
+      checkDefinedTypes(ChessEscrowIDL, 'IDL');
       
       // Try using the IDL directly without Program constructor
       try {
