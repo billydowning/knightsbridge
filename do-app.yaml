@@ -20,8 +20,8 @@ services:
     value: "https://knightsbridge.vercel.app"
     scope: RUN_AND_BUILD_TIME
   - key: DATABASE_URL
-    value: "postgresql://doadmin:AVNS_6kKGEFdYpoxDVtk4uxD@chess-db-do-user-24118504-0.f.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
     scope: RUN_AND_BUILD_TIME
+    type: SECRET
   - key: DEBUG
     value: "false"
     scope: RUN_AND_BUILD_TIME 
