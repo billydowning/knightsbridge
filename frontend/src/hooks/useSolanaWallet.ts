@@ -608,10 +608,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         
         // Initialize game
         console.log('🔍 Debug - CreateEscrow - About to call initializeGame with accounts:', {
-          game_escrow: gameEscrowPda.toString(),
+          gameEscrow: gameEscrowPda.toString(),
           player: publicKey.toString(),
-          fee_collector: FEE_WALLET_ADDRESS.toString(),
-          system_program: SystemProgram.programId.toString(),
+          feeCollector: FEE_WALLET_ADDRESS.toString(),
+          systemProgram: SystemProgram.programId.toString(),
         });
         
         // Debug: Log the instruction definition
@@ -653,10 +653,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             new BN(300) // 5 minute time limit
           )
           .accounts({
-            game_escrow: gameEscrowPda,
+            gameEscrow: gameEscrowPda,
             player: publicKey,
-            fee_collector: FEE_WALLET_ADDRESS,
-            system_program: SystemProgram.programId,
+            feeCollector: FEE_WALLET_ADDRESS,
+            systemProgram: SystemProgram.programId,
           } as any)
           .rpc();
         
@@ -671,10 +671,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         const depositTx = await program.methods
           .depositStake()
           .accounts({
-            game_escrow: gameEscrowPda,
+            gameEscrow: gameEscrowPda,
             player: publicKey,
-            game_vault: gameVaultPda,
-            system_program: SystemProgram.programId,
+            gameVault: gameVaultPda,
+            systemProgram: SystemProgram.programId,
           } as any)
           .rpc();
         
@@ -765,26 +765,26 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         const joinTx = await program.methods
           .joinGame()
           .accounts({
-            game_escrow: gameEscrowPda,
+            gameEscrow: gameEscrowPda,
             player: publicKey,
           } as any)
           .rpc();
         
         // Deposit stake
         console.log('🔍 Debug - About to call depositStake with accounts:', {
-          game_escrow: gameEscrowPda.toString(),
+          gameEscrow: gameEscrowPda.toString(),
           player: publicKey.toString(),
-          game_vault: gameVaultPda.toString(),
-          system_program: SystemProgram.programId.toString(),
+          gameVault: gameVaultPda.toString(),
+          systemProgram: SystemProgram.programId.toString(),
         });
         
         const depositTx = await program.methods
           .depositStake()
           .accounts({
-            game_escrow: gameEscrowPda,
+            gameEscrow: gameEscrowPda,
             player: publicKey,
-            game_vault: gameVaultPda,
-            system_program: SystemProgram.programId,
+            gameVault: gameVaultPda,
+            systemProgram: SystemProgram.programId,
           })
           .rpc();
         
