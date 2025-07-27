@@ -47,7 +47,7 @@ export const GameView: React.FC<GameViewProps> = ({
   const { boardSize } = useChessBoardConfig();
   const isDesktopLayout = useIsDesktopLayout();
 
-  const canClaimWinnings = gameState.winner && !winningsClaimed;
+  const canClaimWinnings = gameState.winner && gameState.winner === playerRole && !winningsClaimed;
   const isGameOver = gameState.winner || gameState.draw;
 
   return (
