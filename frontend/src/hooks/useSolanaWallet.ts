@@ -608,10 +608,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         
         // Initialize game
         console.log('🔍 Debug - CreateEscrow - About to call initializeGame with accounts:', {
-          gameEscrow: gameEscrowPda.toString(),
+          game_escrow: gameEscrowPda.toString(),
           player: publicKey.toString(),
-          feeCollector: FEE_WALLET_ADDRESS.toString(),
-          systemProgram: SystemProgram.programId.toString(),
+          fee_collector: FEE_WALLET_ADDRESS.toString(),
+          system_program: SystemProgram.programId.toString(),
         });
         
         const tx = await program.methods
@@ -621,28 +621,28 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             new BN(300) // 5 minute time limit
           )
           .accounts({
-            gameEscrow: gameEscrowPda,
+            game_escrow: gameEscrowPda,
             player: publicKey,
-            feeCollector: FEE_WALLET_ADDRESS,
-            systemProgram: SystemProgram.programId,
+            fee_collector: FEE_WALLET_ADDRESS,
+            system_program: SystemProgram.programId,
           } as any)
           .rpc();
         
         // Now deposit stake
         console.log('🔍 Debug - CreateEscrow - About to call depositStake with accounts:', {
-          gameEscrow: gameEscrowPda.toString(),
+          game_escrow: gameEscrowPda.toString(),
           player: publicKey.toString(),
-          gameVault: gameVaultPda.toString(),
-          systemProgram: SystemProgram.programId.toString(),
+          game_vault: gameVaultPda.toString(),
+          system_program: SystemProgram.programId.toString(),
         });
         
         const depositTx = await program.methods
           .depositStake()
           .accounts({
-            gameEscrow: gameEscrowPda,
+            game_escrow: gameEscrowPda,
             player: publicKey,
-            gameVault: gameVaultPda,
-            systemProgram: SystemProgram.programId,
+            game_vault: gameVaultPda,
+            system_program: SystemProgram.programId,
           } as any)
           .rpc();
         
