@@ -182,7 +182,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     /**
      * Create escrow using direct RPC calls when Anchor program fails
      */
-    const createEscrowDirectRPC = async (roomId: string, betAmount: number, publicKey: PublicKey, connection: any): Promise<boolean> => {
+    const createEscrowDirectRPC = async (
+      roomId: string, 
+      betAmount: number, 
+      publicKey: PublicKey, 
+      connection: any, 
+      escrowAddedToDb: boolean
+    ): Promise<{ success: boolean; escrowAdded: boolean }> => {
       try {
         console.log('🔍 Direct RPC - Creating escrow with room ID:', roomId);
         console.log('🔍 Direct RPC - Bet amount:', betAmount, 'SOL');
@@ -264,16 +270,17 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         console.log('✅ Direct RPC - Transaction confirmed:', confirmation);
         
         // Add to multiplayer state only if not already added
+        let updatedEscrowAdded = escrowAddedToDb;
         if (!escrowAddedToDb) {
           databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
-          escrowAddedToDb = true;
+          updatedEscrowAdded = true;
         }
         
-        return true;
+        return { success: true, escrowAdded: updatedEscrowAdded };
       } catch (error) {
         console.error('❌ Direct RPC - Error:', error);
         setError(`Failed to create escrow via direct RPC: ${error.message}`);
-        return false;
+        return { success: false, escrowAdded: escrowAddedToDb };
       }
     };
 
@@ -353,7 +360,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         const program = await getProgram();
         if (!program) {
           console.log('🔍 Program creation failed, using direct RPC approach...');
-          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection);
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, false).then(result => result.success);
         }
 
         console.log('🔍 Debug - CreateEscrow - Program:', program ? 'Found' : 'Not found');
@@ -361,14 +368,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         // Check if program has instructions (if not, use direct RPC)
         if (!program.idl.instructions || program.idl.instructions.length === 0) {
           console.log('🔍 No instructions in program, using direct RPC approach...');
-          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection);
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, false).then(result => result.success);
         }
         
         // Check if initializeGame instruction exists
         const hasInitializeGame = program.idl.instructions.some(i => i.name === 'initialize_game');
         if (!hasInitializeGame) {
           console.log('🔍 No initializeGame instruction found, using direct RPC approach...');
-          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection);
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, false).then(result => result.success);
         }
         
         // Derive PDAs
@@ -443,7 +450,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         } catch (programError) {
           console.log('❌ Program method failed:', programError.message);
           console.log('🔍 Falling back to direct RPC approach...');
-          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection);
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, escrowAddedToDb).then(result => result.success);
         }
         
       } catch (err: any) {
