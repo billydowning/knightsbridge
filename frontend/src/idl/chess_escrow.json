@@ -605,6 +605,162 @@
       ]
     }
   ],
+  "accounts": [
+    {
+      "name": "GameEscrow",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room_id",
+            "type": "string"
+          },
+          {
+            "name": "player_white",
+            "type": "pubkey"
+          },
+          {
+            "name": "player_black",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "game_started",
+            "type": "bool"
+          },
+          {
+            "name": "white_deposited",
+            "type": "bool"
+          },
+          {
+            "name": "black_deposited",
+            "type": "bool"
+          },
+          {
+            "name": "fee_collector",
+            "type": "pubkey"
+          },
+          {
+            "name": "time_limit",
+            "type": "u64"
+          },
+          {
+            "name": "last_move_time",
+            "type": "i64"
+          },
+          {
+            "name": "game_state",
+            "type": {
+              "defined": "GameState"
+            }
+          },
+          {
+            "name": "winner",
+            "type": {
+              "option": {
+                "defined": "GameWinner"
+              }
+            }
+          },
+          {
+            "name": "end_reason",
+            "type": {
+              "option": {
+                "defined": "GameEndReason"
+              }
+            }
+          },
+          {
+            "name": "moves",
+            "type": {
+              "vec": {
+                "defined": "MoveRecord"
+              }
+            }
+          },
+          {
+            "name": "flags",
+            "type": {
+              "defined": "GameFlags"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Tournament",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tournament_id",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "entry_fee",
+            "type": "u64"
+          },
+          {
+            "name": "max_participants",
+            "type": "u32"
+          },
+          {
+            "name": "time_control",
+            "type": {
+              "defined": "TimeControl"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": "TournamentStatus"
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "started_at",
+            "type": "i64"
+          },
+          {
+            "name": "finished_at",
+            "type": "i64"
+          },
+          {
+            "name": "prize_pool",
+            "type": "u64"
+          },
+          {
+            "name": "participants",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "brackets",
+            "type": {
+              "vec": "string"
+            }
+          }
+        ]
+      }
+    }
+  ],
   "events": [
     {
       "name": "GameCancelled",
