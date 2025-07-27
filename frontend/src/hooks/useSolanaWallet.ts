@@ -9,6 +9,7 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
 import { Program, AnchorProvider, BN, web3, Idl } from '@coral-xyz/anchor';
 import type { ChessEscrow } from '../idl/chess_escrow';
+import ChessEscrowIDL from '../idl/chess_escrow.json';
 import { databaseMultiplayerState } from '../services/databaseMultiplayerState';
 import { CHESS_PROGRAM_ID, FEE_WALLET_ADDRESS } from '../config/solanaConfig';
 
@@ -64,7 +65,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     /**
      * Get Anchor program instance
      */
-    const getProgram = async (): Promise<Program<ChessEscrow> | null> => {
+    const getProgram = (): Program<ChessEscrow> | null => {
       console.log('🔍 Debug - GetProgram - Starting function');
       console.log('🔍 Debug - GetProgram - Public Key:', publicKey?.toString());
       console.log('🔍 Debug - GetProgram - Sign Transaction:', signTransaction ? 'Available' : 'Not available');
@@ -93,13 +94,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       
       console.log('🔍 Debug - GetProgram - Created provider');
       
-      // Dynamically import the IDL
-      console.log('🔍 Debug - GetProgram - Dynamically importing IDL');
-      const { default: ChessEscrowIDL } = await import('../idl/chess_escrow.json');
+      // Use static import to avoid truncation issues
+      console.log('🔍 Debug - GetProgram - Using static IDL import');
       
+      // Validate IDL completeness
       console.log('🔍 Debug - GetProgram - ChessEscrowIDL:', ChessEscrowIDL ? 'Available' : 'Not available');
       console.log('🔍 Debug - GetProgram - CHESS_PROGRAM_ID:', CHESS_PROGRAM_ID.toString());
-      console.log('🔍 Debug - GetProgram - IDL structure:', {
+      console.log('🔍 Debug - GetProgram - IDL validation:', {
         hasInstructions: !!ChessEscrowIDL?.instructions,
         instructionCount: ChessEscrowIDL?.instructions?.length,
         hasAccounts: !!ChessEscrowIDL?.accounts,
@@ -107,6 +108,27 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         hasMetadata: !!ChessEscrowIDL?.metadata,
         address: ChessEscrowIDL?.address
       });
+      
+      // Check each instruction is complete
+      if (ChessEscrowIDL?.instructions) {
+        ChessEscrowIDL.instructions.forEach((instruction, i) => {
+          console.log(`🔍 Debug - Instruction ${i} (${instruction.name}):`, {
+            hasAccounts: !!instruction.accounts,
+            hasArgs: !!instruction.args,
+            accountsComplete: instruction.accounts?.every(acc => 
+              acc.name && (acc.pda ? acc.pda.seeds : true)
+            )
+          });
+        });
+      }
+      
+      // Check for specific instruction completeness
+      const depositStake = ChessEscrowIDL?.instructions?.find(i => i.name === 'deposit_stake');
+      console.log('🔍 Debug - deposit_stake instruction:', depositStake);
+      
+      if (!depositStake || !depositStake.accounts || depositStake.accounts.some(acc => !acc.name)) {
+        throw new Error('IDL is incomplete or corrupted - deposit_stake instruction missing');
+      }
       
       // Try using the IDL directly without Program constructor
       try {
@@ -201,7 +223,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       }
 
       console.log('🔍 Debug - CreateEscrow - About to get program');
-      const program = await getProgram();
+      const program = getProgram();
       console.log('🔍 Debug - CreateEscrow - Program:', program ? 'Found' : 'Not found');
       if (!program) {
         setError('Failed to connect to program');
@@ -327,7 +349,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return false;
       }
 
-      const program = await getProgram();
+      const program = getProgram();
       if (!program) {
         setError('Failed to connect to program');
         return false;
@@ -448,7 +470,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return errorMsg;
       }
 
-      const program = await getProgram();
+      const program = getProgram();
       if (!program) {
         const errorMsg = 'Failed to connect to program';
         setError(errorMsg);
