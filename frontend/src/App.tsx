@@ -562,10 +562,15 @@ function ChessApp() {
       
       // Check if this is the first player (creating the game) or second player (joining)
       const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-      const isFirstPlayer = !roomStatus || roomStatus.playerCount === 0;
+      
+      // Check if this player has already created an escrow
+      const hasPlayerEscrow = roomStatus?.escrows && roomStatus.escrows[playerWallet];
+      const isFirstPlayer = !roomStatus || roomStatus.playerCount === 0 || !hasPlayerEscrow;
       
       console.log('🔍 Debug - Room Status:', roomStatus);
       console.log('🔍 Debug - Player Count:', roomStatus?.playerCount);
+      console.log('🔍 Debug - Player Wallet:', playerWallet);
+      console.log('🔍 Debug - Has Player Escrow:', hasPlayerEscrow);
       console.log('🔍 Debug - Is First Player:', isFirstPlayer);
       console.log('🔍 Debug - Player Role:', playerRole);
       
