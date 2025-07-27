@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { dbService, pool } = require('../database');
+const { dbService, pool: getPool } = require('../database');
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -23,6 +23,8 @@ router.post('/rooms', async (req, res) => {
     if (!roomId || !playerWallet) {
       return res.status(400).json({ error: 'Room ID and player wallet are required' });
     }
+    
+    const pool = getPool();
     
     // Check if room already exists
     const existingRoom = await pool.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
@@ -60,6 +62,8 @@ router.post('/rooms/:roomId/join', async (req, res) => {
       return res.status(400).json({ error: 'Player wallet is required' });
     }
     
+    const pool = getPool();
+
     // Check if room exists
     const existingRoom = await pool.query('SELECT room_id, player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]);
     if (existingRoom.rows.length === 0) {
@@ -107,6 +111,8 @@ router.get('/rooms/:roomId/status', async (req, res) => {
   try {
     const { roomId } = req.params;
     
+    const pool = getPool();
+
     // Get room from database
     const roomResult = await pool.query(
       'SELECT room_id, player_white_wallet, player_black_wallet, game_state, updated_at FROM games WHERE room_id = $1',
@@ -167,6 +173,8 @@ router.post('/rooms/:roomId/escrow', async (req, res) => {
       return res.status(400).json({ error: 'Player wallet and amount are required' });
     }
     
+    const pool = getPool();
+
     // Check if room exists
     const roomResult = await pool.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
     if (roomResult.rows.length === 0) {
