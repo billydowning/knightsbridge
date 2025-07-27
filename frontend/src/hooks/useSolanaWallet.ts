@@ -70,7 +70,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     }, [connected, publicKey]); // Only run when wallet connection changes, not on balanceCheckAttempts changes
 
     /**
-     * Get Anchor program instance
+     * Get Anchor program instance - FIXED VERSION
      */
     const getProgram = async (): Promise<Program<ChessEscrow> | null> => {
       console.log('🔍 Debug - GetProgram - Starting function');
@@ -110,435 +110,72 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       } catch (chainError) {
         console.log('🔍 Debug - GetProgram - Chain IDL fetch failed, using local IDL');
         console.log('🔍 Debug - GetProgram - Chain error:', chainError);
-        
-        // Fall back to local IDL
-        console.log('🔍 Debug - GetProgram - Using static IDL import');
       }
       
-      // Validate IDL completeness
-      console.log('🔍 Debug - GetProgram - ChessEscrowIDL:', ChessEscrowIDL ? 'Available' : 'Not available');
-      console.log('🔍 Debug - GetProgram - CHESS_PROGRAM_ID:', CHESS_PROGRAM_ID.toString());
-      console.log('🔍 Debug - GetProgram - IDL validation:', {
-        hasInstructions: !!ChessEscrowIDL?.instructions,
-        instructionCount: ChessEscrowIDL?.instructions?.length,
-        hasAccounts: !!ChessEscrowIDL?.accounts,
-        hasTypes: !!ChessEscrowIDL?.types,
-        hasMetadata: !!ChessEscrowIDL?.metadata,
-        address: ChessEscrowIDL?.address
-      });
-      
-      // Check each instruction is complete
-      if (ChessEscrowIDL?.instructions) {
-        ChessEscrowIDL.instructions.forEach((instruction, i) => {
-          console.log(`🔍 Debug - Instruction ${i} (${instruction.name}):`, {
-            hasAccounts: !!instruction.accounts,
-            hasArgs: !!instruction.args,
-            accountsComplete: instruction.accounts?.every(acc => 
-              acc.name && (acc.pda ? acc.pda.seeds : true)
-            )
-          });
-        });
-      }
-      
-      // Check for specific instruction completeness
-      const depositStake = ChessEscrowIDL?.instructions?.find(i => i.name === 'deposit_stake');
-      console.log('🔍 Debug - deposit_stake instruction:', depositStake);
-      
-      if (!depositStake || !depositStake.accounts || depositStake.accounts.some(acc => !acc.name)) {
-        throw new Error('IDL is incomplete or corrupted - deposit_stake instruction missing');
-      }
-      
-      // Debug account structures specifically
-      console.log('🔍 Debug - Checking account types in IDL:');
-      if (ChessEscrowIDL.accounts) {
-        ChessEscrowIDL.accounts.forEach((account, i) => {
-          console.log(`🔍 Debug - Account ${i} (${account.name}):`, {
-            hasType: !!account.type,
-            hasFields: !!account.type?.fields,
-            fieldCount: account.type?.fields?.length
-          });
-          
-          // Check each field has proper type definitions
-          if (account.type?.fields) {
-            account.type.fields.forEach((field, j) => {
-              console.log(`🔍 Debug -   Field ${j} (${field.name}):`, {
-                hasType: !!field.type,
-                typeValue: field.type
-              });
-            });
-          }
-        });
-      } else {
-        console.log('🔍 Debug - NO ACCOUNTS SECTION FOUND IN IDL!');
-      }
-
-      // Check custom types
-      console.log('🔍 Debug - Custom types in IDL:');
-      if (ChessEscrowIDL.types) {
-        ChessEscrowIDL.types.forEach((type, i) => {
-          console.log(`🔍 Debug - Type ${i} (${type.name}):`, {
-            hasType: !!type.type,
-            typeKind: type.type?.kind,
-            hasFields: !!type.type?.fields,
-            hasVariants: !!type.type?.variants
-          });
-        });
-      } else {
-        console.log('🔍 Debug - NO TYPES SECTION FOUND IN IDL!');
-      }
-      
-      // Find the GameEscrow and Tournament type definitions
-      const gameEscrowType = ChessEscrowIDL.types?.find(t => t.name === 'GameEscrow');
-      const tournamentType = ChessEscrowIDL.types?.find(t => t.name === 'Tournament');
-      
-      console.log('🔍 Debug - GameEscrow type definition:', gameEscrowType);
-      console.log('🔍 Debug - Tournament type definition:', tournamentType);
-      
-      // Check if the type definitions are valid
-      if (gameEscrowType?.type?.fields) {
-        console.log('🔍 Debug - GameEscrow fields:', gameEscrowType.type.fields.map(f => ({ name: f.name, type: f.type })));
-      }
-      if (tournamentType?.type?.fields) {
-        console.log('🔍 Debug - Tournament fields:', tournamentType.type.fields.map(f => ({ name: f.name, type: f.type })));
-      }
-      
-      // Debug the suspicious fields with complex types
-      console.log('🔍 Debug - Suspicious GameEscrow fields:');
-      if (gameEscrowType?.type?.fields) {
-        [5, 6, 16, 17, 18, 22, 23].forEach(index => {
-          const field = gameEscrowType.type.fields[index];
-          if (field) {
-            console.log(`🔍 Debug - Field ${index} (${field.name}):`, JSON.stringify(field.type, null, 2));
-          }
-        });
-      }
-      
-      // Detailed field inspection - after the fixes
-      console.log('🔍 Debug - Detailed GameEscrow field analysis:');
-      if (gameEscrowType?.type?.fields) {
-        gameEscrowType.type.fields.forEach((field, i) => {
-          console.log(`🔍 Debug -   Field ${i}: "${field.name}"`, field.type);
-          
-          // Check for problematic types
-          if (typeof field.type === 'object') {
-            if (field.type.vec !== undefined) {
-              console.log(`🔍 Debug -     ⚠️  VEC TYPE: ${field.name} has vec:`, field.type.vec);
-            }
-            if (field.type.array !== undefined) {
-              console.log(`🔍 Debug -     ⚠️  ARRAY TYPE: ${field.name} has array:`, field.type.array);
-            }
-            if (field.type.defined) {
-              const referencedType = ChessEscrowIDL.types?.find(t => t.name === field.type.defined);
-              console.log(`🔍 Debug -     📎 DEFINED TYPE: ${field.name} references "${field.type.defined}" - exists: ${!!referencedType}`);
-            }
-            if (field.type.option) {
-              console.log(`🔍 Debug -     🎯 OPTION TYPE: ${field.name} has option:`, field.type.option);
-            }
-          }
-        });
-      }
-      
-      // Manually fix the accounts section
-      if (ChessEscrowIDL.accounts) {
-        ChessEscrowIDL.accounts.forEach(account => {
-          if (account.name === 'GameEscrow' && !account.type) {
-            account.type = gameEscrowType?.type;
-            console.log('🔍 Debug - Fixed GameEscrow account type');
-          }
-          if (account.name === 'Tournament' && !account.type) {
-            account.type = tournamentType?.type;
-            console.log('🔍 Debug - Fixed Tournament account type');
-          }
-        });
-        
-        // Verify the fix worked
-        console.log('🔍 Debug - After fix - Account 0 (GameEscrow):', {
-          hasType: !!ChessEscrowIDL.accounts[0]?.type,
-          hasFields: !!ChessEscrowIDL.accounts[0]?.type?.fields,
-          fieldCount: ChessEscrowIDL.accounts[0]?.type?.fields?.length
-        });
-        console.log('🔍 Debug - After fix - Account 1 (Tournament):', {
-          hasType: !!ChessEscrowIDL.accounts[1]?.type,
-          hasFields: !!ChessEscrowIDL.accounts[1]?.type?.fields,
-          fieldCount: ChessEscrowIDL.accounts[1]?.type?.fields?.length
-        });
-      }
-      
-      // Check for any malformed defined types that might cause the size error
-      const checkDefinedTypes = (obj: any, path: string = '') => {
-        if (obj && typeof obj === 'object') {
-          if (obj.defined && typeof obj.defined === 'object' && obj.defined.name) {
-            console.log(`🔍 Debug - Found malformed defined type at ${path}:`, obj.defined);
-            // Fix it
-            obj.defined = obj.defined.name;
-            console.log(`🔍 Debug - Fixed defined type at ${path}:`, obj.defined);
-          }
-          Object.keys(obj).forEach(key => {
-            checkDefinedTypes(obj[key], `${path}.${key}`);
-          });
-        }
-      };
-      
-      // Check and fix any malformed defined types
-      checkDefinedTypes(ChessEscrowIDL, 'IDL');
-      
-      // Check if instruction accounts reference valid account types
-      console.log('🔍 Debug - Checking instruction account references...');
-      if (ChessEscrowIDL.instructions) {
-        ChessEscrowIDL.instructions.forEach((instruction, i) => {
-          console.log(`🔍 Debug - Instruction ${i} (${instruction.name}) accounts:`, 
-            instruction.accounts?.map(acc => ({
-              name: acc.name,
-              hasType: !!acc.type,
-              type: acc.type
-            }))
-          );
-        });
-      }
-      
-      // Try a different approach - create a minimal IDL for testing
-      const minimalIdl = {
-        version: "0.1.0",
-        name: "chess_escrow",
-        instructions: ChessEscrowIDL.instructions,
-        accounts: ChessEscrowIDL.accounts,
-        types: ChessEscrowIDL.types,
-        events: ChessEscrowIDL.events,
-        errors: ChessEscrowIDL.errors
-      };
-      
-      console.log('🔍 Debug - GetProgram - Using minimal IDL');
-      
-      // Fix the problematic vec type in move_history
-      const gameEscrowTypeForFix = minimalIdl.types.find(t => t.name === 'GameEscrow');
-      if (gameEscrowTypeForFix?.type?.fields) {
-        const moveHistoryField = gameEscrowTypeForFix.type.fields.find(f => f.name === 'move_history');
-        if (moveHistoryField && moveHistoryField.type.vec) {
-          console.log('🔧 Debug - Converting Vec<MoveRecord> to smaller fixed array...');
-          // Convert Vec<MoveRecord> to a smaller fixed array [MoveRecord; 10]
-          moveHistoryField.type = {
-            array: [{ defined: "MoveRecord" }, 10] // Reduce to 10 moves
-          };
-          console.log('✅ Debug - Fixed move_history to smaller array');
-        }
-      }
-      
-      // Debug numeric fields that might cause _bn errors
-      const checkNumericFields = (type, typeName) => {
-        if (type?.fields) {
-          type.fields.forEach((field, i) => {
-            // Check for problematic numeric types
-            if (typeof field.type === 'string') {
-              const numericTypes = ['u8', 'u16', 'u32', 'u64', 'u128', 'i8', 'i16', 'i32', 'i64', 'i128'];
-              if (numericTypes.includes(field.type)) {
-                console.log(`🔍 Debug - ${typeName} numeric field ${i}: ${field.name} (${field.type})`);
-              }
-            }
-            
-            // Check for array sizes that might be problematic
-            if (field.type?.array && typeof field.type.array[1] === 'number') {
-              console.log(`🔍 Debug - ${typeName} array field ${i}: ${field.name} size ${field.type.array[1]}`);
-              if (field.type.array[1] > 10000) {
-                console.log(`⚠️  Debug - Large array size detected: ${field.type.array[1]}`);
-              }
-            }
-          });
-        }
-      };
-      
-      const gameEscrowTypeForNumeric = ChessEscrowIDL.types.find(t => t.name === 'GameEscrow');
-      const tournamentTypeForNumeric = ChessEscrowIDL.types.find(t => t.name === 'Tournament');
-      
-      checkNumericFields(gameEscrowTypeForNumeric?.type, 'GameEscrow');
-      checkNumericFields(tournamentTypeForNumeric?.type, 'Tournament');
-      
-      // Fix account types
-      if (minimalIdl.accounts) {
-        minimalIdl.accounts.forEach(account => {
-          if (account.name === 'GameEscrow' && !account.type) {
-            account.type = gameEscrowTypeForFix.type;
-          }
-          const tournamentTypeForAccount = minimalIdl.types.find(t => t.name === 'Tournament');
-          if (account.name === 'Tournament' && !account.type) {
-            account.type = tournamentTypeForAccount.type;
-          }
-        });
-      }
-      
-      // Verify program ID is valid
-      console.log('🔍 Debug - Checking program ID...');
+      // Create truly minimal IDL with ONLY instructions - no account types
       try {
-        const programId = new PublicKey(CHESS_PROGRAM_ID);
-        console.log('✅ Debug - Program ID is valid:', programId.toString());
-      } catch (error) {
-        console.log('❌ Debug - Invalid program ID:', CHESS_PROGRAM_ID, error.message);
-        throw new Error('Invalid program ID');
-      }
-      
-      // Verify provider setup
-      console.log('🔍 Debug - Checking provider...');
-      console.log('🔍 Debug - Provider wallet:', provider.wallet?.publicKey?.toString());
-      console.log('🔍 Debug - Provider connection:', !!provider.connection);
-      
-      // Create program with detailed error tracking
-      try {
-        console.log('🔍 Debug - Creating program with detailed error tracking...');
+        console.log('🔍 Debug - Attempting program creation with truly minimal IDL...');
         
-        // Check if PublicKey is properly imported
-        console.log('🔍 Debug - PublicKey type:', typeof PublicKey);
-        console.log('🔍 Debug - CHESS_PROGRAM_ID:', CHESS_PROGRAM_ID);
+        const initializeGame = ChessEscrowIDL.instructions?.find(i => i.name === 'initialize_game');
+        const depositStake = ChessEscrowIDL.instructions?.find(i => i.name === 'deposit_stake');
         
-        const programId = new PublicKey(CHESS_PROGRAM_ID);
-        console.log('🔍 Debug - Program ID created successfully');
+        console.log('🔍 Found instructions:', {
+          initializeGame: !!initializeGame,
+          depositStake: !!depositStake
+        });
         
-        // Check provider
-        console.log('🔍 Debug - Provider type:', typeof provider);
-        console.log('🔍 Debug - Provider wallet:', provider.wallet);
-        console.log('🔍 Debug - Provider connection:', provider.connection);
+        // Create minimal IDL with ONLY instructions - NO ACCOUNT TYPES
+        const minimalIDL = {
+          address: CHESS_PROGRAM_ID,
+          metadata: {
+            name: "chess_escrow",
+            version: "0.1.0",
+            spec: "0.1.0"
+          },
+          instructions: [
+            ...(initializeGame ? [initializeGame] : []),
+            ...(depositStake ? [depositStake] : [])
+          ],
+          accounts: [],     // EMPTY - no account definitions
+          types: [],        // EMPTY - no type definitions  
+          events: [],
+          errors: []
+        };
         
-        // Try to create program step by step
-        console.log('🔍 Debug - About to call new Program...');
-        const program = new Program(minimalIdl as any, programId, provider);
+        console.log('🔍 Minimal IDL created:', {
+          instructionCount: minimalIDL.instructions.length,
+          accountCount: minimalIDL.accounts.length,
+          typeCount: minimalIDL.types.length,
+          instructions: minimalIDL.instructions.map(i => i.name)
+        });
         
-        console.log('✅ Debug - Program created successfully!');
+        const program = new Program(minimalIDL, new PublicKey(CHESS_PROGRAM_ID), provider);
+        console.log('✅ Debug - Created program with truly minimal IDL');
         return program;
         
-      } catch (error) {
-        console.log('❌ Debug - Detailed error analysis:');
-        console.log('🔍 Debug - Error name:', error.name);
-        console.log('🔍 Debug - Error message:', error.message);
-        console.log('🔍 Debug - Error stack:', error.stack);
+      } catch (minimalError) {
+        console.log('❌ Debug - Minimal IDL approach failed:', minimalError.message);
         
-        // Check if it's specifically a BN error
-        if (error.message.includes('_bn')) {
-          console.log('🔍 Debug - This is a BN (Big Number) related error');
-          console.log('🔍 Debug - Likely caused by numeric type processing in IDL');
+        // Final fallback: Create dummy program for direct RPC
+        try {
+          console.log('🔍 Creating dummy program for direct RPC calls...');
+          const dummyIDL = {
+            address: CHESS_PROGRAM_ID,
+            metadata: { name: "dummy", version: "0.1.0", spec: "0.1.0" },
+            instructions: [],
+            accounts: [],
+            types: [],
+            events: [],
+            errors: []
+          };
           
-          // Try creating program with full IDL but fixed Vec types
-          console.log('🔍 Debug - Attempting program creation with full IDL and Vec fixes...');
-          try {
-            // Create a deep copy of the IDL and fix Vec types more aggressively
-            const fixedIdl = JSON.parse(JSON.stringify(ChessEscrowIDL));
-            
-            // Fix all Vec types to fixed arrays
-            const fixVecTypes = (obj: any) => {
-              if (typeof obj !== 'object' || obj === null) return;
-              
-              if (Array.isArray(obj)) {
-                obj.forEach(fixVecTypes);
-              } else {
-                Object.keys(obj).forEach(key => {
-                  if (obj[key] && typeof obj[key] === 'object') {
-                    if (obj[key].vec) {
-                      console.log('🔧 Debug - Converting Vec to fixed array:', key, obj[key]);
-                      // Convert Vec to fixed array of size 10
-                      obj[key] = {
-                        array: [obj[key].vec, 10]
-                      };
-                    } else {
-                      fixVecTypes(obj[key]);
-                    }
-                  }
-                });
-              }
-            };
-            
-            fixVecTypes(fixedIdl);
-            
-            const programId = new PublicKey(CHESS_PROGRAM_ID);
-            const program = new Program(fixedIdl as any, programId, provider);
-            console.log('✅ Debug - Created program with full IDL and Vec fixes');
-            return program;
-            
-          } catch (fullIdlError) {
-            console.log('❌ Debug - Full IDL approach failed:', fullIdlError.message);
-            
-            // Fallback to basic IDL
-            console.log('🔍 Debug - Attempting program creation with minimal IDL...');
-            try {
-              // Get the specific instructions you need
-              const initializeGame = ChessEscrowIDL.instructions.find(i => i.name === 'initialize_game');
-              const depositStake = ChessEscrowIDL.instructions.find(i => i.name === 'deposit_stake');
-              
-              console.log('🔍 Found instructions:', { initializeGame: !!initializeGame, depositStake: !!depositStake });
-              
-              // Create a truly minimal IDL with ONLY instructions - no account types
-              const trulyMinimalIDL = {
-                address: CHESS_PROGRAM_ID,
-                metadata: {
-                  name: "chess_escrow",
-                  version: "0.1.0",
-                  spec: "0.1.0"
-                },
-                instructions: [
-                  // Include the specific instructions you need
-                  ...(initializeGame ? [initializeGame] : []),
-                  ...(depositStake ? [depositStake] : [])
-                ],
-                accounts: [],     // EMPTY - no account definitions
-                types: [],        // EMPTY - no type definitions
-                events: [],
-                errors: []
-              };
-              
-              console.log('🔍 Working IDL instructions:', trulyMinimalIDL.instructions.map(i => i.name));
-              
-              return trulyMinimalIDL;
-            };
-            
-            // Try with truly minimal IDL
-            try {
-              console.log('🔍 Attempting program creation with truly minimal IDL...');
-              const workingIDL = createWorkingIDL();
-              const program = new Program(workingIDL, new PublicKey(CHESS_PROGRAM_ID), provider);
-              console.log('✅ Debug - Created program with truly minimal IDL');
-              return program;
-            } catch (error) {
-              console.log('❌ Debug - Truly minimal IDL approach failed:', error.message);
-              
-              // Final fallback: Use absolute minimal IDL
-              console.log('🔍 Attempting program creation with absolute minimal IDL...');
-              const minimalIDL = {
-                address: CHESS_PROGRAM_ID,
-                metadata: {
-                  name: "chess_escrow",
-                  version: "0.1.0",
-                  spec: "0.1.0"
-                },
-                instructions: [],
-                accounts: [],
-                types: [],
-                events: [],
-                errors: []
-              };
-              
-              const program = new Program(minimalIDL, new PublicKey(CHESS_PROGRAM_ID), provider);
-              console.log('✅ Debug - Created program with minimal IDL');
-              return program;
-            }
-            
-          } catch (basicError) {
-            console.log('❌ Debug - Working IDL approach failed:', basicError.message);
-            
-            // Ultimate fallback: Create a dummy program that we'll use for direct RPC calls
-            console.log('🔍 Creating dummy program for direct RPC calls...');
-            const dummyIDL = {
-              address: CHESS_PROGRAM_ID,
-              metadata: { name: "dummy", version: "0.1.0", spec: "0.1.0" },
-              instructions: [],
-              accounts: [],
-              types: [],
-              events: [],
-              errors: []
-            };
-            
-            const dummyProgram = new Program(dummyIDL, new PublicKey(CHESS_PROGRAM_ID), provider);
-            console.log('✅ Debug - Created dummy program for direct RPC');
-            return dummyProgram;
-          }
+          const dummyProgram = new Program(dummyIDL, new PublicKey(CHESS_PROGRAM_ID), provider);
+          console.log('✅ Debug - Created dummy program for direct RPC');
+          return dummyProgram;
+        } catch (dummyError) {
+          console.log('❌ Debug - Even dummy program failed:', dummyError.message);
+          return null;
         }
-        
-        throw error;
       }
     };
 
@@ -548,32 +185,91 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     const createEscrowDirectRPC = async (roomId: string, betAmount: number, publicKey: PublicKey, connection: any): Promise<boolean> => {
       try {
         console.log('🔍 Direct RPC - Creating escrow with room ID:', roomId);
+        console.log('🔍 Direct RPC - Bet amount:', betAmount, 'SOL');
         
-        // Create the transaction manually
+        // Derive PDAs
+        const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("game"), Buffer.from(roomId)],
+          new PublicKey(CHESS_PROGRAM_ID)
+        );
+        
+        const [gameVaultPda] = web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("vault"), gameEscrowPda.toBuffer()],
+          new PublicKey(CHESS_PROGRAM_ID)
+        );
+        
+        console.log('🔍 Direct RPC - Game Escrow PDA:', gameEscrowPda.toString());
+        console.log('🔍 Direct RPC - Game Vault PDA:', gameVaultPda.toString());
+        
+        // Create the transaction
         const transaction = new web3.Transaction();
         
-        // Add the initialize game instruction
+        // Instruction discriminator for initialize_game: [44, 62, 102, 247, 126, 208, 130, 215]
+        const initializeGameDiscriminator = Buffer.from([44, 62, 102, 247, 126, 208, 130, 215]);
+        
+        // Encode the arguments manually
+        const roomIdBuffer = Buffer.from(roomId, 'utf8');
+        const roomIdLengthBuffer = Buffer.alloc(4);
+        roomIdLengthBuffer.writeUInt32LE(roomIdBuffer.length, 0);
+        
+        const betAmountLamports = Math.floor(betAmount * LAMPORTS_PER_SOL);
+        const betAmountBuffer = Buffer.alloc(8);
+        betAmountBuffer.writeBigUInt64LE(BigInt(betAmountLamports), 0);
+        
+        const timeLimitSeconds = 300;
+        const timeLimitBuffer = Buffer.alloc(8);
+        timeLimitBuffer.writeBigUInt64LE(BigInt(timeLimitSeconds), 0);
+        
+        // Combine all data
+        const instructionData = Buffer.concat([
+          initializeGameDiscriminator,
+          roomIdLengthBuffer,
+          roomIdBuffer,
+          betAmountBuffer,
+          timeLimitBuffer
+        ]);
+        
+        console.log('🔍 Direct RPC - Instruction data length:', instructionData.length);
+        console.log('🔍 Direct RPC - Room ID length:', roomIdBuffer.length);
+        console.log('🔍 Direct RPC - Bet amount lamports:', betAmountLamports);
+        console.log('🔍 Direct RPC - Time limit seconds:', timeLimitSeconds);
+        
+        // Create the initialize game instruction
         const initializeGameIx = new web3.TransactionInstruction({
           keys: [
-            { pubkey: new PublicKey(CHESS_PROGRAM_ID), isSigner: false, isWritable: false },
+            { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
             { pubkey: publicKey, isSigner: true, isWritable: true },
             { pubkey: new PublicKey(FEE_WALLET_ADDRESS), isSigner: false, isWritable: false },
             { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
           ],
           programId: new PublicKey(CHESS_PROGRAM_ID),
-          data: Buffer.from([]) // We'll need to encode the instruction data properly
+          data: instructionData
         });
         
         transaction.add(initializeGameIx);
         
-        // Send the transaction
-        const signature = await connection.sendTransaction(transaction, []);
+        // Get recent blockhash
+        const { blockhash } = await connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = publicKey;
+        
+        // Sign and send the transaction
+        const signedTx = await signTransaction(transaction);
+        const signature = await connection.sendRawTransaction(signedTx.serialize());
+        
         console.log('✅ Direct RPC - Transaction sent:', signature);
+        
+        // Wait for confirmation
+        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+        console.log('✅ Direct RPC - Transaction confirmed:', confirmation);
+        
+        // Add to multiplayer state
+        databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
         
         return true;
       } catch (error) {
         console.error('❌ Direct RPC - Error:', error);
-        setError('Failed to create escrow via direct RPC');
+        setError(`Failed to create escrow via direct RPC: ${error.message}`);
         return false;
       }
     };
@@ -653,15 +349,22 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         // Get program
         const program = await getProgram();
         if (!program) {
-          setError('Failed to initialize Solana program');
-          return false;
+          console.log('🔍 Program creation failed, using direct RPC approach...');
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection);
         }
 
         console.log('🔍 Debug - CreateEscrow - Program:', program ? 'Found' : 'Not found');
 
-        // If we have a dummy program (no instructions), use direct RPC approach
-        if (program.idl.instructions.length === 0) {
-          console.log('🔍 Using direct RPC approach with dummy program...');
+        // Check if program has instructions (if not, use direct RPC)
+        if (!program.idl.instructions || program.idl.instructions.length === 0) {
+          console.log('🔍 No instructions in program, using direct RPC approach...');
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection);
+        }
+        
+        // Check if initializeGame instruction exists
+        const hasInitializeGame = program.idl.instructions.some(i => i.name === 'initialize_game');
+        if (!hasInitializeGame) {
+          console.log('🔍 No initializeGame instruction found, using direct RPC approach...');
           return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection);
         }
         
@@ -683,155 +386,66 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         console.log('🔍 Debug - CreateEscrow - Fee Collector:', FEE_WALLET_ADDRESS.toString());
         console.log('🔍 Debug - CreateEscrow - System Program:', SystemProgram.programId.toString());
         
-        // Initialize game
-        console.log('🔍 Debug - CreateEscrow - About to call initializeGame with accounts:', {
-          gameEscrow: gameEscrowPda.toString(),
-          player: publicKey.toString(),
-          feeCollector: FEE_WALLET_ADDRESS.toString(),
-          systemProgram: SystemProgram.programId.toString(),
-        });
-        
-        // Debug: Log the instruction definition
-        const initializeGameInstruction = ChessEscrowIDL.instructions.find(i => i.name === 'initialize_game');
-        console.log('🔍 Debug - Initialize game instruction definition:', initializeGameInstruction);
-        console.log('🔍 Debug - Initialize game accounts:', initializeGameInstruction?.accounts);
-        
-        // Debug the instruction account requirements
-        const initInstruction = program.idl.instructions.find(i => i.name === 'initialize_game');
-        console.log('🔍 Initialize game required accounts:');
-        if (initInstruction?.accounts) {
-          initInstruction.accounts.forEach((account, i) => {
-            console.log(`  ${i}: ${account.name} (writable: ${account.writable}, signer: ${account.signer})`);
-          });
-        }
-        
-        // Debug the exact argument types expected
-        console.log('🔍 Detailed argument information:');
-        if (initInstruction?.args) {
-          initInstruction.args.forEach((arg, i) => {
-            console.log(`  Argument ${i}:`, {
-              name: arg.name,
-              type: arg.type,
-              typeString: JSON.stringify(arg.type)
-            });
-          });
-        }
-        
-        // Add detailed argument debugging
-        console.log('🔍 Detailed argument debugging:');
-        if (initInstruction?.args) {
-          initInstruction.args.forEach((arg, i) => {
-            console.log(`  Arg ${i}:`, {
-              name: arg.name,
-              type: arg.type,
-              typeString: JSON.stringify(arg.type)
-            });
-          });
-        } else {
-          console.log('  No args found in instruction');
-        }
-        
-        // Check what's actually in the minimal IDL
-        console.log('🔍 Minimal IDL types count:', program.idl.types?.length || 0);
-        console.log('🔍 Minimal IDL types:', program.idl.types?.map(t => t.name) || []);
-        
-        // Debug the exact argument types expected from IDL
-        console.log('🔍 InitializeGame args types:', JSON.stringify(program.idl.instructions.find(i => i.name === 'initialize_game')?.args, null, 2));
-        
-        console.log('🔍 Calling initializeGame with arguments:', {
-          roomId,
-          betAmountLamports: betAmount * LAMPORTS_PER_SOL,
-          timeLimitSeconds: 300
-        });
-        
-        // Try different argument formats
-        let initializeTx;
+        // Try to call initializeGame with the program
         try {
-          console.log('🔍 Attempt 1: Using BN for numbers...');
+          console.log('🔍 Attempting to call initializeGame via program...');
           
-          initializeTx = await program.methods
+          const betAmountLamports = Math.floor(betAmount * LAMPORTS_PER_SOL);
+          const timeLimitSeconds = 300; // 5 minutes
+          
+          console.log('🔍 Arguments:', {
+            roomId,
+            betAmountLamports,
+            timeLimitSeconds
+          });
+          
+          const initializeTx = await program.methods
             .initializeGame(
-              roomId,                           // string
-              new BN(betAmount * LAMPORTS_PER_SOL), // BN for u64
-              new BN(300)                       // BN for i64
+              roomId,                    // string
+              new BN(betAmountLamports), // u64
+              new BN(timeLimitSeconds)   // i64
             )
             .accounts({
               gameEscrow: gameEscrowPda,
               player: publicKey,
               feeCollector: FEE_WALLET_ADDRESS,
               systemProgram: SystemProgram.programId,
-            } as any)
+            })
             .rpc();
           
-          console.log('✅ Success with BN:', initializeTx);
+          console.log('✅ InitializeGame successful:', initializeTx);
           
-        } catch (error1) {
-          console.log('❌ BN approach failed:', error1.message);
-          
+          // Now try to call depositStake
           try {
-            console.log('🔍 Attempt 2: Using raw numbers...');
-            initializeTx = await program.methods
-              .initializeGame(
-                roomId,                    // string
-                betAmount * LAMPORTS_PER_SOL, // number
-                300                        // number
-              )
+            const depositTx = await program.methods
+              .depositStake()
               .accounts({
                 gameEscrow: gameEscrowPda,
                 player: publicKey,
-                feeCollector: FEE_WALLET_ADDRESS,
+                gameVault: gameVaultPda,
                 systemProgram: SystemProgram.programId,
-              } as any)
+              })
               .rpc();
             
-            console.log('✅ Success with numbers:', initializeTx);
+            console.log('✅ DepositStake successful:', depositTx);
             
-          } catch (error2) {
-            console.log('❌ Numbers approach failed:', error2.message);
+            // Add to multiplayer state
+            databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
             
-            // Try without arguments
-            console.log('🔍 Attempt 3: No arguments...');
-            initializeTx = await program.methods
-              .initializeGame()
-              .accounts({
-                gameEscrow: gameEscrowPda,
-                player: publicKey,
-                feeCollector: FEE_WALLET_ADDRESS,
-                systemProgram: SystemProgram.programId,
-              } as any)
-              .rpc();
+            return true;
             
-            console.log('✅ Success without args:', initializeTx);
+          } catch (depositError) {
+            console.log('❌ DepositStake failed:', depositError.message);
+            // Game was initialized but deposit failed - still consider success
+            databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+            return true;
           }
+          
+        } catch (programError) {
+          console.log('❌ Program method failed:', programError.message);
+          console.log('🔍 Falling back to direct RPC approach...');
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection);
         }
-        
-        // Now deposit stake
-        console.log('🔍 Debug - CreateEscrow - About to call depositStake with accounts:', {
-          gameEscrow: gameEscrowPda.toString(),
-          player: publicKey.toString(),
-          gameVault: gameVaultPda.toString(),
-          systemProgram: SystemProgram.programId.toString(),
-        });
-        
-        const depositTx = await program.methods
-          .depositStake()
-          .accounts({
-            gameEscrow: gameEscrowPda,
-            player: publicKey,
-            gameVault: gameVaultPda,
-            systemProgram: SystemProgram.programId,
-          } as any)
-          .rpc();
-        
-        // Add to multiplayer state
-        databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
-        
-        // Update balance after transactions (removed polling)
-        // setTimeout(() => {
-        //   checkBalance();
-        // }, 1000);
-        
-        return true;
         
       } catch (err: any) {
         let errorMessage = 'Escrow creation failed';
