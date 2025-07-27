@@ -307,14 +307,43 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       if (gameEscrowTypeForFix?.type?.fields) {
         const moveHistoryField = gameEscrowTypeForFix.type.fields.find(f => f.name === 'move_history');
         if (moveHistoryField && moveHistoryField.type.vec) {
-          console.log('🔧 Debug - Converting Vec<MoveRecord> to fixed array...');
-          // Convert Vec<MoveRecord> to a fixed array [MoveRecord; 100]
+          console.log('🔧 Debug - Converting Vec<MoveRecord> to smaller fixed array...');
+          // Convert Vec<MoveRecord> to a smaller fixed array [MoveRecord; 10]
           moveHistoryField.type = {
-            array: [{ defined: "MoveRecord" }, 100] // Max 100 moves
+            array: [{ defined: "MoveRecord" }, 10] // Reduce to 10 moves
           };
-          console.log('✅ Debug - Fixed move_history to fixed array');
+          console.log('✅ Debug - Fixed move_history to smaller array');
         }
       }
+      
+      // Debug numeric fields that might cause _bn errors
+      const checkNumericFields = (type, typeName) => {
+        if (type?.fields) {
+          type.fields.forEach((field, i) => {
+            // Check for problematic numeric types
+            if (typeof field.type === 'string') {
+              const numericTypes = ['u8', 'u16', 'u32', 'u64', 'u128', 'i8', 'i16', 'i32', 'i64', 'i128'];
+              if (numericTypes.includes(field.type)) {
+                console.log(`🔍 Debug - ${typeName} numeric field ${i}: ${field.name} (${field.type})`);
+              }
+            }
+            
+            // Check for array sizes that might be problematic
+            if (field.type?.array && typeof field.type.array[1] === 'number') {
+              console.log(`🔍 Debug - ${typeName} array field ${i}: ${field.name} size ${field.type.array[1]}`);
+              if (field.type.array[1] > 10000) {
+                console.log(`⚠️  Debug - Large array size detected: ${field.type.array[1]}`);
+              }
+            }
+          });
+        }
+      };
+      
+      const gameEscrowType = ChessEscrowIDL.types.find(t => t.name === 'GameEscrow');
+      const tournamentType = ChessEscrowIDL.types.find(t => t.name === 'Tournament');
+      
+      checkNumericFields(gameEscrowType?.type, 'GameEscrow');
+      checkNumericFields(tournamentType?.type, 'Tournament');
       
       // Fix account types
       if (minimalIdl.accounts) {
@@ -344,18 +373,68 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       console.log('🔍 Debug - Provider wallet:', provider.wallet?.publicKey?.toString());
       console.log('🔍 Debug - Provider connection:', !!provider.connection);
       
-      // Create program with explicit PublicKey
+      // Create program with detailed error tracking
       try {
-        console.log('🔍 Debug - Attempting alternative program creation...');
+        console.log('🔍 Debug - Creating program with detailed error tracking...');
+        
+        // Check if PublicKey is properly imported
+        console.log('🔍 Debug - PublicKey type:', typeof PublicKey);
+        console.log('🔍 Debug - CHESS_PROGRAM_ID:', CHESS_PROGRAM_ID);
         
         const programId = new PublicKey(CHESS_PROGRAM_ID);
+        console.log('🔍 Debug - Program ID created successfully');
+        
+        // Check provider
+        console.log('🔍 Debug - Provider type:', typeof provider);
+        console.log('🔍 Debug - Provider wallet:', provider.wallet);
+        console.log('🔍 Debug - Provider connection:', provider.connection);
+        
+        // Try to create program step by step
+        console.log('🔍 Debug - About to call new Program...');
         const program = new Program(minimalIdl as any, programId, provider);
         
         console.log('✅ Debug - Program created successfully!');
         return program;
         
       } catch (error) {
-        console.log('❌ Debug - Alternative creation failed:', error.message);
+        console.log('❌ Debug - Detailed error analysis:');
+        console.log('🔍 Debug - Error name:', error.name);
+        console.log('🔍 Debug - Error message:', error.message);
+        console.log('🔍 Debug - Error stack:', error.stack);
+        
+        // Check if it's specifically a BN error
+        if (error.message.includes('_bn')) {
+          console.log('🔍 Debug - This is a BN (Big Number) related error');
+          console.log('🔍 Debug - Likely caused by numeric type processing in IDL');
+          
+          // Try creating program with minimal IDL
+          console.log('🔍 Debug - Attempting program creation with minimal IDL...');
+          try {
+            const basicIDL = {
+              address: CHESS_PROGRAM_ID,
+              metadata: {
+                name: "chess_escrow",
+                version: "0.1.0",
+                spec: "0.1.0"
+              },
+              instructions: ChessEscrowIDL.instructions,
+              accounts: [], // Remove accounts entirely
+              types: [], // Remove types entirely
+              events: [],
+              errors: []
+            };
+            
+            const programId = new PublicKey(CHESS_PROGRAM_ID);
+            const program = new Program(basicIDL as any, programId, provider);
+            console.log('✅ Debug - Created program with basic IDL');
+            return program;
+            
+          } catch (basicError) {
+            console.log('❌ Debug - Basic IDL approach failed:', basicError.message);
+            throw basicError;
+          }
+        }
+        
         throw error;
       }
     };
