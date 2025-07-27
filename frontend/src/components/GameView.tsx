@@ -19,7 +19,6 @@ export interface GameViewProps {
   chatMessages: ChatMessage[];
   onResignGame?: () => void;
   onClaimWinnings?: () => void;
-  onStartNewGame?: () => void;
   onBackToMenu?: () => void;
   winningsClaimed: boolean;
   isLoading: boolean;
@@ -35,7 +34,6 @@ export const GameView: React.FC<GameViewProps> = ({
   chatMessages,
   onResignGame,
   onClaimWinnings,
-  onStartNewGame,
   onBackToMenu,
   winningsClaimed,
   isLoading,
@@ -225,25 +223,7 @@ export const GameView: React.FC<GameViewProps> = ({
           </button>
         )}
 
-        {/* New Game Button */}
-        {isGameOver && onStartNewGame && (
-          <button
-            onClick={onStartNewGame}
-            style={{
-              padding: isMobile ? '10px 20px' : '12px 24px',
-              backgroundColor: theme.secondary,
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: textSizes.body,
-              fontWeight: 'bold',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            🎮 New Game
-          </button>
-        )}
+
 
         {/* Back to Menu Button */}
         {onBackToMenu && !gameState.gameActive && (
