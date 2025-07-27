@@ -413,46 +413,86 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           console.log('🔍 Debug - This is a BN (Big Number) related error');
           console.log('🔍 Debug - Likely caused by numeric type processing in IDL');
           
-          // Try creating program with minimal IDL
-          console.log('🔍 Debug - Attempting program creation with minimal IDL...');
+          // Try creating program with full IDL but fixed Vec types
+          console.log('🔍 Debug - Attempting program creation with full IDL and Vec fixes...');
           try {
-            const basicIDL = {
-              address: CHESS_PROGRAM_ID,
-              metadata: {
-                name: "chess_escrow",
-                version: "0.1.0",
-                spec: "0.1.0"
-              },
-              instructions: [
-                {
-                  name: "initialize_game",
-                  accounts: [
-                    { name: "gameEscrow", isMut: true, isSigner: false },
-                    { name: "player", isMut: true, isSigner: true },
-                    { name: "feeCollector", isMut: true, isSigner: false },
-                    { name: "systemProgram", isMut: false, isSigner: false }
-                  ],
-                  args: [
-                    { name: "roomId", type: "string" },
-                    { name: "stakeAmount", type: "u64" },
-                    { name: "timeLimitSeconds", type: "u64" }
-                  ]
-                }
-              ],
-              accounts: [], // Remove accounts entirely
-              types: [], // Remove types entirely
-              events: [],
-              errors: []
+            // Create a deep copy of the IDL and fix Vec types more aggressively
+            const fixedIdl = JSON.parse(JSON.stringify(ChessEscrowIDL));
+            
+            // Fix all Vec types to fixed arrays
+            const fixVecTypes = (obj: any) => {
+              if (typeof obj !== 'object' || obj === null) return;
+              
+              if (Array.isArray(obj)) {
+                obj.forEach(fixVecTypes);
+              } else {
+                Object.keys(obj).forEach(key => {
+                  if (obj[key] && typeof obj[key] === 'object') {
+                    if (obj[key].vec) {
+                      console.log('🔧 Debug - Converting Vec to fixed array:', key, obj[key]);
+                      // Convert Vec to fixed array of size 10
+                      obj[key] = {
+                        array: [obj[key].vec, 10]
+                      };
+                    } else {
+                      fixVecTypes(obj[key]);
+                    }
+                  }
+                });
+              }
             };
             
+            fixVecTypes(fixedIdl);
+            
             const programId = new PublicKey(CHESS_PROGRAM_ID);
-            const program = new Program(basicIDL as any, programId, provider);
-            console.log('✅ Debug - Created program with basic IDL');
+            const program = new Program(fixedIdl as any, programId, provider);
+            console.log('✅ Debug - Created program with full IDL and Vec fixes');
             return program;
             
-          } catch (basicError) {
-            console.log('❌ Debug - Basic IDL approach failed:', basicError.message);
-            throw basicError;
+          } catch (fullIdlError) {
+            console.log('❌ Debug - Full IDL approach failed:', fullIdlError.message);
+            
+            // Fallback to basic IDL
+            console.log('🔍 Debug - Attempting program creation with minimal IDL...');
+            try {
+              const basicIDL = {
+                address: CHESS_PROGRAM_ID,
+                metadata: {
+                  name: "chess_escrow",
+                  version: "0.1.0",
+                  spec: "0.1.0"
+                },
+                instructions: [
+                  {
+                    name: "initialize_game",
+                    accounts: [
+                      { name: "gameEscrow", isMut: true, isSigner: false },
+                      { name: "player", isMut: true, isSigner: true },
+                      { name: "feeCollector", isMut: true, isSigner: false },
+                      { name: "systemProgram", isMut: false, isSigner: false }
+                    ],
+                    args: [
+                      { name: "roomId", type: "string" },
+                      { name: "stakeAmount", type: "u64" },
+                      { name: "timeLimitSeconds", type: "u64" }
+                    ]
+                  }
+                ],
+                accounts: [], // Remove accounts entirely
+                types: [], // Remove types entirely
+                events: [],
+                errors: []
+              };
+              
+              const programId = new PublicKey(CHESS_PROGRAM_ID);
+              const program = new Program(basicIDL as any, programId, provider);
+              console.log('✅ Debug - Created program with basic IDL');
+              return program;
+              
+            } catch (basicError) {
+              console.log('❌ Debug - Basic IDL approach failed:', basicError.message);
+              throw basicError;
+            }
           }
         }
         
