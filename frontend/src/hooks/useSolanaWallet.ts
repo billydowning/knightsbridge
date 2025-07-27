@@ -29,7 +29,7 @@ export interface SolanaWalletHook {
   // Wallet operations
   checkBalance: () => Promise<void>;
   refreshBalance: () => Promise<void>;
-  createEscrow: (roomId: string, betAmount: number) => Promise<boolean>;
+  createEscrow: (roomId: string, betAmount: number, playerRole: 'white' | 'black') => Promise<boolean>;
   joinAndDepositStake: (roomId: string, betAmount: number) => Promise<boolean>;
   claimWinnings: (roomId: string, playerRole: string, gameWinner: string | null, isDraw: boolean) => Promise<string>;
   recordMove: (roomId: string, moveNotation: string, positionHash: Uint8Array) => Promise<boolean>;
@@ -119,7 +119,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         const initializeGame = ChessEscrowIDL.instructions?.find(i => i.name === 'initialize_game');
         const depositStake = ChessEscrowIDL.instructions?.find(i => i.name === 'deposit_stake');
         
-        console.log('🔍 Found instructions:', {
+        console.log('�� Found instructions:', {
           initializeGame: !!initializeGame,
           depositStake: !!depositStake
         });
@@ -187,11 +187,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       betAmount: number, 
       publicKey: PublicKey, 
       connection: any, 
-      escrowAddedToDb: boolean
+      escrowAddedToDb: boolean,
+      playerRole: 'white' | 'black'
     ): Promise<{ success: boolean; escrowAdded: boolean }> => {
       try {
         console.log('🔍 Direct RPC - Creating escrow with room ID:', roomId);
         console.log('🔍 Direct RPC - Bet amount:', betAmount, 'SOL');
+        console.log('🔍 Direct RPC - Player role:', playerRole);
         
         // Derive PDAs
         const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
@@ -210,49 +212,78 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         // Create the transaction
         const transaction = new web3.Transaction();
         
-        // Instruction discriminator for initialize_game: [44, 62, 102, 247, 126, 208, 130, 215]
-        const initializeGameDiscriminator = Buffer.from([44, 62, 102, 247, 126, 208, 130, 215]);
-        
-        // Encode the arguments manually
-        const roomIdBuffer = Buffer.from(roomId, 'utf8');
-        const roomIdLengthBuffer = Buffer.alloc(4);
-        roomIdLengthBuffer.writeUInt32LE(roomIdBuffer.length, 0);
-        
-        const betAmountLamports = Math.floor(betAmount * LAMPORTS_PER_SOL);
-        const betAmountBuffer = Buffer.alloc(8);
-        betAmountBuffer.writeBigUInt64LE(BigInt(betAmountLamports), 0);
-        
-        const timeLimitSeconds = 300;
-        const timeLimitBuffer = Buffer.alloc(8);
-        timeLimitBuffer.writeBigUInt64LE(BigInt(timeLimitSeconds), 0);
-        
-        // Combine all data
-        const instructionData = Buffer.concat([
-          initializeGameDiscriminator,
-          roomIdLengthBuffer,
-          roomIdBuffer,
-          betAmountBuffer,
-          timeLimitBuffer
-        ]);
-        
-        console.log('🔍 Direct RPC - Instruction data length:', instructionData.length);
-        console.log('🔍 Direct RPC - Room ID length:', roomIdBuffer.length);
-        console.log('🔍 Direct RPC - Bet amount lamports:', betAmountLamports);
-        console.log('🔍 Direct RPC - Time limit seconds:', timeLimitSeconds);
-        
-        // Create the initialize game instruction
-        const initializeGameIx = new web3.TransactionInstruction({
-          keys: [
-            { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
-            { pubkey: publicKey, isSigner: true, isWritable: true },
-            { pubkey: new PublicKey(FEE_WALLET_ADDRESS), isSigner: false, isWritable: false },
-            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-          ],
-          programId: new PublicKey(CHESS_PROGRAM_ID),
-          data: instructionData
-        });
-        
-        transaction.add(initializeGameIx);
+        if (playerRole === 'white') {
+          // WHITE PLAYER: Initialize game instruction
+          console.log('🔍 Direct RPC - Creating initialize_game instruction for WHITE player');
+          
+          // Instruction discriminator for initialize_game: [44, 62, 102, 247, 126, 208, 130, 215]
+          const initializeGameDiscriminator = Buffer.from([44, 62, 102, 247, 126, 208, 130, 215]);
+          
+          // Encode the arguments manually
+          const roomIdBuffer = Buffer.from(roomId, 'utf8');
+          const roomIdLengthBuffer = Buffer.alloc(4);
+          roomIdLengthBuffer.writeUInt32LE(roomIdBuffer.length, 0);
+          
+          const betAmountLamports = Math.floor(betAmount * LAMPORTS_PER_SOL);
+          const betAmountBuffer = Buffer.alloc(8);
+          betAmountBuffer.writeBigUInt64LE(BigInt(betAmountLamports), 0);
+          
+          const timeLimitSeconds = 300;
+          const timeLimitBuffer = Buffer.alloc(8);
+          timeLimitBuffer.writeBigUInt64LE(BigInt(timeLimitSeconds), 0);
+          
+          // Combine all data
+          const instructionData = Buffer.concat([
+            initializeGameDiscriminator,
+            roomIdLengthBuffer,
+            roomIdBuffer,
+            betAmountBuffer,
+            timeLimitBuffer
+          ]);
+          
+          console.log('🔍 Direct RPC - Instruction data length:', instructionData.length);
+          console.log('🔍 Direct RPC - Room ID length:', roomIdBuffer.length);
+          console.log('🔍 Direct RPC - Bet amount lamports:', betAmountLamports);
+          console.log('🔍 Direct RPC - Time limit seconds:', timeLimitSeconds);
+          
+          // Create the initialize game instruction
+          const initializeGameIx = new web3.TransactionInstruction({
+            keys: [
+              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
+              { pubkey: publicKey, isSigner: true, isWritable: true },
+              { pubkey: new PublicKey(FEE_WALLET_ADDRESS), isSigner: false, isWritable: false },
+              { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+            ],
+            programId: new PublicKey(CHESS_PROGRAM_ID),
+            data: instructionData,
+          });
+          
+          transaction.add(initializeGameIx);
+          
+        } else {
+          // BLACK PLAYER: Join game instruction
+          console.log('🔍 Direct RPC - Creating join_game instruction for BLACK player');
+          
+          // Instruction discriminator for join_game: [107, 112, 18, 38, 56, 173, 60, 128]
+          const joinGameDiscriminator = Buffer.from([107, 112, 18, 38, 56, 173, 60, 128]);
+          
+          // join_game takes no arguments, just the discriminator
+          const instructionData = joinGameDiscriminator;
+          
+          console.log('🔍 Direct RPC - Join game instruction data length:', instructionData.length);
+          
+          // Create the join game instruction
+          const joinGameIx = new web3.TransactionInstruction({
+            keys: [
+              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
+              { pubkey: publicKey, isSigner: true, isWritable: true },
+            ],
+            programId: new PublicKey(CHESS_PROGRAM_ID),
+            data: instructionData,
+          });
+          
+          transaction.add(joinGameIx);
+        }
         
         // Get recent blockhash
         const { blockhash } = await connection.getLatestBlockhash();
@@ -333,12 +364,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     };
 
     /**
-     * Create escrow for a game (initialize game)
+     * Create escrow for a game (initialize game for white, join game for black)
      * @param roomId - Room ID to create escrow for
      * @param betAmount - Amount to bet in SOL
+     * @param playerRole - Player role ('white' or 'black')
      * @returns Success status
      */
-    const createEscrow = async (roomId: string, betAmount: number): Promise<boolean> => {
+    const createEscrow = async (roomId: string, betAmount: number, playerRole: 'white' | 'black'): Promise<boolean> => {
       try {
         setIsLoading(true);
         setError(null);
@@ -346,6 +378,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         console.log('🔍 Debug - CreateEscrow - Starting function');
         console.log('🔍 Debug - CreateEscrow - Room ID:', roomId);
         console.log('🔍 Debug - CreateEscrow - Bet Amount:', betAmount);
+        console.log('🔍 Debug - CreateEscrow - Player Role:', playerRole);
 
         if (!connected || !publicKey) {
           setError('Please connect your wallet first');
@@ -360,7 +393,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         const program = await getProgram();
         if (!program) {
           console.log('🔍 Program creation failed, using direct RPC approach...');
-          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, false).then(result => result.success);
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, false, playerRole).then(result => result.success);
         }
 
         console.log('🔍 Debug - CreateEscrow - Program:', program ? 'Found' : 'Not found');
@@ -368,14 +401,15 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         // Check if program has instructions (if not, use direct RPC)
         if (!program.idl.instructions || program.idl.instructions.length === 0) {
           console.log('🔍 No instructions in program, using direct RPC approach...');
-          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, false).then(result => result.success);
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, false, playerRole).then(result => result.success);
         }
         
-        // Check if initializeGame instruction exists
-        const hasInitializeGame = program.idl.instructions.some(i => i.name === 'initialize_game');
-        if (!hasInitializeGame) {
-          console.log('🔍 No initializeGame instruction found, using direct RPC approach...');
-          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, false).then(result => result.success);
+        // Check if required instruction exists
+        const requiredInstruction = playerRole === 'white' ? 'initialize_game' : 'join_game';
+        const hasRequiredInstruction = program.idl.instructions.some(i => i.name === requiredInstruction);
+        if (!hasRequiredInstruction) {
+          console.log(`🔍 No ${requiredInstruction} instruction found, using direct RPC approach...`);
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, false, playerRole).then(result => result.success);
         }
         
         // Derive PDAs
@@ -450,7 +484,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         } catch (programError) {
           console.log('❌ Program method failed:', programError.message);
           console.log('🔍 Falling back to direct RPC approach...');
-          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, escrowAddedToDb).then(result => result.success);
+          return await createEscrowDirectRPC(roomId, betAmount, publicKey, connection, escrowAddedToDb, playerRole).then(result => result.success);
         }
         
       } catch (err: any) {

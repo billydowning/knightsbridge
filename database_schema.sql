@@ -95,6 +95,19 @@ CREATE TABLE game_moves (
     UNIQUE(game_id, move_number)
 );
 
+-- Escrows table for blockchain escrow tracking
+CREATE TABLE escrows (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id VARCHAR(100) NOT NULL,
+    player_wallet VARCHAR(44) NOT NULL,
+    escrow_amount DECIMAL(20, 9) NOT NULL, -- SOL amount
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'claimed', 'refunded', 'cancelled')),
+    blockchain_tx_id VARCHAR(100), -- Solana transaction ID
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(room_id, player_wallet)
+);
+
 -- Game analysis and engine evaluation
 CREATE TABLE game_analysis (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

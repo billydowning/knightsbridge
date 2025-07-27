@@ -1,9 +1,9 @@
 name: knightsbridge
 services:
 - name: backend
-  source_dir: /backend
+  source_dir: /
   github:
-    repo: williamdowning/knightsbridge
+    repo: billydowning/knightsbridge
     branch: main
   run_command: npm start
   environment_slug: node-js
@@ -20,13 +20,8 @@ services:
     value: "https://knightsbridge.vercel.app"
     scope: RUN_AND_BUILD_TIME
   - key: DATABASE_URL
-    value: "${DATABASE_URL}"
+    value: "postgresql://doadmin:AVNS_6kKGEFdYpoxDVtk4uxD@chess-db-do-user-24118504-0.f.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
     scope: RUN_AND_BUILD_TIME
   - key: DEBUG
     value: "false"
-    scope: RUN_AND_BUILD_TIME
-
-databases:
-- name: db
-  engine: PG
-  version: "15" 
+    scope: RUN_AND_BUILD_TIME 

@@ -576,14 +576,18 @@ function ChessApp() {
       
       let success = false;
       
-      if (isFirstPlayer) {
-        // First player - create the game escrow
-        console.log('🔍 Debug - Calling createEscrow');
-        success = await createEscrow(roomId, betAmount);
+      if (playerRole === 'white') {
+        // White player - initialize the game escrow
+        console.log('🔍 Debug - White player: Calling createEscrow (initialize_game)');
+        success = await createEscrow(roomId, betAmount, playerRole);
+      } else if (playerRole === 'black') {
+        // Black player - join the existing escrow
+        console.log('🔍 Debug - Black player: Calling createEscrow (join_game)');
+        success = await createEscrow(roomId, betAmount, playerRole);
       } else {
-        // Second player - join and deposit stake
-        console.log('🔍 Debug - Calling joinAndDepositStake');
-        success = await joinAndDepositStake(roomId, betAmount);
+        setGameStatus('Error: Player role not determined');
+        setAppLoading(false);
+        return;
       }
       
       if (success) {
