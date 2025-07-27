@@ -11,6 +11,7 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { initializePool, testConnection, roomService, chatService } = require('./database');
+const security = require('./security');
 
 console.log('🚀 Starting Knightsbridge Chess Backend Server...');
 console.log('📋 Environment:', process.env.NODE_ENV);
@@ -558,6 +559,8 @@ app.get('/deploy-schema', async (req, res) => {
         move_count INTEGER DEFAULT 0,
         final_position TEXT,
         pgn TEXT,
+        state_hash VARCHAR(64),
+        security_flags INTEGER DEFAULT 0,
         started_at TIMESTAMP WITH TIME ZONE,
         finished_at TIMESTAMP WITH TIME ZONE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -597,6 +600,8 @@ app.get('/deploy-schema', async (req, res) => {
         is_promotion BOOLEAN DEFAULT FALSE,
         promotion_piece VARCHAR(10),
         blockchain_tx_id VARCHAR(100),
+        validation_hash VARCHAR(64),
+        security_analysis JSONB,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         UNIQUE(game_id, move_number)
       )`,
@@ -625,6 +630,17 @@ app.get('/deploy-schema', async (req, res) => {
         is_deleted BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )`,
+
+      // Security Audit Log
+      `CREATE TABLE IF NOT EXISTS security_audit_log (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        game_id UUID REFERENCES games(id) ON DELETE CASCADE,
+        player_id VARCHAR(255) NOT NULL,
+        action VARCHAR(50) NOT NULL,
+        data JSONB,
+        hash VARCHAR(64) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       )`,
 
       // Tournaments
@@ -1674,10 +1690,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle chess moves with validation
+  // Handle chess moves with enhanced security validation
   socket.on('makeMove', async ({ gameId, move, playerId, color }) => {
     try {
-      // Validate move (basic validation - can be enhanced)
+      // Basic move format validation
       if (!move || !move.from || !move.to) {
         socket.emit('moveError', { error: 'Invalid move format' });
         return;
@@ -1686,7 +1702,7 @@ io.on('connection', (socket) => {
       const poolInstance = initializePool();
 
       // Get current game state from database
-      const result = await poolInstance.query('SELECT game_state, current_turn FROM games WHERE room_id = $1', [gameId]);
+      const result = await poolInstance.query('SELECT game_state, current_turn, move_history FROM games WHERE room_id = $1', [gameId]);
       const gameState = result.rows[0];
 
       if (!gameState) {
@@ -1700,36 +1716,194 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Add move to database
+      // Enhanced server-side move validation
+      const position = gameState.game_state?.position || {};
+      const piece = position[move.from];
+      
+      if (!piece) {
+        socket.emit('moveError', { error: 'No piece at source square' });
+        return;
+      }
+
+      // Validate move using security module
+      const validation = security.validateMove(move.from, move.to, piece, position, color);
+      if (!validation.valid) {
+        socket.emit('moveError', { error: validation.reason });
+        return;
+      }
+
+      // Anti-cheating analysis
+      const moveHistory = gameState.move_history || [];
+      const analysis = security.analyzeMoveQuality(move, position, moveHistory);
+      
+      if (analysis.suspicious) {
+        console.warn(`🚨 Suspicious move detected for player ${playerId}:`, analysis.reasons);
+        // Log suspicious activity but don't block the move
+        const auditLog = security.createAuditLog(gameId, playerId, 'suspicious_move', {
+          move,
+          analysis,
+          timestamp: Date.now()
+        });
+        
+        await poolInstance.query(
+          'INSERT INTO security_audit_log (game_id, player_id, action, data, hash) VALUES ($1, $2, $3, $4, $5)',
+          [gameId, playerId, auditLog.action, JSON.stringify(auditLog.data), auditLog.hash]
+        );
+        
+        console.log('📋 Suspicious move audit log saved to database');
+      }
+
+      // Create new position after move
+      const newPosition = { ...position };
+      newPosition[move.to] = piece;
+      newPosition[move.from] = '';
+
+      // Check if move results in check/checkmate
+      const nextPlayer = color === 'white' ? 'black' : 'white';
+      const inCheck = security.isKingInCheck(newPosition, nextPlayer);
+      
+      // Update game state
+      const updatedGameState = {
+        ...gameState.game_state,
+        position: newPosition,
+        currentPlayer: nextPlayer,
+        lastMove: move,
+        inCheck,
+        lastUpdated: Date.now()
+      };
+
+      // Generate integrity hash
+      const stateHash = security.hashGameState(updatedGameState);
+
+      // Add move to database with enhanced logging
       await poolInstance.query(
-        'INSERT INTO moves (room_id, move_data, player_id, color, timestamp) VALUES ($1, $2, $3, $4, $5)',
-        [gameId, JSON.stringify(move), playerId, color, new Date()]
+        'INSERT INTO moves (room_id, move_data, player_id, color, timestamp, validation_hash) VALUES ($1, $2, $3, $4, $5, $6)',
+        [gameId, JSON.stringify(move), playerId, color, new Date(), stateHash]
       );
 
-      // Switch turns
-      const nextTurn = color === 'white' ? 'black' : 'white';
-      await poolInstance.query('UPDATE games SET current_turn = $1 WHERE room_id = $2', [nextTurn, gameId]);
+      // Update game state in database
+      await poolInstance.query(
+        'UPDATE games SET game_state = $1, current_turn = $2, state_hash = $3 WHERE room_id = $4',
+        [JSON.stringify(updatedGameState), nextPlayer, stateHash, gameId]
+      );
 
-      // Broadcast move to other player
+      // Broadcast move to other player with security info
       socket.to(gameId).emit('moveMade', {
         move,
         playerId,
         color,
         timestamp: Date.now(),
-        nextTurn: nextTurn
+        nextTurn: nextPlayer,
+        inCheck,
+        stateHash
       });
 
       // Confirm move to sender
       socket.emit('moveConfirmed', {
         move,
-        nextTurn: nextTurn
+        nextTurn: nextPlayer,
+        inCheck,
+        stateHash
       });
+
+      // Log successful move to database
+      const auditLog = security.createAuditLog(gameId, playerId, 'move_made', {
+        move,
+        validation: validation,
+        analysis: analysis,
+        stateHash,
+        timestamp: Date.now()
+      });
+      
+      await poolInstance.query(
+        'INSERT INTO security_audit_log (game_id, player_id, action, data, hash) VALUES ($1, $2, $3, $4, $5)',
+        [gameId, playerId, auditLog.action, JSON.stringify(auditLog.data), auditLog.hash]
+      );
+      
+      console.log('📋 Move audit log saved to database');
 
     } catch (error) {
       console.error('Error processing move:', error);
       socket.emit('moveError', { error: 'Failed to process move' });
     }
   });
+
+  // Handle game timeout and inactivity
+  const handleGameTimeout = async (gameId) => {
+    try {
+      const poolInstance = initializePool();
+      
+      // Get game state
+      const result = await poolInstance.query('SELECT * FROM games WHERE room_id = $1', [gameId]);
+      const game = result.rows[0];
+      
+      if (!game || game.game_state === 'finished') {
+        return;
+      }
+      
+      // Check if game has been inactive for more than 30 minutes
+      const lastActivity = game.updated_at;
+      const now = new Date();
+      const timeDiff = now - lastActivity;
+      const timeoutMinutes = 30;
+      
+      if (timeDiff > timeoutMinutes * 60 * 1000) {
+        console.log(`⏰ Game ${gameId} timed out due to inactivity`);
+        
+        // Determine winner based on position (if possible)
+        let winner = null;
+        if (game.game_state) {
+          const gameState = JSON.parse(game.game_state);
+          // Simple logic: if one player is in check, the other wins
+          if (gameState.inCheck) {
+            winner = gameState.currentPlayer === 'white' ? 'black' : 'white';
+          }
+        }
+        
+        // Update game state
+        await poolInstance.query(
+          'UPDATE games SET game_state = $1, winner = $2, game_result = $3, finished_at = $4 WHERE room_id = $5',
+          ['finished', winner, 'timeout', now, gameId]
+        );
+        
+        // Log timeout
+        const auditLog = security.createAuditLog(gameId, 'system', 'game_timeout', {
+          winner,
+          reason: 'inactivity',
+          timeoutMinutes,
+          timestamp: Date.now()
+        });
+        
+        await poolInstance.query(
+          'INSERT INTO security_audit_log (game_id, player_id, action, data, hash) VALUES ($1, $2, $3, $4, $5)',
+          [gameId, 'system', auditLog.action, JSON.stringify(auditLog.data), auditLog.hash]
+        );
+        
+        // Notify players
+        io.to(gameId).emit('gameTimeout', {
+          winner,
+          reason: 'Game timed out due to inactivity'
+        });
+      }
+    } catch (error) {
+      console.error('Error handling game timeout:', error);
+    }
+  };
+  
+  // Check for timeouts every 5 minutes
+  setInterval(() => {
+    // Get all active games
+    const poolInstance = initializePool();
+    poolInstance.query('SELECT room_id FROM games WHERE game_state = $1', ['active'])
+      .then(result => {
+        result.rows.forEach(row => {
+          handleGameTimeout(row.room_id);
+        });
+      })
+      .catch(error => {
+        console.error('Error checking game timeouts:', error);
+      });
+  }, 5 * 60 * 1000); // 5 minutes
 
   // Handle chat messages
   socket.on('sendMessage', async ({ gameId, message, playerId, playerName }) => {
