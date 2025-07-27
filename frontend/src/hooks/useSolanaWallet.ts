@@ -97,8 +97,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       // Try to fetch IDL from the program itself first
       try {
         console.log('🔍 Debug - GetProgram - Attempting to fetch IDL from chain...');
-        const programId = new web3.PublicKey(CHESS_PROGRAM_ID);
-        const program = await Program.at(programId, provider);
+        const program = await Program.at(CHESS_PROGRAM_ID, provider);
         console.log('🔍 Debug - GetProgram - Successfully loaded program from chain');
         return program;
       } catch (chainError) {
@@ -303,26 +302,62 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       
       console.log('🔍 Debug - GetProgram - Using minimal IDL');
       
-      // Quick workaround: Try without accounts section
-      const workingIDL = {
-        ...minimalIdl,
-        accounts: [] // Empty accounts array
-      };
-      
-      console.log('🔍 Debug - Attempting program creation without accounts...');
-      try {
-        const program = new Program(workingIDL as any, CHESS_PROGRAM_ID, provider);
-        console.log('✅ Debug - Program created successfully without accounts section!');
-        return program;
-      } catch (error) {
-        console.log('❌ Debug - Still failed without accounts:', error.message);
-        // Continue with the detailed debugging...
+      // Fix the problematic vec type in move_history
+      const gameEscrowType = minimalIdl.types.find(t => t.name === 'GameEscrow');
+      if (gameEscrowType?.type?.fields) {
+        const moveHistoryField = gameEscrowType.type.fields.find(f => f.name === 'move_history');
+        if (moveHistoryField && moveHistoryField.type.vec) {
+          console.log('🔧 Debug - Converting Vec<MoveRecord> to fixed array...');
+          // Convert Vec<MoveRecord> to a fixed array [MoveRecord; 100]
+          moveHistoryField.type = {
+            array: [{ defined: "MoveRecord" }, 100] // Max 100 moves
+          };
+          console.log('✅ Debug - Fixed move_history to fixed array');
+        }
       }
       
-      // Try creating program with minimal IDL
-      const program = new Program(minimalIdl as any, CHESS_PROGRAM_ID, provider);
-      console.log('🔍 Debug - GetProgram - Program created successfully');
-      return program;
+      // Fix account types
+      if (minimalIdl.accounts) {
+        minimalIdl.accounts.forEach(account => {
+          if (account.name === 'GameEscrow' && !account.type) {
+            account.type = gameEscrowType.type;
+          }
+          const tournamentType = minimalIdl.types.find(t => t.name === 'Tournament');
+          if (account.name === 'Tournament' && !account.type) {
+            account.type = tournamentType.type;
+          }
+        });
+      }
+      
+      // Verify program ID is valid
+      console.log('🔍 Debug - Checking program ID...');
+      try {
+        const programId = new PublicKey(CHESS_PROGRAM_ID);
+        console.log('✅ Debug - Program ID is valid:', programId.toString());
+      } catch (error) {
+        console.log('❌ Debug - Invalid program ID:', CHESS_PROGRAM_ID, error.message);
+        throw new Error('Invalid program ID');
+      }
+      
+      // Verify provider setup
+      console.log('🔍 Debug - Checking provider...');
+      console.log('🔍 Debug - Provider wallet:', provider.wallet?.publicKey?.toString());
+      console.log('🔍 Debug - Provider connection:', !!provider.connection);
+      
+      // Create program with explicit PublicKey
+      try {
+        console.log('🔍 Debug - Attempting alternative program creation...');
+        
+        const programId = new PublicKey(CHESS_PROGRAM_ID);
+        const program = new Program(minimalIdl as any, programId, provider);
+        
+        console.log('✅ Debug - Program created successfully!');
+        return program;
+        
+      } catch (error) {
+        console.log('❌ Debug - Alternative creation failed:', error.message);
+        throw error;
+      }
     };
 
     /**
