@@ -1632,7 +1632,7 @@ function ChessApp() {
           return;
         }
         
-        if (data.gameState && gameMode === 'game') {
+        if (data.gameState) {
           // Check if this is a meaningful state update (not just a duplicate)
           const localStateHash = JSON.stringify({
             position: gameState.position,
@@ -1672,6 +1672,18 @@ function ChessApp() {
             
             // Update game state
             setGameState(data.gameState);
+            
+            // Check if this is a game reset (gameActive is false and no winner)
+            if (!data.gameState.gameActive && !data.gameState.winner && data.gameState.moveHistory.length === 0) {
+              console.log('🔄 Game reset detected, going back to lobby mode');
+              setGameMode('lobby');
+              setEscrowCreated(false);
+              setOpponentEscrowCreated(false);
+              setBothEscrowsReady(false);
+              setWinningsClaimed(false);
+              setChatMessages([]);
+              setGameStatus('New game started! Both players need to create escrows.');
+            }
             
             // Reset flag after a longer delay to ensure state has settled
             // Use longer delay for black player to avoid race conditions
