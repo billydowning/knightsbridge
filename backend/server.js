@@ -10,7 +10,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const { initializePool, testConnection, roomService, chatService } = require('./database');
+const { pool: getPool, initializePool, testConnection, roomService, chatService } = require('./database');
 const security = require('./security');
 
 console.log('🚀 Starting Knightsbridge Chess Backend Server...');
@@ -86,7 +86,7 @@ async function initializeDatabase() {
       )
     `;
     
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     await poolInstance.query(createEscrowsTable);
     console.log('✅ Escrows table created/verified successfully');
     
@@ -262,7 +262,7 @@ app.get('/debug', async (req, res) => {
   
   try {
     // Get room count from database
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     const result = await poolInstance.query('SELECT COUNT(*) as room_count FROM games');
     const roomCount = result.rows[0].room_count;
     
@@ -301,7 +301,7 @@ app.get('/socket-test', (req, res) => {
 // Debug endpoint to list all rooms
 app.get('/debug/rooms', async (req, res) => {
   try {
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     const result = await poolInstance.query('SELECT room_id, player_white_wallet, player_black_wallet, game_state FROM games');
     const rooms = result.rows.map(row => row.room_id);
     
@@ -320,7 +320,7 @@ app.get('/debug/rooms', async (req, res) => {
 // Debug endpoint to test chat_messages table
 app.get('/debug/chat-test', async (req, res) => {
   try {
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     
     // Test if chat_messages table exists
     const tableCheck = await poolInstance.query(`
@@ -380,7 +380,7 @@ app.get('/debug/room/:roomId', async (req, res) => {
   const roomId = req.params.roomId;
   
   try {
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     const result = await poolInstance.query('SELECT room_id, player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
     const room = result.rows[0];
 
@@ -405,7 +405,7 @@ app.get('/debug/room/:roomId', async (req, res) => {
 // Debug endpoint to clear all rooms
 app.get('/debug/clear', async (req, res) => {
   try {
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     await poolInstance.query('DELETE FROM games');
     await poolInstance.query('DELETE FROM moves');
     await poolInstance.query('DELETE FROM chat_messages');
@@ -439,7 +439,7 @@ app.get('/create-escrows-table', async (req, res) => {
       )
     `;
     
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     await poolInstance.query(createEscrowsTable);
     console.log('✅ Escrows table created successfully');
     
@@ -458,7 +458,7 @@ app.get('/clear-escrows', async (req, res) => {
   try {
     console.log('🧹 Clearing escrows table...');
     
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     await poolInstance.query('DELETE FROM escrows');
     console.log('✅ Escrows table cleared successfully');
     
@@ -497,7 +497,7 @@ app.get('/deploy-schema', async (req, res) => {
     ];
     
     console.log('🧹 Dropping existing tables...');
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     for (const statement of dropStatements) {
       await poolInstance.query(statement);
       console.log('✅ Dropped table');
@@ -878,7 +878,7 @@ app.get('/ready', async (req, res) => {
   // Check database connection with retry
   for (let i = 0; i < 3; i++) {
     try {
-      const poolInstance = initializePool();
+      const poolInstance = getPool();
       await poolInstance.query('SELECT 1');
       readiness.database = 'connected';
       res.status(200).json(readiness);
@@ -896,7 +896,7 @@ app.get('/ready', async (req, res) => {
 setInterval(async () => {
   try {
     // Check database connection
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     await poolInstance.query('SELECT 1');
     console.log('✅ Database health check passed');
   } catch (error) {
@@ -985,7 +985,7 @@ io.on('connection', (socket) => {
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Check if room already exists in database
         const existingRoom = await poolInstance.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
@@ -1067,7 +1067,7 @@ io.on('connection', (socket) => {
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Check if room exists in database
         const existingRoom = await poolInstance.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
@@ -1176,7 +1176,7 @@ io.on('connection', (socket) => {
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Get room details from database
         const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
@@ -1254,7 +1254,7 @@ io.on('connection', (socket) => {
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Get current escrows from database
         const result = await poolInstance.query('SELECT escrow_amount FROM escrows WHERE room_id = $1 AND player_wallet = $2', [roomId, playerWallet]);
@@ -1299,7 +1299,7 @@ io.on('connection', (socket) => {
       
       // Auto-start game if both escrows are created and both players are present
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         const currentPlayers = await poolInstance.query('SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]).then(r => r.rows[0]);
         const escrows = await poolInstance.query('SELECT player_wallet FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows);
         
@@ -1368,7 +1368,7 @@ io.on('connection', (socket) => {
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Clear escrows from database
         await poolInstance.query('DELETE FROM escrows WHERE room_id = $1', [roomId]);
@@ -1417,7 +1417,7 @@ io.on('connection', (socket) => {
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Always save the new state to database first
         await poolInstance.query(
@@ -1497,7 +1497,7 @@ io.on('connection', (socket) => {
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Get full game state from game_states table
         const result = await poolInstance.query('SELECT game_state FROM game_states WHERE room_id = $1', [roomId]);
@@ -1604,7 +1604,7 @@ io.on('connection', (socket) => {
     try {
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         await poolInstance.query('DELETE FROM games');
         await poolInstance.query('DELETE FROM escrows');
         await poolInstance.query('DELETE FROM moves');
@@ -1631,7 +1631,7 @@ io.on('connection', (socket) => {
   socket.on('cleanupCorruptedGameStates', async (data, callback) => {
     try {
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Get all game states
         const result = await poolInstance.query('SELECT room_id, game_state FROM game_states');
@@ -1703,7 +1703,7 @@ io.on('connection', (socket) => {
         return;
       }
 
-      const poolInstance = initializePool();
+      const poolInstance = getPool();
 
       // Get current game state from database
       const result = await poolInstance.query('SELECT game_state, current_turn, move_history FROM games WHERE room_id = $1', [gameId]);
@@ -1835,7 +1835,7 @@ io.on('connection', (socket) => {
   // Handle game timeout and inactivity
   const handleGameTimeout = async (gameId) => {
     try {
-      const poolInstance = initializePool();
+      const poolInstance = getPool();
       
       // Get game state
       const result = await poolInstance.query('SELECT * FROM games WHERE room_id = $1', [gameId]);
@@ -1897,7 +1897,7 @@ io.on('connection', (socket) => {
   // Check for timeouts every 5 minutes
   setInterval(() => {
     // Get all active games
-    const poolInstance = initializePool();
+    const poolInstance = getPool();
     poolInstance.query('SELECT room_id FROM games WHERE game_state = $1', ['active'])
       .then(result => {
         result.rows.forEach(row => {
@@ -1923,7 +1923,7 @@ io.on('connection', (socket) => {
         return;
       }
 
-      const poolInstance = initializePool();
+      const poolInstance = getPool();
       
       // Insert new chat message into database
       await poolInstance.query(
@@ -1954,7 +1954,7 @@ io.on('connection', (socket) => {
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Get the game ID from the games table using room_id
         const gameResult = await poolInstance.query('SELECT id FROM games WHERE room_id = $1', [roomId]);
@@ -2015,7 +2015,7 @@ io.on('connection', (socket) => {
 
       // Check if we have database access
       if (process.env.DATABASE_URL) {
-        const poolInstance = initializePool();
+        const poolInstance = getPool();
         
         // Get the game ID from the games table using room_id
         const gameResult = await poolInstance.query('SELECT id FROM games WHERE room_id = $1', [roomId]);
@@ -2072,7 +2072,7 @@ io.on('connection', (socket) => {
   // Handle game state requests
   socket.on('getGameState', async (gameId) => {
     try {
-      const poolInstance = initializePool();
+      const poolInstance = getPool();
       const result = await poolInstance.query('SELECT game_state FROM games WHERE room_id = $1', [gameId]);
       const gameState = result.rows[0];
       if (gameState) {
@@ -2089,7 +2089,7 @@ io.on('connection', (socket) => {
   // Handle chat history requests
   socket.on('getChatHistory', async (gameId) => {
     try {
-      const poolInstance = initializePool();
+      const poolInstance = getPool();
       const result = await poolInstance.query('SELECT player_id, player_name, message, timestamp FROM chat_messages WHERE game_id = $1 ORDER BY timestamp ASC', [gameId]);
       const messages = result.rows.map(msg => ({
         id: msg.id, // Assuming msg.id is the unique ID from the DB
