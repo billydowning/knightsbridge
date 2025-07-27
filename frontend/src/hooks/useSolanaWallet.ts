@@ -181,6 +181,27 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         console.log('🔍 Debug - NO TYPES SECTION FOUND IN IDL!');
       }
       
+      // Find the GameEscrow and Tournament type definitions
+      const gameEscrowType = ChessEscrowIDL.types?.find(t => t.name === 'GameEscrow');
+      const tournamentType = ChessEscrowIDL.types?.find(t => t.name === 'Tournament');
+      
+      console.log('🔍 Debug - GameEscrow type definition:', gameEscrowType);
+      console.log('🔍 Debug - Tournament type definition:', tournamentType);
+      
+      // Manually fix the accounts section
+      if (ChessEscrowIDL.accounts) {
+        ChessEscrowIDL.accounts.forEach(account => {
+          if (account.name === 'GameEscrow' && !account.type) {
+            account.type = gameEscrowType?.type;
+            console.log('🔍 Debug - Fixed GameEscrow account type');
+          }
+          if (account.name === 'Tournament' && !account.type) {
+            account.type = tournamentType?.type;
+            console.log('🔍 Debug - Fixed Tournament account type');
+          }
+        });
+      }
+      
       // Try using the IDL directly without Program constructor
       try {
         console.log('🔍 Debug - GetProgram - About to create Program');
