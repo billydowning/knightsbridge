@@ -103,7 +103,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       });
       
       // Use the imported IDL
-      return new Program(ChessEscrowIDL as ChessEscrow, CHESS_PROGRAM_ID, provider);
+      return new Program(ChessEscrowIDL, CHESS_PROGRAM_ID, provider);
     };
 
     /**
