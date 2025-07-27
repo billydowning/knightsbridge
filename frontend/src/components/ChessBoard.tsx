@@ -91,11 +91,11 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
 
     // Apply color based on piece type
     if (isWhitePiece) {
-      baseStyle.color = '#ffffff'; // White pieces
-      baseStyle.textShadow = '2px 2px 4px rgba(0,0,0,0.8)'; // Darker shadow for contrast
+      baseStyle.color = '#f8f8f8'; // Off-white for better visibility
+      baseStyle.textShadow = '2px 2px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8)'; // Strong dark shadow and outline
     } else if (isBlackPiece) {
-      baseStyle.color = '#000000'; // Black pieces
-      baseStyle.textShadow = '2px 2px 4px rgba(255,255,255,0.3)'; // Lighter shadow for contrast
+      baseStyle.color = '#1a1a1a'; // Dark gray instead of pure black
+      baseStyle.textShadow = '2px 2px 4px rgba(255,255,255,0.4), 0 0 2px rgba(255,255,255,0.6)'; // Light shadow and outline
     }
 
     if (isHovered && !disabled) {
