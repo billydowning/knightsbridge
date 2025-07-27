@@ -70,6 +70,82 @@
       "args": []
     },
     {
+      "name": "create_tournament",
+      "docs": [
+        "Create a new tournament"
+      ],
+      "discriminator": [
+        158,
+        137,
+        233,
+        231,
+        73,
+        132,
+        191,
+        68
+      ],
+      "accounts": [
+        {
+          "name": "tournament",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  111,
+                  117,
+                  114,
+                  110,
+                  97,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "tournament_id",
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "entry_fee",
+          "type": "u64"
+        },
+        {
+          "name": "max_participants",
+          "type": "u32"
+        },
+        {
+          "name": "time_control",
+          "type": {
+            "defined": {
+              "name": "TimeControl"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "declare_result",
       "docs": [
         "Declare game result and distribute funds"
@@ -361,6 +437,34 @@
       "args": []
     },
     {
+      "name": "join_tournament",
+      "docs": [
+        "Join a tournament"
+      ],
+      "discriminator": [
+        77,
+        21,
+        212,
+        206,
+        77,
+        82,
+        124,
+        31
+      ],
+      "accounts": [
+        {
+          "name": "tournament",
+          "writable": true
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "record_move",
       "docs": [
         "Record a move (for anti-cheat and timing)"
@@ -399,8 +503,84 @@
               32
             ]
           }
+        },
+        {
+          "name": "from_square",
+          "type": "string"
+        },
+        {
+          "name": "to_square",
+          "type": "string"
+        },
+        {
+          "name": "piece",
+          "type": "string"
+        },
+        {
+          "name": "captured_piece",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "time_spent",
+          "type": "u64"
+        },
+        {
+          "name": "is_check",
+          "type": "bool"
+        },
+        {
+          "name": "is_checkmate",
+          "type": "bool"
+        },
+        {
+          "name": "is_castle",
+          "type": "bool"
+        },
+        {
+          "name": "is_en_passant",
+          "type": "bool"
+        },
+        {
+          "name": "is_promotion",
+          "type": "bool"
+        },
+        {
+          "name": "promotion_piece",
+          "type": {
+            "option": "string"
+          }
         }
       ]
+    },
+    {
+      "name": "start_tournament",
+      "docs": [
+        "Start a tournament"
+      ],
+      "discriminator": [
+        164,
+        168,
+        208,
+        157,
+        43,
+        10,
+        220,
+        241
+      ],
+      "accounts": [
+        {
+          "name": "tournament",
+          "writable": true
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -415,6 +595,19 @@
         128,
         248,
         133
+      ]
+    },
+    {
+      "name": "Tournament",
+      "discriminator": [
+        175,
+        139,
+        119,
+        242,
+        115,
+        194,
+        57,
+        92
       ]
     }
   ],
@@ -498,6 +691,32 @@
       ]
     },
     {
+      "name": "PlayerJoinedTournament",
+      "discriminator": [
+        180,
+        224,
+        57,
+        168,
+        198,
+        229,
+        147,
+        231
+      ]
+    },
+    {
+      "name": "RatingUpdated",
+      "discriminator": [
+        56,
+        99,
+        247,
+        53,
+        155,
+        42,
+        245,
+        247
+      ]
+    },
+    {
       "name": "StakeDeposited",
       "discriminator": [
         69,
@@ -508,6 +727,32 @@
         34,
         225,
         19
+      ]
+    },
+    {
+      "name": "TournamentCreated",
+      "discriminator": [
+        102,
+        32,
+        240,
+        45,
+        52,
+        64,
+        97,
+        0
+      ]
+    },
+    {
+      "name": "TournamentStarted",
+      "discriminator": [
+        200,
+        157,
+        174,
+        194,
+        174,
+        219,
+        107,
+        44
       ]
     }
   ],
@@ -586,6 +831,71 @@
       "code": 6014,
       "name": "TimeNotExceeded",
       "msg": "Time limit not exceeded"
+    },
+    {
+      "code": 6015,
+      "name": "NotPlayerTurn",
+      "msg": "Not player's turn"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidMoveFormat",
+      "msg": "Invalid move format"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidSquareFormat",
+      "msg": "Invalid square format"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidSquareCoordinates",
+      "msg": "Invalid square coordinates"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidPiece",
+      "msg": "Invalid piece"
+    },
+    {
+      "code": 6020,
+      "name": "IllegalMove",
+      "msg": "Illegal move"
+    },
+    {
+      "code": 6021,
+      "name": "MoveExposesKing",
+      "msg": "Move exposes king"
+    },
+    {
+      "code": 6022,
+      "name": "ImpossibleMove",
+      "msg": "Impossible move"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidTimeControl",
+      "msg": "Invalid time control"
+    },
+    {
+      "code": 6024,
+      "name": "TournamentNotFound",
+      "msg": "Tournament not found"
+    },
+    {
+      "code": 6025,
+      "name": "PlayerNotInTournament",
+      "msg": "Player not in tournament"
+    },
+    {
+      "code": 6026,
+      "name": "TournamentAlreadyStarted",
+      "msg": "Tournament already started"
+    },
+    {
+      "code": 6027,
+      "name": "InvalidRating",
+      "msg": "Invalid rating"
     }
   ],
   "types": [
@@ -731,6 +1041,59 @@
           {
             "name": "last_move_time",
             "type": "i64"
+          },
+          {
+            "name": "time_control",
+            "type": {
+              "defined": {
+                "name": "TimeControl"
+              }
+            }
+          },
+          {
+            "name": "position_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "move_history",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MoveRecord"
+                }
+              }
+            }
+          },
+          {
+            "name": "anti_cheat_flags",
+            "type": "u32"
+          },
+          {
+            "name": "rating_white",
+            "type": "u32"
+          },
+          {
+            "name": "rating_black",
+            "type": "u32"
+          },
+          {
+            "name": "tournament_id",
+            "type": {
+              "option": "string"
+            }
+          },
+          {
+            "name": "game_flags",
+            "type": {
+              "defined": {
+                "name": "GameFlags"
+              }
+            }
           }
         ]
       }
@@ -763,6 +1126,38 @@
           {
             "name": "finished_at",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameFlags",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "is_tournament_game",
+            "type": "bool"
+          },
+          {
+            "name": "is_rated",
+            "type": "bool"
+          },
+          {
+            "name": "allow_draw_offers",
+            "type": "bool"
+          },
+          {
+            "name": "allow_resignation",
+            "type": "bool"
+          },
+          {
+            "name": "require_move_validation",
+            "type": "bool"
+          },
+          {
+            "name": "enable_anti_cheat",
+            "type": "bool"
           }
         ]
       }
@@ -827,6 +1222,83 @@
       }
     },
     {
+      "name": "MoveRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "move_number",
+            "type": "u32"
+          },
+          {
+            "name": "from_square",
+            "type": "string"
+          },
+          {
+            "name": "to_square",
+            "type": "string"
+          },
+          {
+            "name": "piece",
+            "type": "string"
+          },
+          {
+            "name": "captured_piece",
+            "type": {
+              "option": "string"
+            }
+          },
+          {
+            "name": "move_notation",
+            "type": "string"
+          },
+          {
+            "name": "position_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "time_spent",
+            "type": "u64"
+          },
+          {
+            "name": "is_check",
+            "type": "bool"
+          },
+          {
+            "name": "is_checkmate",
+            "type": "bool"
+          },
+          {
+            "name": "is_castle",
+            "type": "bool"
+          },
+          {
+            "name": "is_en_passant",
+            "type": "bool"
+          },
+          {
+            "name": "is_promotion",
+            "type": "bool"
+          },
+          {
+            "name": "promotion_piece",
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MoveRecorded",
       "type": {
         "kind": "struct",
@@ -884,6 +1356,50 @@
       }
     },
     {
+      "name": "PlayerJoinedTournament",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tournament_id",
+            "type": "string"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "joined_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RatingUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_rating",
+            "type": "u32"
+          },
+          {
+            "name": "games_played",
+            "type": "u32"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "StakeDeposited",
       "type": {
         "kind": "struct",
@@ -899,6 +1415,202 @@
           {
             "name": "amount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TimeControl",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "initial_time",
+            "type": "u64"
+          },
+          {
+            "name": "increment",
+            "type": "u64"
+          },
+          {
+            "name": "delay",
+            "type": "u64"
+          },
+          {
+            "name": "time_control_type",
+            "type": {
+              "defined": {
+                "name": "TimeControlType"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TimeControlType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Rapid"
+          },
+          {
+            "name": "Blitz"
+          },
+          {
+            "name": "Bullet"
+          },
+          {
+            "name": "Custom"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Tournament",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tournament_id",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "entry_fee",
+            "type": "u64"
+          },
+          {
+            "name": "max_participants",
+            "type": "u32"
+          },
+          {
+            "name": "current_participants",
+            "type": "u32"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "TournamentStatus"
+              }
+            }
+          },
+          {
+            "name": "time_control",
+            "type": {
+              "defined": {
+                "name": "TimeControl"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "started_at",
+            "type": "i64"
+          },
+          {
+            "name": "finished_at",
+            "type": "i64"
+          },
+          {
+            "name": "prize_pool",
+            "type": "u64"
+          },
+          {
+            "name": "participants",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "brackets",
+            "type": {
+              "vec": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TournamentCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tournament_id",
+            "type": "string"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "entry_fee",
+            "type": "u64"
+          },
+          {
+            "name": "max_participants",
+            "type": "u32"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TournamentStarted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tournament_id",
+            "type": "string"
+          },
+          {
+            "name": "started_at",
+            "type": "i64"
+          },
+          {
+            "name": "participants",
+            "type": "u32"
+          },
+          {
+            "name": "prize_pool",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TournamentStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Registration"
+          },
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Finished"
+          },
+          {
+            "name": "Cancelled"
           }
         ]
       }

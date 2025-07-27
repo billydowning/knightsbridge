@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
-import { Program, AnchorProvider, BN, web3 } from '@coral-xyz/anchor';
+import { Program, AnchorProvider, BN, web3, Idl } from '@coral-xyz/anchor';
 import type { ChessEscrow } from '../idl/chess_escrow';
 import ChessEscrowIDL from '../idl/chess_escrow.json';
 import { databaseMultiplayerState } from '../services/databaseMultiplayerState';
@@ -102,8 +102,20 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         address: ChessEscrowIDL?.address
       });
       
-      // Use the imported IDL
-      return new Program(ChessEscrowIDL, CHESS_PROGRAM_ID, provider);
+      // Try using the IDL directly without Program constructor
+      try {
+        console.log('🔍 Debug - GetProgram - About to create Program');
+        console.log('🔍 Debug - GetProgram - IDL type:', typeof ChessEscrowIDL);
+        console.log('🔍 Debug - GetProgram - IDL keys:', Object.keys(ChessEscrowIDL));
+        
+        // Try creating program with explicit type casting
+        const program = new Program(ChessEscrowIDL as any, CHESS_PROGRAM_ID, provider);
+        console.log('🔍 Debug - GetProgram - Program created successfully');
+        return program;
+      } catch (error) {
+        console.error('🔍 Debug - GetProgram - Error creating Program:', error);
+        throw error;
+      }
     };
 
     /**
