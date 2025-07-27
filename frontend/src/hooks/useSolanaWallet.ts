@@ -93,6 +93,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       console.log('🔍 Debug - GetProgram - Created provider');
       console.log('🔍 Debug - GetProgram - ChessEscrowIDL:', ChessEscrowIDL ? 'Available' : 'Not available');
       console.log('🔍 Debug - GetProgram - CHESS_PROGRAM_ID:', CHESS_PROGRAM_ID.toString());
+      console.log('🔍 Debug - GetProgram - IDL structure:', {
+        hasInstructions: !!ChessEscrowIDL?.instructions,
+        instructionCount: ChessEscrowIDL?.instructions?.length,
+        hasAccounts: !!ChessEscrowIDL?.accounts,
+        hasTypes: !!ChessEscrowIDL?.types,
+        hasMetadata: !!ChessEscrowIDL?.metadata,
+        address: ChessEscrowIDL?.address
+      });
       
       // Use the imported IDL
       return new Program(ChessEscrowIDL as ChessEscrow, CHESS_PROGRAM_ID, provider);
