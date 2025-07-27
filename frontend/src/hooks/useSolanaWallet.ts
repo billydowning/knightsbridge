@@ -340,10 +340,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       };
       
       const gameEscrowTypeForNumeric = ChessEscrowIDL.types.find(t => t.name === 'GameEscrow');
-      const tournamentType = ChessEscrowIDL.types.find(t => t.name === 'Tournament');
+      const tournamentTypeForNumeric = ChessEscrowIDL.types.find(t => t.name === 'Tournament');
       
       checkNumericFields(gameEscrowTypeForNumeric?.type, 'GameEscrow');
-      checkNumericFields(tournamentType?.type, 'Tournament');
+      checkNumericFields(tournamentTypeForNumeric?.type, 'Tournament');
       
       // Fix account types
       if (minimalIdl.accounts) {
@@ -351,9 +351,9 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           if (account.name === 'GameEscrow' && !account.type) {
             account.type = gameEscrowTypeForFix.type;
           }
-          const tournamentType = minimalIdl.types.find(t => t.name === 'Tournament');
+          const tournamentTypeForAccount = minimalIdl.types.find(t => t.name === 'Tournament');
           if (account.name === 'Tournament' && !account.type) {
-            account.type = tournamentType.type;
+            account.type = tournamentTypeForAccount.type;
           }
         });
       }
