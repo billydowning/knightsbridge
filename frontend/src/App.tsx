@@ -738,7 +738,42 @@ function ChessApp() {
 
   const handleResignGame = async () => {
     console.log('Resigning game...');
-    setGameStatus('Game resigned');
+    
+    if (!playerRole || !roomId) {
+      console.error('Cannot resign: missing player role or room ID');
+      return;
+    }
+    
+    try {
+      // Update local game state
+      const winner = playerRole === 'white' ? 'black' : 'white';
+      setGameState((prev: any) => ({
+        ...prev,
+        winner,
+        gameActive: false,
+        lastUpdated: Date.now()
+      }));
+      
+      // Save resignation to database
+      const updatedState = {
+        ...gameState,
+        winner,
+        gameActive: false,
+        lastUpdated: Date.now()
+      };
+      
+      await databaseMultiplayerState.saveGameState(roomId, updatedState);
+      
+      // Send chat message about resignation
+      const resignationMessage = `${playerRole} resigned the game. ${winner} wins!`;
+      await databaseMultiplayerState.sendChatMessage(roomId, resignationMessage, publicKey?.toString() || '', playerRole);
+      
+      setGameStatus(`${winner} wins by resignation!`);
+      
+    } catch (error) {
+      console.error('Error resigning game:', error);
+      setGameStatus(`Error resigning game: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleBackToMenu = () => {
