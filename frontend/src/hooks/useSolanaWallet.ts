@@ -434,7 +434,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
                   ],
                   args: [
                     { name: "roomId", type: "string" },
-                    { name: "stakeAmount", type: "u64" }
+                    { name: "stakeAmount", type: "u64" },
+                    { name: "timeLimitSeconds", type: "u64" }
                   ]
                 }
               ],
