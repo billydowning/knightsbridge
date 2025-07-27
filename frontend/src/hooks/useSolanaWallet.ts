@@ -40,7 +40,7 @@ export interface SolanaWalletHook {
  */
 export const useSolanaWallet = (): SolanaWalletHook => {
   // Log Anchor version for debugging
-  console.log('🔍 Debug - Anchor version:', require('@coral-xyz/anchor').version);
+  console.log('🔍 Debug - Anchor version: 0.31.1 (from package.json)');
   try {
     const { publicKey, connected, signTransaction, sendTransaction } = useWallet();
     const { connection } = useConnection();
