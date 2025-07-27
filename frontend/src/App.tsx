@@ -183,7 +183,16 @@ const DarkModeToggle: React.FC = () => {
 
 function ChessApp() {
   const { theme } = useTheme();
-  const { publicKey, connected, balance, checkBalance, isLoading } = useSolanaWallet();
+  const { 
+    publicKey, 
+    connected, 
+    balance, 
+    checkBalance, 
+    isLoading,
+    createEscrow,
+    joinAndDepositStake,
+    claimWinnings
+  } = useSolanaWallet();
   const isMobile = useIsMobile();
   const textSizes = useTextSizes();
   const isLaptopOrLarger = useIsLaptopOrLarger();
@@ -544,24 +553,50 @@ function ChessApp() {
     }
     
     try {
+      setGameStatus('Creating escrow on Solana...');
+      setAppLoading(true);
+      
+      // Use the Solana wallet functions from the hook
+      
       const playerWallet = publicKey.toString();
       
-      await databaseMultiplayerState.addEscrow(roomId, playerWallet, betAmount);
+      // Check if this is the first player (creating the game) or second player (joining)
+      const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+      const isFirstPlayer = !roomStatus || roomStatus.playerCount === 0;
       
-      // Update local state to show escrow was created
-      setEscrowCreated(true);
+      let success = false;
       
-      setGameStatus(`Escrow created! Bet: ${betAmount} SOL. Waiting for opponent...`);
+      if (isFirstPlayer) {
+        // First player - create the game escrow
+        success = await createEscrow(roomId, betAmount);
+      } else {
+        // Second player - join and deposit stake
+        success = await joinAndDepositStake(roomId, betAmount);
+      }
       
-      // Check if both players have created escrows
-      const afterStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-      if (afterStatus && afterStatus.escrowCount >= 2) {
-        setBothEscrowsReady(true);
+      if (success) {
+        // Update database after successful blockchain transaction
+        await databaseMultiplayerState.addEscrow(roomId, playerWallet, betAmount);
+        
+        // Update local state to show escrow was created
+        setEscrowCreated(true);
+        
+        setGameStatus(`Escrow created on Solana! Bet: ${betAmount} SOL. Waiting for opponent...`);
+        
+        // Check if both players have created escrows
+        const afterStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+        if (afterStatus && afterStatus.escrowCount >= 2) {
+          setBothEscrowsReady(true);
+        }
+      } else {
+        setGameStatus('Failed to create escrow on Solana. Please try again.');
       }
       
     } catch (error) {
       console.error('Error creating escrow:', error);
       setGameStatus(`Error creating escrow: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setAppLoading(false);
     }
   };
 
@@ -658,15 +693,35 @@ function ChessApp() {
   };
 
   const handleClaimWinnings = async () => {
+    if (!connected || !publicKey || !roomId || !gameState.winner) {
+      setGameStatus('Cannot claim winnings: missing wallet, room, or winner');
+      return;
+    }
+    
     try {
-      // For now, simulate claiming winnings without blockchain
-      // In production, this would call the actual Solana program
-      setWinningsClaimed(true);
-      setGameStatus('Winnings claimed successfully!');
+      setGameStatus('Claiming winnings on Solana...');
+      setAppLoading(true);
+      
+      // Use the Solana wallet functions from the hook
+      
+      // Determine if it's a draw
+      const isDraw = gameState.winner === 'draw';
+      
+      // Claim winnings on Solana
+      const result = await claimWinnings(roomId, playerRole, gameState.winner, isDraw);
+      
+      if (result === 'success') {
+        setWinningsClaimed(true);
+        setGameStatus('Winnings claimed successfully on Solana!');
+      } else {
+        setGameStatus(`Failed to claim winnings: ${result}`);
+      }
       
     } catch (err) {
       console.error('❌ Claiming winnings failed:', err);
       setGameStatus('Failed to claim winnings. Please try again.');
+    } finally {
+      setAppLoading(false);
     }
   };
 
