@@ -1339,6 +1339,9 @@ function ChessApp() {
         lastUpdated: Date.now()
       };
       
+      // Clear existing escrows so both players need to create new ones
+      await databaseMultiplayerState.clearEscrows(roomId);
+      
       await databaseMultiplayerState.saveGameState(roomId, resetGameState);
       
       // Send chat message about new game
