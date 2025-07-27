@@ -466,6 +466,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
                   depositStake: !!depositStake
                 });
                 
+                // Log the complete instruction definitions for debugging
+                console.log('🔍 Initialize game complete definition:', initializeGame);
+                console.log('🔍 Deposit stake complete definition:', depositStake);
+                
                 return {
                   address: CHESS_PROGRAM_ID,
                   metadata: {
@@ -474,7 +478,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
                     spec: "0.1.0"
                   },
                   instructions: [
-                    // Include the specific instructions you need
+                    // Include the complete instruction definitions
                     ...(initializeGame ? [initializeGame] : []),
                     ...(depositStake ? [depositStake] : [])
                   ],
