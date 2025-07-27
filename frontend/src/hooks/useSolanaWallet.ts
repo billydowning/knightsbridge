@@ -423,7 +423,21 @@ export const useSolanaWallet = (): SolanaWalletHook => {
                 version: "0.1.0",
                 spec: "0.1.0"
               },
-              instructions: ChessEscrowIDL.instructions,
+              instructions: [
+                {
+                  name: "initialize_game",
+                  accounts: [
+                    { name: "gameEscrow", isMut: true, isSigner: false },
+                    { name: "player", isMut: true, isSigner: true },
+                    { name: "feeCollector", isMut: true, isSigner: false },
+                    { name: "systemProgram", isMut: false, isSigner: false }
+                  ],
+                  args: [
+                    { name: "roomId", type: "string" },
+                    { name: "stakeAmount", type: "u64" }
+                  ]
+                }
+              ],
               accounts: [], // Remove accounts entirely
               types: [], // Remove types entirely
               events: [],
