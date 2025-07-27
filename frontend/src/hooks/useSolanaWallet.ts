@@ -455,42 +455,46 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             // Fallback to basic IDL
             console.log('🔍 Debug - Attempting program creation with minimal IDL...');
             try {
-              const basicIDL = {
-                address: CHESS_PROGRAM_ID,
-                metadata: {
-                  name: "chess_escrow",
-                  version: "0.1.0",
-                  spec: "0.1.0"
-                },
-                instructions: [
-                  {
-                    name: "initialize_game",
-                    accounts: [
-                      { name: "gameEscrow", isMut: true, isSigner: false },
-                      { name: "player", isMut: true, isSigner: true },
-                      { name: "feeCollector", isMut: true, isSigner: false },
-                      { name: "systemProgram", isMut: false, isSigner: false }
-                    ],
-                    args: [
-                      { name: "roomId", type: "string" },
-                      { name: "stakeAmount", type: "u64" },
-                      { name: "timeLimitSeconds", type: "u64" }
-                    ]
-                  }
-                ],
-                accounts: [], // Remove accounts entirely
-                types: [], // Remove types entirely
-                events: [],
-                errors: []
+              // Create minimal IDL with the specific instructions you need
+              const createWorkingIDL = () => {
+                // Get the specific instructions you need
+                const initializeGame = ChessEscrowIDL.instructions.find(i => i.name === 'initialize_game');
+                const depositStake = ChessEscrowIDL.instructions.find(i => i.name === 'deposit_stake');
+                
+                console.log('🔍 Found instructions:', {
+                  initializeGame: !!initializeGame,
+                  depositStake: !!depositStake
+                });
+                
+                return {
+                  address: CHESS_PROGRAM_ID,
+                  metadata: {
+                    name: "chess_escrow",
+                    version: "0.1.0",
+                    spec: "0.1.0"
+                  },
+                  instructions: [
+                    // Include the specific instructions you need
+                    ...(initializeGame ? [initializeGame] : []),
+                    ...(depositStake ? [depositStake] : [])
+                  ],
+                  accounts: [], // Keep empty to avoid the size errors
+                  types: [],    // Keep empty initially
+                  events: [],
+                  errors: []
+                };
               };
+
+              const workingIDL = createWorkingIDL();
+              console.log('🔍 Working IDL instructions:', workingIDL.instructions.map(i => i.name));
               
               const programId = new PublicKey(CHESS_PROGRAM_ID);
-              const program = new Program(basicIDL as any, programId, provider);
-              console.log('✅ Debug - Created program with basic IDL');
+              const program = new Program(workingIDL as any, programId, provider);
+              console.log('✅ Debug - Created program with working IDL');
               return program;
               
             } catch (basicError) {
-              console.log('❌ Debug - Basic IDL approach failed:', basicError.message);
+              console.log('❌ Debug - Working IDL approach failed:', basicError.message);
               throw basicError;
             }
           }
