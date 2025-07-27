@@ -1595,28 +1595,14 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStateUpdated = (data: any) => {
-        console.log('🔄 Received game state update:', {
-          senderId: data.senderId,
-          currentSocketId: (databaseMultiplayerState as any).socket?.id,
-          gameMode,
-          hasGameState: !!data.gameState,
-          currentPlayer: data.gameState?.currentPlayer
-        });
-        
         // Skip if this is our own broadcast
         const currentSocketId = (databaseMultiplayerState as any).socket?.id;
         
         if (data.senderId && currentSocketId === data.senderId) {
-          console.log('⏭️ Skipping own broadcast');
           return;
         }
         
         if (data.gameState) {
-          console.log('🔄 Processing game state update:', {
-            gameMode,
-            currentPlayer: data.gameState.currentPlayer,
-            moveHistoryLength: data.gameState.moveHistory?.length
-          });
           // Check if this is a meaningful state update (not just a duplicate)
           const localStateHash = JSON.stringify({
             position: gameState.position,
@@ -1681,7 +1667,6 @@ function ChessApp() {
 
       // Use the databaseMultiplayerState callback system
       const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
-        console.log('🔄 Received real-time event:', eventData.eventType, eventData.data);
         if (eventData.eventType === 'gameStateUpdated') {
           handleGameStateUpdated(eventData.data);
         }
@@ -1854,7 +1839,6 @@ function ChessApp() {
             chatMessages={chatMessages}
             onResignGame={handleResignGame}
             onClaimWinnings={handleClaimWinnings}
-            onStartNewGame={handleStartNewGameWithEscrow}
             onBackToMenu={handleBackToMenu}
             winningsClaimed={winningsClaimed}
             isLoading={appLoading}
