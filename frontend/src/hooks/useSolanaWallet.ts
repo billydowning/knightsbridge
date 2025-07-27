@@ -628,6 +628,24 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           });
         }
         
+        // Debug the exact argument types expected
+        console.log('🔍 Detailed argument information:');
+        if (initInstruction?.args) {
+          initInstruction.args.forEach((arg, i) => {
+            console.log(`  Argument ${i}:`, {
+              name: arg.name,
+              type: arg.type,
+              typeString: JSON.stringify(arg.type)
+            });
+          });
+        }
+        
+        console.log('🔍 Calling initializeGame with arguments:', {
+          roomId,
+          betAmountLamports: betAmount * LAMPORTS_PER_SOL,
+          timeLimitSeconds: 300
+        });
+        
         const tx = await program.methods
           .initializeGame(
             roomId,
