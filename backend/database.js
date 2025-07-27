@@ -113,4 +113,4 @@ async function chatService(action, data) {
     }
   }
 
-module.exports = { pool: () => pool, initializePool, testConnection, roomService, chatService }; 
+module.exports = { pool: initializePool(), initializePool, testConnection, roomService, chatService }; 

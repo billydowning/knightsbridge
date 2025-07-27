@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { dbService, pool: getPool } = require('../database');
+const { dbService, pool } = require('../database');
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -23,8 +23,6 @@ router.post('/rooms', async (req, res) => {
     if (!roomId || !playerWallet) {
       return res.status(400).json({ error: 'Room ID and player wallet are required' });
     }
-    
-    const pool = getPool();
     
     // Check if room already exists
     const existingRoom = await pool.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
@@ -63,7 +61,7 @@ router.post('/rooms/:roomId/join', async (req, res) => {
     }
     
     // Check if room exists
-    const existingRoom = await getPool().query('SELECT room_id, player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]);
+    const existingRoom = await pool.query('SELECT room_id, player_white_wallet, player_black_wallet FROM games WHERE room_id = $1', [roomId]);
     if (existingRoom.rows.length === 0) {
       return res.status(404).json({ error: 'Room does not exist' });
     }
@@ -85,7 +83,7 @@ router.post('/rooms/:roomId/join', async (req, res) => {
     }
     
     // Add black player to room
-    await getPool().query(
+    await pool.query(
       'UPDATE games SET player_black_wallet = $1, updated_at = $2 WHERE room_id = $3',
       [playerWallet, new Date(), roomId]
     );
@@ -110,7 +108,7 @@ router.get('/rooms/:roomId/status', async (req, res) => {
     const { roomId } = req.params;
     
     // Get room from database
-    const roomResult = await getPool().query(
+    const roomResult = await pool.query(
       'SELECT room_id, player_white_wallet, player_black_wallet, game_state, updated_at FROM games WHERE room_id = $1',
       [roomId]
     );
@@ -122,7 +120,7 @@ router.get('/rooms/:roomId/status', async (req, res) => {
     const room = roomResult.rows[0];
     
     // Get escrows for this room
-    const escrowsResult = await getPool().query(
+    const escrowsResult = await pool.query(
       'SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1',
       [roomId]
     );
@@ -170,13 +168,13 @@ router.post('/rooms/:roomId/escrow', async (req, res) => {
     }
     
     // Check if room exists
-    const roomResult = await getPool().query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
+    const roomResult = await pool.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
     if (roomResult.rows.length === 0) {
       return res.status(404).json({ error: 'Room does not exist' });
     }
     
     // Check if escrow already exists
-    const existingEscrow = await getPool().query(
+    const existingEscrow = await pool.query(
       'SELECT id FROM escrows WHERE room_id = $1 AND player_wallet = $2',
       [roomId, playerWallet]
     );
@@ -186,7 +184,7 @@ router.post('/rooms/:roomId/escrow', async (req, res) => {
     }
     
     // Create escrow
-    await getPool().query(
+    await pool.query(
       'INSERT INTO escrows (room_id, player_wallet, escrow_amount, status) VALUES ($1, $2, $3, $4)',
       [roomId, playerWallet, amount, 'pending']
     );
