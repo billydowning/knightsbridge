@@ -196,6 +196,42 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         console.log('🔍 Debug - Tournament fields:', tournamentType.type.fields.map(f => ({ name: f.name, type: f.type })));
       }
       
+      // Debug the suspicious fields with complex types
+      console.log('🔍 Debug - Suspicious GameEscrow fields:');
+      if (gameEscrowType?.type?.fields) {
+        [5, 6, 16, 17, 18, 22, 23].forEach(index => {
+          const field = gameEscrowType.type.fields[index];
+          if (field) {
+            console.log(`🔍 Debug - Field ${index} (${field.name}):`, JSON.stringify(field.type, null, 2));
+          }
+        });
+      }
+      
+      // Detailed field inspection - after the fixes
+      console.log('🔍 Debug - Detailed GameEscrow field analysis:');
+      if (gameEscrowType?.type?.fields) {
+        gameEscrowType.type.fields.forEach((field, i) => {
+          console.log(`🔍 Debug -   Field ${i}: "${field.name}"`, field.type);
+          
+          // Check for problematic types
+          if (typeof field.type === 'object') {
+            if (field.type.vec !== undefined) {
+              console.log(`🔍 Debug -     ⚠️  VEC TYPE: ${field.name} has vec:`, field.type.vec);
+            }
+            if (field.type.array !== undefined) {
+              console.log(`🔍 Debug -     ⚠️  ARRAY TYPE: ${field.name} has array:`, field.type.array);
+            }
+            if (field.type.defined) {
+              const referencedType = ChessEscrowIDL.types?.find(t => t.name === field.type.defined);
+              console.log(`🔍 Debug -     📎 DEFINED TYPE: ${field.name} references "${field.type.defined}" - exists: ${!!referencedType}`);
+            }
+            if (field.type.option) {
+              console.log(`🔍 Debug -     🎯 OPTION TYPE: ${field.name} has option:`, field.type.option);
+            }
+          }
+        });
+      }
+      
       // Manually fix the accounts section
       if (ChessEscrowIDL.accounts) {
         ChessEscrowIDL.accounts.forEach(account => {
@@ -240,24 +276,53 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       // Check and fix any malformed defined types
       checkDefinedTypes(ChessEscrowIDL, 'IDL');
       
-      // Try using the IDL directly without Program constructor
+      // Check if instruction accounts reference valid account types
+      console.log('🔍 Debug - Checking instruction account references...');
+      if (ChessEscrowIDL.instructions) {
+        ChessEscrowIDL.instructions.forEach((instruction, i) => {
+          console.log(`🔍 Debug - Instruction ${i} (${instruction.name}) accounts:`, 
+            instruction.accounts?.map(acc => ({
+              name: acc.name,
+              hasType: !!acc.type,
+              type: acc.type
+            }))
+          );
+        });
+      }
+      
+      // Try a different approach - create a minimal IDL for testing
+      const minimalIdl = {
+        version: "0.1.0",
+        name: "chess_escrow",
+        instructions: ChessEscrowIDL.instructions,
+        accounts: ChessEscrowIDL.accounts,
+        types: ChessEscrowIDL.types,
+        events: ChessEscrowIDL.events,
+        errors: ChessEscrowIDL.errors
+      };
+      
+      console.log('🔍 Debug - GetProgram - Using minimal IDL');
+      
+      // Quick workaround: Try without accounts section
+      const workingIDL = {
+        ...minimalIdl,
+        accounts: [] // Empty accounts array
+      };
+      
+      console.log('🔍 Debug - Attempting program creation without accounts...');
       try {
-        console.log('🔍 Debug - GetProgram - About to create Program');
-        console.log('🔍 Debug - GetProgram - IDL type:', typeof ChessEscrowIDL);
-        console.log('🔍 Debug - GetProgram - IDL keys:', Object.keys(ChessEscrowIDL));
-        
-        // Enhanced debugging - log the full IDL structure
-        console.log('🔍 Debug - GetProgram - Full IDL:', JSON.stringify(ChessEscrowIDL, null, 2));
-        
-        // Try creating program with explicit type casting
-        const program = new Program(ChessEscrowIDL as any, CHESS_PROGRAM_ID, provider);
-        console.log('🔍 Debug - GetProgram - Program created successfully');
+        const program = new Program(workingIDL as any, CHESS_PROGRAM_ID, provider);
+        console.log('✅ Debug - Program created successfully without accounts section!');
         return program;
       } catch (error) {
-        console.error('🔍 Debug - GetProgram - Error creating Program:', error);
-        console.error('🔍 Debug - GetProgram - Error stack:', error.stack);
-        throw error;
+        console.log('❌ Debug - Still failed without accounts:', error.message);
+        // Continue with the detailed debugging...
       }
+      
+      // Try creating program with minimal IDL
+      const program = new Program(minimalIdl as any, CHESS_PROGRAM_ID, provider);
+      console.log('🔍 Debug - GetProgram - Program created successfully');
+      return program;
     };
 
     /**
