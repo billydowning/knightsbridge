@@ -263,8 +263,11 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         const confirmation = await connection.confirmTransaction(signature, 'confirmed');
         console.log('✅ Direct RPC - Transaction confirmed:', confirmation);
         
-        // Add to multiplayer state
-        databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+        // Add to multiplayer state only if not already added
+        if (!escrowAddedToDb) {
+          databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+          escrowAddedToDb = true;
+        }
         
         return true;
       } catch (error) {
@@ -386,37 +389,27 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         console.log('🔍 Debug - CreateEscrow - Fee Collector:', FEE_WALLET_ADDRESS.toString());
         console.log('🔍 Debug - CreateEscrow - System Program:', SystemProgram.programId.toString());
         
-        // Try to call initializeGame with the program
+        let escrowAddedToDb = false; // Flag to prevent duplicate database calls
+        
         try {
-          console.log('🔍 Attempting to call initializeGame via program...');
-          
-          const betAmountLamports = Math.floor(betAmount * LAMPORTS_PER_SOL);
-          const timeLimitSeconds = 300; // 5 minutes
-          
-          console.log('🔍 Arguments:', {
-            roomId,
-            betAmountLamports,
-            timeLimitSeconds
-          });
+          // Try to initialize the game first
+          console.log('🔍 Debug - About to call initializeGame');
           
           const initializeTx = await program.methods
-            .initializeGame(
-              roomId,                    // string
-              new BN(betAmountLamports), // u64
-              new BN(timeLimitSeconds)   // i64
-            )
+            .initializeGame(roomId, new BN(betAmountLamports), new BN(timeLimitSeconds))
             .accounts({
               gameEscrow: gameEscrowPda,
               player: publicKey,
-              feeCollector: FEE_WALLET_ADDRESS,
+              gameVault: gameVaultPda,
+              feeCollector: new PublicKey(FEE_WALLET_ADDRESS),
               systemProgram: SystemProgram.programId,
             })
             .rpc();
           
           console.log('✅ InitializeGame successful:', initializeTx);
           
-          // Now try to call depositStake
           try {
+            // Now try to deposit stake
             const depositTx = await program.methods
               .depositStake()
               .accounts({
@@ -429,15 +422,21 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             
             console.log('✅ DepositStake successful:', depositTx);
             
-            // Add to multiplayer state
-            databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+            // Add to multiplayer state only once
+            if (!escrowAddedToDb) {
+              databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+              escrowAddedToDb = true;
+            }
             
             return true;
             
           } catch (depositError) {
             console.log('❌ DepositStake failed:', depositError.message);
             // Game was initialized but deposit failed - still consider success
-            databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+            if (!escrowAddedToDb) {
+              databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
+              escrowAddedToDb = true;
+            }
             return true;
           }
           
@@ -549,11 +548,6 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         
         // Add to multiplayer state
         databaseMultiplayerState.addEscrow(roomId, publicKey.toString(), betAmount);
-        
-        // Update balance after transactions (removed polling)
-        // setTimeout(() => {
-        //   checkBalance();
-        // }, 1000);
         
         return true;
         
