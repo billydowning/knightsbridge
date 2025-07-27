@@ -339,10 +339,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         }
       };
       
-      const gameEscrowType = ChessEscrowIDL.types.find(t => t.name === 'GameEscrow');
+      const gameEscrowTypeForNumeric = ChessEscrowIDL.types.find(t => t.name === 'GameEscrow');
       const tournamentType = ChessEscrowIDL.types.find(t => t.name === 'Tournament');
       
-      checkNumericFields(gameEscrowType?.type, 'GameEscrow');
+      checkNumericFields(gameEscrowTypeForNumeric?.type, 'GameEscrow');
       checkNumericFields(tournamentType?.type, 'Tournament');
       
       // Fix account types
