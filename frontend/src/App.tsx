@@ -564,13 +564,20 @@ function ChessApp() {
       const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
       const isFirstPlayer = !roomStatus || roomStatus.playerCount === 0;
       
+      console.log('🔍 Debug - Room Status:', roomStatus);
+      console.log('🔍 Debug - Player Count:', roomStatus?.playerCount);
+      console.log('🔍 Debug - Is First Player:', isFirstPlayer);
+      console.log('🔍 Debug - Player Role:', playerRole);
+      
       let success = false;
       
       if (isFirstPlayer) {
         // First player - create the game escrow
+        console.log('🔍 Debug - Calling createEscrow');
         success = await createEscrow(roomId, betAmount);
       } else {
         // Second player - join and deposit stake
+        console.log('🔍 Debug - Calling joinAndDepositStake');
         success = await joinAndDepositStake(roomId, betAmount);
       }
       
