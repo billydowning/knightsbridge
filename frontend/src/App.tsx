@@ -1611,7 +1611,12 @@ function ChessApp() {
           return;
         }
         
-        if (data.gameState && gameMode === 'game') {
+        if (data.gameState) {
+          console.log('🔄 Processing game state update:', {
+            gameMode,
+            currentPlayer: data.gameState.currentPlayer,
+            moveHistoryLength: data.gameState.moveHistory?.length
+          });
           // Check if this is a meaningful state update (not just a duplicate)
           const localStateHash = JSON.stringify({
             position: gameState.position,
