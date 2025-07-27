@@ -20,35 +20,50 @@ router.post('/rooms', async (req, res) => {
   try {
     const { roomId, playerWallet } = req.body;
     
+    console.log('🔍 Room creation request:', { roomId, playerWallet });
+    
     if (!roomId || !playerWallet) {
+      console.log('❌ Missing required fields');
       return res.status(400).json({ error: 'Room ID and player wallet are required' });
     }
     
+    console.log('✅ Required fields present, getting pool...');
     const pool = getPool();
+    console.log('✅ Pool obtained, checking for existing room...');
     
     // Check if room already exists
     const existingRoom = await pool.query('SELECT room_id FROM games WHERE room_id = $1', [roomId]);
+    console.log('✅ Existing room check completed:', existingRoom.rows.length, 'rooms found');
+    
     if (existingRoom.rows.length > 0) {
+      console.log('❌ Room already exists');
       return res.status(409).json({ error: 'Room already exists' });
     }
     
+    console.log('✅ Room is unique, creating new room...');
     // Create room in database
-    await pool.query(
-      'INSERT INTO games (room_id, player_white_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4)',
+    const result = await pool.query(
+      'INSERT INTO games (room_id, player_white_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4) RETURNING *',
       [roomId, playerWallet, 'waiting', new Date()]
     );
     
-    console.log('✅ Room created via HTTP API:', roomId, 'for player:', playerWallet);
+    console.log('✅ Room created successfully:', result.rows[0]);
     
     res.json({ 
       success: true, 
       role: 'white',
       roomId,
-      playerWallet
+      playerWallet,
+      room: result.rows[0]
     });
   } catch (error) {
-    console.error('❌ Create room error:', error);
-    res.status(500).json({ error: 'Failed to create room' });
+    console.error('❌ Create room error (detailed):', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      stack: error.stack
+    });
+    res.status(500).json({ error: 'Failed to create room', details: error.message });
   }
 });
 
