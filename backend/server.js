@@ -1256,20 +1256,23 @@ io.on('connection', (socket) => {
       if (process.env.DATABASE_URL) {
         const poolInstance = getPool();
         
-        // Get current escrows from database
-        const result = await poolInstance.query('SELECT escrow_amount FROM escrows WHERE room_id = $1 AND player_wallet = $2', [roomId, playerWallet]);
-        if (result.rows.length > 0) {
-          console.log('❌ Escrow already exists for player:', playerWallet, 'in room:', roomId);
-          if (typeof callback === 'function') callback({ success: false, error: 'Escrow already exists' });
-          return;
-        }
-
-        // Insert new escrow into database
-        await poolInstance.query(
-          'INSERT INTO escrows (room_id, player_wallet, escrow_amount) VALUES ($1, $2, $3)',
-          [roomId, playerWallet, amount]
-        );
-        console.log('✅ Escrow added to database:', roomId, playerWallet, amount);
+        // Try to insert new escrow into database (use UPSERT to handle duplicates gracefully)
+        try {
+          await poolInstance.query(
+            'INSERT INTO escrows (room_id, player_wallet, escrow_amount) VALUES ($1, $2, $3)',
+            [roomId, playerWallet, amount]
+          );
+          console.log('✅ Escrow added to database:', roomId, playerWallet, amount);
+        } catch (insertError) {
+          // Check if it's a duplicate key constraint error (code 23505)
+          if (insertError.code === '23505') {
+            console.log('ℹ️ Escrow already exists for player:', playerWallet, 'in room:', roomId, '- treating as success');
+            // This is fine - escrow already exists, so we can continue
+          } else {
+            // Re-throw other errors
+            throw insertError;
+          }
+                 }
 
         // Broadcast escrow update
         io.to(roomId).emit('escrowUpdated', { roomId, escrows: await poolInstance.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]).then(r => r.rows) });
