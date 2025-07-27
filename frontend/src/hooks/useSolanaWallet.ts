@@ -64,7 +64,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
      * Get Anchor program instance
      */
     const getProgram = (): Program<ChessEscrow> | null => {
-      if (!publicKey || !signTransaction) return null;
+      console.log('🔍 Debug - GetProgram - Starting function');
+      console.log('🔍 Debug - GetProgram - Public Key:', publicKey?.toString());
+      console.log('🔍 Debug - GetProgram - Sign Transaction:', signTransaction ? 'Available' : 'Not available');
+      
+      if (!publicKey || !signTransaction) {
+        console.log('🔍 Debug - GetProgram - Missing publicKey or signTransaction');
+        return null;
+      }
       
       // Create a wallet adapter that matches the expected interface
       const wallet = {
@@ -75,11 +82,17 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         }
       };
       
+      console.log('🔍 Debug - GetProgram - Created wallet adapter');
+      
       const provider = new AnchorProvider(
         connection,
         wallet,
         { commitment: 'confirmed' }
       );
+      
+      console.log('🔍 Debug - GetProgram - Created provider');
+      console.log('🔍 Debug - GetProgram - ChessEscrowIDL:', ChessEscrowIDL ? 'Available' : 'Not available');
+      console.log('🔍 Debug - GetProgram - CHESS_PROGRAM_ID:', CHESS_PROGRAM_ID.toString());
       
       // Use the imported IDL
       return new Program(ChessEscrowIDL as ChessEscrow, CHESS_PROGRAM_ID, provider);
