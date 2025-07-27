@@ -9,7 +9,6 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
 import { Program, AnchorProvider, BN, web3, Idl } from '@coral-xyz/anchor';
 import type { ChessEscrow } from '../idl/chess_escrow';
-import ChessEscrowIDL from '../idl/chess_escrow.json';
 import { databaseMultiplayerState } from '../services/databaseMultiplayerState';
 import { CHESS_PROGRAM_ID, FEE_WALLET_ADDRESS } from '../config/solanaConfig';
 
@@ -40,6 +39,8 @@ export interface SolanaWalletHook {
  * Custom hook for Solana wallet operations
  */
 export const useSolanaWallet = (): SolanaWalletHook => {
+  // Log Anchor version for debugging
+  console.log('🔍 Debug - Anchor version:', require('@coral-xyz/anchor').version);
   try {
     const { publicKey, connected, signTransaction, sendTransaction } = useWallet();
     const { connection } = useConnection();
@@ -63,7 +64,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     /**
      * Get Anchor program instance
      */
-    const getProgram = (): Program<ChessEscrow> | null => {
+    const getProgram = async (): Promise<Program<ChessEscrow> | null> => {
       console.log('🔍 Debug - GetProgram - Starting function');
       console.log('🔍 Debug - GetProgram - Public Key:', publicKey?.toString());
       console.log('🔍 Debug - GetProgram - Sign Transaction:', signTransaction ? 'Available' : 'Not available');
@@ -91,6 +92,11 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       );
       
       console.log('🔍 Debug - GetProgram - Created provider');
+      
+      // Dynamically import the IDL
+      console.log('🔍 Debug - GetProgram - Dynamically importing IDL');
+      const { default: ChessEscrowIDL } = await import('../idl/chess_escrow.json');
+      
       console.log('🔍 Debug - GetProgram - ChessEscrowIDL:', ChessEscrowIDL ? 'Available' : 'Not available');
       console.log('🔍 Debug - GetProgram - CHESS_PROGRAM_ID:', CHESS_PROGRAM_ID.toString());
       console.log('🔍 Debug - GetProgram - IDL structure:', {
@@ -108,12 +114,16 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         console.log('🔍 Debug - GetProgram - IDL type:', typeof ChessEscrowIDL);
         console.log('🔍 Debug - GetProgram - IDL keys:', Object.keys(ChessEscrowIDL));
         
+        // Enhanced debugging - log the full IDL structure
+        console.log('🔍 Debug - GetProgram - Full IDL:', JSON.stringify(ChessEscrowIDL, null, 2));
+        
         // Try creating program with explicit type casting
         const program = new Program(ChessEscrowIDL as any, CHESS_PROGRAM_ID, provider);
         console.log('🔍 Debug - GetProgram - Program created successfully');
         return program;
       } catch (error) {
         console.error('🔍 Debug - GetProgram - Error creating Program:', error);
+        console.error('🔍 Debug - GetProgram - Error stack:', error.stack);
         throw error;
       }
     };
@@ -191,7 +201,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       }
 
       console.log('🔍 Debug - CreateEscrow - About to get program');
-      const program = getProgram();
+      const program = await getProgram();
       console.log('🔍 Debug - CreateEscrow - Program:', program ? 'Found' : 'Not found');
       if (!program) {
         setError('Failed to connect to program');
@@ -317,7 +327,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return false;
       }
 
-      const program = getProgram();
+      const program = await getProgram();
       if (!program) {
         setError('Failed to connect to program');
         return false;
@@ -438,7 +448,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return errorMsg;
       }
 
-      const program = getProgram();
+      const program = await getProgram();
       if (!program) {
         const errorMsg = 'Failed to connect to program';
         setError(errorMsg);
