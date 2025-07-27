@@ -1275,55 +1275,85 @@ function ChessApp() {
     return null; // No valid move found
   };
 
-  const handleStartNewGameWithEscrow = () => {
+  const handleStartNewGameWithEscrow = async () => {
     console.log('🎮 Starting new game...');
     
-    // Reset all game state
-    setGameState({
-      position: {
-        a1: '♖', b1: '♘', c1: '♗', d1: '♕', e1: '♔', f1: '♗', g1: '♘', h1: '♖',
-        a2: '♙', b2: '♙', c2: '♙', d2: '♙', e2: '♙', f2: '♙', g2: '♙', h2: '♙',
-        a3: '', b3: '', c3: '', d3: '', e3: '', f3: '', g3: '', h3: '',
-        a4: '', b4: '', c4: '', d4: '', e4: '', f4: '', g4: '', h4: '',
-        a5: '', b5: '', c5: '', d5: '', e5: '', f5: '', g5: '', h5: '',
-        a6: '', b6: '', c6: '', d6: '', e6: '', f6: '', g6: '', h6: '',
-        a7: '♟', b7: '♟', c7: '♟', d7: '♟', e7: '♟', f7: '♟', g7: '♟', h7: '♟',
-        a8: '♜', b8: '♞', c8: '♝', d8: '♛', e8: '♚', f8: '♝', g8: '♞', h8: '♜'
-      },
-      currentPlayer: 'white',
-      selectedSquare: null,
-      moveHistory: [],
-      lastMove: null,
-      gameActive: true,
-      winner: null,
-      draw: false,
-      inCheck: false,
-      inCheckmate: false,
-      lastUpdated: Date.now()
-    });
-    
-    // Reset game state flags
-    setWinningsClaimed(false);
-    setEscrowCreated(false);
-    setOpponentEscrowCreated(false);
-    setBothEscrowsReady(false);
-    setChatMessages([]);
-    
-    // Generate new room ID for the new game
-    const newRoomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-    setRoomId(newRoomId);
-    
-    // Clear any existing game state from database
-    if (roomId) {
-      // Database cleanup is handled by the backend
-      console.log('🗑️ Clearing game state for room:', roomId);
+    if (!roomId) {
+      console.error('Cannot start new game: no room ID');
+      return;
     }
     
-    // Set game mode back to lobby to start fresh
-    setGameMode('lobby');
-    setGameStatus('New game room created! Join with the new room ID.');
-    
-    console.log('🎮 New game started with room:', newRoomId);
+    try {
+      // Reset all game state
+      setGameState({
+        position: {
+          a1: '♖', b1: '♘', c1: '♗', d1: '♕', e1: '♔', f1: '♗', g1: '♘', h1: '♖',
+          a2: '♙', b2: '♙', c2: '♙', d2: '♙', e2: '♙', f2: '♙', g2: '♙', h2: '♙',
+          a3: '', b3: '', c3: '', d3: '', e3: '', f3: '', g3: '', h3: '',
+          a4: '', b4: '', c4: '', d4: '', e4: '', f4: '', g4: '', h4: '',
+          a5: '', b5: '', c5: '', d5: '', e5: '', f5: '', g5: '', h5: '',
+          a6: '', b6: '', c6: '', d6: '', e6: '', f6: '', g6: '', h6: '',
+          a7: '♟', b7: '♟', c7: '♟', d7: '♟', e7: '♟', f7: '♟', g7: '♟', h7: '♟',
+          a8: '♜', b8: '♞', c8: '♝', d8: '♛', e8: '♚', f8: '♝', g8: '♞', h8: '♜'
+        },
+        currentPlayer: 'white',
+        selectedSquare: null,
+        moveHistory: [],
+        lastMove: null,
+        gameActive: false, // Start as inactive until both escrows are ready
+        winner: null,
+        draw: false,
+        inCheck: false,
+        inCheckmate: false,
+        lastUpdated: Date.now()
+      });
+      
+      // Reset game state flags
+      setWinningsClaimed(false);
+      setEscrowCreated(false);
+      setOpponentEscrowCreated(false);
+      setBothEscrowsReady(false);
+      setChatMessages([]);
+      
+      // Save reset game state to database for both players
+      const resetGameState = {
+        position: {
+          a1: '♖', b1: '♘', c1: '♗', d1: '♕', e1: '♔', f1: '♗', g1: '♘', h1: '♖',
+          a2: '♙', b2: '♙', c2: '♙', d2: '♙', e2: '♙', f2: '♙', g2: '♙', h2: '♙',
+          a3: '', b3: '', c3: '', d3: '', e3: '', f3: '', g3: '', h3: '',
+          a4: '', b4: '', c4: '', d4: '', e4: '', f4: '', g4: '', h4: '',
+          a5: '', b5: '', c5: '', d5: '', e5: '', f5: '', g5: '', h5: '',
+          a6: '', b6: '', c6: '', d6: '', e6: '', f6: '', g6: '', h6: '',
+          a7: '♟', b7: '♟', c7: '♟', d7: '♟', e7: '♟', f7: '♟', g7: '♟', h7: '♟',
+          a8: '♜', b8: '♞', c8: '♝', d8: '♛', e8: '♚', f8: '♝', g8: '♞', h8: '♜'
+        },
+        currentPlayer: 'white' as 'white' | 'black',
+        selectedSquare: null,
+        moveHistory: [],
+        lastMove: null,
+        gameActive: false,
+        winner: null,
+        draw: false,
+        inCheck: false,
+        inCheckmate: false,
+        lastUpdated: Date.now()
+      };
+      
+      await databaseMultiplayerState.saveGameState(roomId, resetGameState);
+      
+      // Send chat message about new game
+      await databaseMultiplayerState.sendChatMessage(roomId, 'New game started! Both players need to create escrows.', publicKey?.toString() || '', playerRole || '');
+      
+      // Set game mode back to lobby to show escrow creation screen
+      setGameMode('lobby');
+      setGameStatus('New game started! Both players need to create escrows.');
+      
+      console.log('🎮 New game started in room:', roomId);
+      
+    } catch (error) {
+      console.error('Error starting new game:', error);
+      setGameStatus(`Error starting new game: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleDeclareWinner = (winner: 'white' | 'black') => {
