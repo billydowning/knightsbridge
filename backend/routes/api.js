@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { dbService, pool: getPool } = require('../database');
+const { pool: getPool } = require('../database');
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -285,13 +285,13 @@ router.post('/users/register', async (req, res) => {
       return res.status(400).json({ error: 'Wallet address is required' });
     }
     
-    const user = await dbService.createOrUpdateUser(walletAddress, {
-      username,
-      email,
-      avatar_url: avatarUrl
-    });
+    const pool = getPool();
+    const user = await pool.query(
+      'INSERT INTO users (wallet_address, username, email, avatar_url) VALUES ($1, $2, $3, $4) ON CONFLICT (wallet_address) DO UPDATE SET username = $2, email = $3, avatar_url = $4 RETURNING *',
+      [walletAddress, username, email, avatarUrl]
+    );
     
-    res.json({ success: true, user });
+    res.json({ success: true, user: user.rows[0] });
   } catch (error) {
     console.error('User registration error:', error);
     res.status(500).json({ error: 'Failed to register user' });
@@ -302,13 +302,17 @@ router.post('/users/register', async (req, res) => {
 router.get('/users/profile/:walletAddress', async (req, res) => {
   try {
     const { walletAddress } = req.params;
-    const user = await dbService.getUserByWallet(walletAddress);
+    const pool = getPool();
+    const user = await pool.query(
+      'SELECT wallet_address, username, email, avatar_url FROM users WHERE wallet_address = $1',
+      [walletAddress]
+    );
     
-    if (!user) {
+    if (user.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.json({ success: true, user });
+    res.json({ success: true, user: user.rows[0] });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to get user' });
@@ -321,13 +325,17 @@ router.get('/users/:userId/statistics', async (req, res) => {
     const { userId } = req.params;
     const { timeControl } = req.query;
     
-    const statistics = await dbService.getUserStatistics(userId, timeControl);
+    const pool = getPool();
+    const statistics = await pool.query(
+      'SELECT * FROM user_statistics WHERE user_id = $1 AND time_control = $2',
+      [userId, timeControl]
+    );
     
-    if (!statistics) {
+    if (statistics.rows.length === 0) {
       return res.status(404).json({ error: 'User statistics not found' });
     }
     
-    res.json({ success: true, statistics });
+    res.json({ success: true, statistics: statistics.rows[0] });
   } catch (error) {
     console.error('Get user statistics error:', error);
     res.status(500).json({ error: 'Failed to get user statistics' });
@@ -356,18 +364,13 @@ router.post('/games/create', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    const game = await dbService.createGame({
-      roomId,
-      blockchainTxId,
-      playerWhiteWallet,
-      playerBlackWallet,
-      stakeAmount,
-      timeControl,
-      timeLimit,
-      increment
-    });
+    const pool = getPool();
+    const game = await pool.query(
+      'INSERT INTO games (room_id, blockchain_tx_id, player_white_wallet, player_black_wallet, stake_amount, time_control, time_limit, increment, game_state, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      [roomId, blockchainTxId, playerWhiteWallet, playerBlackWallet, stakeAmount, timeControl, timeLimit, increment, 'waiting', new Date()]
+    );
     
-    res.json({ success: true, game });
+    res.json({ success: true, game: game.rows[0] });
   } catch (error) {
     console.error('Create game error:', error);
     res.status(500).json({ error: 'Failed to create game' });
@@ -378,13 +381,17 @@ router.post('/games/create', async (req, res) => {
 router.get('/games/:roomId', async (req, res) => {
   try {
     const { roomId } = req.params;
-    const game = await dbService.getGameByRoomId(roomId);
+    const pool = getPool();
+    const game = await pool.query(
+      'SELECT * FROM games WHERE room_id = $1',
+      [roomId]
+    );
     
-    if (!game) {
+    if (game.rows.length === 0) {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    res.json({ success: true, game });
+    res.json({ success: true, game: game.rows[0] });
   } catch (error) {
     console.error('Get game error:', error);
     res.status(500).json({ error: 'Failed to get game' });
@@ -397,13 +404,17 @@ router.put('/games/:roomId', async (req, res) => {
     const { roomId } = req.params;
     const updateData = req.body;
     
-    const game = await dbService.updateGame(roomId, updateData);
+    const pool = getPool();
+    const game = await pool.query(
+      'UPDATE games SET $1 WHERE room_id = $2 RETURNING *',
+      [updateData, roomId]
+    );
     
-    if (!game) {
+    if (game.rows.length === 0) {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    res.json({ success: true, game });
+    res.json({ success: true, game: game.rows[0] });
   } catch (error) {
     console.error('Update game error:', error);
     res.status(500).json({ error: 'Failed to update game' });
@@ -417,14 +428,21 @@ router.post('/games/:roomId/moves', async (req, res) => {
     const moveData = req.body;
     
     // Get game first
-    const game = await dbService.getGameByRoomId(roomId);
-    if (!game) {
+    const pool = getPool();
+    const game = await pool.query(
+      'SELECT id FROM games WHERE room_id = $1',
+      [roomId]
+    );
+    if (game.rows.length === 0) {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    const move = await dbService.recordMove(game.id, moveData);
+    const move = await pool.query(
+      'INSERT INTO moves (game_id, move_data, created_at) VALUES ($1, $2, $3) RETURNING *',
+      [game.rows[0].id, JSON.stringify(moveData), new Date()]
+    );
     
-    res.json({ success: true, move });
+    res.json({ success: true, move: move.rows[0] });
   } catch (error) {
     console.error('Record move error:', error);
     res.status(500).json({ error: 'Failed to record move' });
@@ -437,14 +455,21 @@ router.get('/games/:roomId/moves', async (req, res) => {
     const { roomId } = req.params;
     
     // Get game first
-    const game = await dbService.getGameByRoomId(roomId);
-    if (!game) {
+    const pool = getPool();
+    const game = await pool.query(
+      'SELECT id FROM games WHERE room_id = $1',
+      [roomId]
+    );
+    if (game.rows.length === 0) {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    const moves = await dbService.getGameMoves(game.id);
+    const moves = await pool.query(
+      'SELECT * FROM moves WHERE game_id = $1 ORDER BY created_at ASC',
+      [game.rows[0].id]
+    );
     
-    res.json({ success: true, moves });
+    res.json({ success: true, moves: moves.rows });
   } catch (error) {
     console.error('Get game moves error:', error);
     res.status(500).json({ error: 'Failed to get game moves' });
@@ -475,20 +500,13 @@ router.post('/tournaments/create', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    const tournament = await dbService.createTournament({
-      name,
-      description,
-      tournamentType,
-      timeControl,
-      entryFee,
-      prizePool,
-      maxParticipants,
-      startDate,
-      endDate,
-      createdBy
-    });
+    const pool = getPool();
+    const tournament = await pool.query(
+      'INSERT INTO tournaments (name, description, tournament_type, time_control, entry_fee, prize_pool, max_participants, start_date, end_date, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+      [name, description, tournamentType, timeControl, entryFee, prizePool, maxParticipants, startDate, endDate, createdBy, new Date()]
+    );
     
-    res.json({ success: true, tournament });
+    res.json({ success: true, tournament: tournament.rows[0] });
   } catch (error) {
     console.error('Create tournament error:', error);
     res.status(500).json({ error: 'Failed to create tournament' });
@@ -519,9 +537,13 @@ router.post('/tournaments/:tournamentId/join', async (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    const participant = await dbService.joinTournament(tournamentId, userId);
+    const pool = getPool();
+    const participant = await pool.query(
+      'INSERT INTO tournament_participants (tournament_id, user_id, joined_at) VALUES ($1, $2, $3) RETURNING *',
+      [tournamentId, userId, new Date()]
+    );
     
-    res.json({ success: true, participant });
+    res.json({ success: true, participant: participant.rows[0] });
   } catch (error) {
     console.error('Join tournament error:', error);
     res.status(500).json({ error: 'Failed to join tournament' });
@@ -538,9 +560,13 @@ router.get('/leaderboards/:timeControl', async (req, res) => {
     const { timeControl } = req.params;
     const { period = 'all_time', limit = 50 } = req.query;
     
-    const leaderboard = await dbService.getLeaderboard(timeControl, period, limit);
+    const pool = getPool();
+    const leaderboard = await pool.query(
+      'SELECT u.wallet_address, u.username, us.wins, us.losses, us.draws, us.total_games, us.total_points FROM user_statistics us JOIN users u ON us.user_id = u.id WHERE us.time_control = $1 AND us.period = $2 ORDER BY us.total_points DESC LIMIT $3',
+      [timeControl, period, limit]
+    );
     
-    res.json({ success: true, leaderboard });
+    res.json({ success: true, leaderboard: leaderboard.rows });
   } catch (error) {
     console.error('Get leaderboard error:', error);
     res.status(500).json({ error: 'Failed to get leaderboard' });
@@ -557,9 +583,13 @@ router.get('/analytics/daily', async (req, res) => {
     const { date } = req.query;
     const targetDate = date || new Date().toISOString().split('T')[0];
     
-    const analytics = await dbService.getDailyAnalytics(targetDate);
+    const pool = getPool();
+    const analytics = await pool.query(
+      'SELECT * FROM daily_analytics WHERE date = $1',
+      [targetDate]
+    );
     
-    res.json({ success: true, analytics });
+    res.json({ success: true, analytics: analytics.rows[0] });
   } catch (error) {
     console.error('Get analytics error:', error);
     res.status(500).json({ error: 'Failed to get analytics' });
@@ -579,14 +609,13 @@ router.post('/notifications', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    const notification = await dbService.createNotification(userId, {
-      type,
-      title,
-      message,
-      data
-    });
+    const pool = getPool();
+    const notification = await pool.query(
+      'INSERT INTO notifications (user_id, type, title, message, data, created_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [userId, type, title, message, JSON.stringify(data), new Date()]
+    );
     
-    res.json({ success: true, notification });
+    res.json({ success: true, notification: notification.rows[0] });
   } catch (error) {
     console.error('Create notification error:', error);
     res.status(500).json({ error: 'Failed to create notification' });
@@ -599,9 +628,13 @@ router.get('/users/:userId/notifications', async (req, res) => {
     const { userId } = req.params;
     const { limit = 20 } = req.query;
     
-    const notifications = await dbService.getUserNotifications(userId, limit);
+    const pool = getPool();
+    const notifications = await pool.query(
+      'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
+      [userId, limit]
+    );
     
-    res.json({ success: true, notifications });
+    res.json({ success: true, notifications: notifications.rows });
   } catch (error) {
     console.error('Get notifications error:', error);
     res.status(500).json({ error: 'Failed to get notifications' });
@@ -613,13 +646,17 @@ router.put('/notifications/:notificationId/read', async (req, res) => {
   try {
     const { notificationId } = req.params;
     
-    const notification = await dbService.markNotificationAsRead(notificationId);
+    const pool = getPool();
+    const notification = await pool.query(
+      'UPDATE notifications SET is_read = true WHERE id = $1 RETURNING *',
+      [notificationId]
+    );
     
-    if (!notification) {
+    if (notification.rows.length === 0) {
       return res.status(404).json({ error: 'Notification not found' });
     }
     
-    res.json({ success: true, notification });
+    res.json({ success: true, notification: notification.rows[0] });
   } catch (error) {
     console.error('Mark notification read error:', error);
     res.status(500).json({ error: 'Failed to mark notification as read' });
@@ -633,7 +670,8 @@ router.put('/notifications/:notificationId/read', async (req, res) => {
 // Health check endpoint
 router.get('/health', async (req, res) => {
   try {
-    const isConnected = await dbService.testConnection();
+    const pool = getPool();
+    const isConnected = await pool.query('SELECT 1 FROM users LIMIT 1'); // Simple check
     
     if (isConnected) {
       res.json({ 
