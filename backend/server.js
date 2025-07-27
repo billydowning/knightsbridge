@@ -182,6 +182,10 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 
+// JSON body parser middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // Socket.io setup (already configured above)
 console.log('🚀 Socket.io server initialized with CORS origins:', corsOrigins);
 
