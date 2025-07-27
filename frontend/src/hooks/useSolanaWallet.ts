@@ -608,11 +608,25 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         
         // Initialize game
         console.log('🔍 Debug - CreateEscrow - About to call initializeGame with accounts:', {
-          game_escrow: gameEscrowPda.toString(),
+          gameEscrow: gameEscrowPda.toString(),
           player: publicKey.toString(),
-          fee_collector: FEE_WALLET_ADDRESS.toString(),
-          system_program: SystemProgram.programId.toString(),
+          feeCollector: FEE_WALLET_ADDRESS.toString(),
+          systemProgram: SystemProgram.programId.toString(),
         });
+        
+        // Debug: Log the instruction definition
+        const initializeGameInstruction = ChessEscrowIDL.instructions.find(i => i.name === 'initialize_game');
+        console.log('🔍 Debug - Initialize game instruction definition:', initializeGameInstruction);
+        console.log('🔍 Debug - Initialize game accounts:', initializeGameInstruction?.accounts);
+        
+        // Debug the instruction account requirements
+        const initInstruction = program.idl.instructions.find(i => i.name === 'initialize_game');
+        console.log('🔍 Initialize game required accounts:');
+        if (initInstruction?.accounts) {
+          initInstruction.accounts.forEach((account, i) => {
+            console.log(`  ${i}: ${account.name} (writable: ${account.writable}, signer: ${account.signer})`);
+          });
+        }
         
         const tx = await program.methods
           .initializeGame(
@@ -621,28 +635,28 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             new BN(300) // 5 minute time limit
           )
           .accounts({
-            game_escrow: gameEscrowPda,
+            gameEscrow: gameEscrowPda,
             player: publicKey,
-            fee_collector: FEE_WALLET_ADDRESS,
-            system_program: SystemProgram.programId,
+            feeCollector: FEE_WALLET_ADDRESS,
+            systemProgram: SystemProgram.programId,
           } as any)
           .rpc();
         
         // Now deposit stake
         console.log('🔍 Debug - CreateEscrow - About to call depositStake with accounts:', {
-          game_escrow: gameEscrowPda.toString(),
+          gameEscrow: gameEscrowPda.toString(),
           player: publicKey.toString(),
-          game_vault: gameVaultPda.toString(),
-          system_program: SystemProgram.programId.toString(),
+          gameVault: gameVaultPda.toString(),
+          systemProgram: SystemProgram.programId.toString(),
         });
         
         const depositTx = await program.methods
           .depositStake()
           .accounts({
-            game_escrow: gameEscrowPda,
+            gameEscrow: gameEscrowPda,
             player: publicKey,
-            game_vault: gameVaultPda,
-            system_program: SystemProgram.programId,
+            gameVault: gameVaultPda,
+            systemProgram: SystemProgram.programId,
           } as any)
           .rpc();
         
