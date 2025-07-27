@@ -303,9 +303,9 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       console.log('🔍 Debug - GetProgram - Using minimal IDL');
       
       // Fix the problematic vec type in move_history
-      const gameEscrowType = minimalIdl.types.find(t => t.name === 'GameEscrow');
-      if (gameEscrowType?.type?.fields) {
-        const moveHistoryField = gameEscrowType.type.fields.find(f => f.name === 'move_history');
+      const gameEscrowTypeForFix = minimalIdl.types.find(t => t.name === 'GameEscrow');
+      if (gameEscrowTypeForFix?.type?.fields) {
+        const moveHistoryField = gameEscrowTypeForFix.type.fields.find(f => f.name === 'move_history');
         if (moveHistoryField && moveHistoryField.type.vec) {
           console.log('🔧 Debug - Converting Vec<MoveRecord> to fixed array...');
           // Convert Vec<MoveRecord> to a fixed array [MoveRecord; 100]
@@ -320,7 +320,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       if (minimalIdl.accounts) {
         minimalIdl.accounts.forEach(account => {
           if (account.name === 'GameEscrow' && !account.type) {
-            account.type = gameEscrowType.type;
+            account.type = gameEscrowTypeForFix.type;
           }
           const tournamentType = minimalIdl.types.find(t => t.name === 'Tournament');
           if (account.name === 'Tournament' && !account.type) {
