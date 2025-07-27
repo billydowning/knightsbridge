@@ -275,6 +275,11 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           CHESS_PROGRAM_ID
         );
         
+        console.log('🔍 Debug - Room ID:', roomId);
+        console.log('🔍 Debug - Game Escrow PDA:', gameEscrowPda.toString());
+        console.log('🔍 Debug - Game Vault PDA:', gameVaultPda.toString());
+        console.log('🔍 Debug - Player Public Key:', publicKey.toString());
+        
         // Join game
         const joinTx = await program.methods
           .joinGame()
@@ -285,6 +290,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           .rpc();
         
         // Deposit stake
+        console.log('🔍 Debug - About to call depositStake with accounts:', {
+          gameEscrow: gameEscrowPda.toString(),
+          player: publicKey.toString(),
+          gameVault: gameVaultPda.toString(),
+          systemProgram: SystemProgram.programId.toString(),
+        });
+        
         const depositTx = await program.methods
           .depositStake()
           .accounts({
