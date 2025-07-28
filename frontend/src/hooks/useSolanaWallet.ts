@@ -867,19 +867,26 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             
             // Parse room_id (string - first 4 bytes are length, then string bytes)
             const roomIdLength = accountInfo.data.readUInt32LE(offset);
+            console.log('🔍 Room ID length:', roomIdLength);
             offset += 4;
             const roomIdBytes = accountInfo.data.slice(offset, offset + roomIdLength);
             const parsedRoomId = roomIdBytes.toString('utf8');
+            console.log('🔍 Parsed room ID:', parsedRoomId);
             offset += roomIdLength;
+            console.log('🔍 Offset after room_id:', offset);
             
             // Parse player_white (32 bytes)
             const playerWhiteBytes = accountInfo.data.slice(offset, offset + 32);
             const playerWhite = new web3.PublicKey(playerWhiteBytes);
+            console.log('🔍 Parsed player_white:', playerWhite.toString());
             offset += 32;
+            console.log('🔍 Offset after player_white:', offset);
             
             // Parse player_black (option - 1 byte for is_some, then 32 bytes if some)
+            console.log('🔍 Checking player_black at offset:', offset);
+            console.log('🔍 Next 5 bytes:', Array.from(accountInfo.data.slice(offset, offset + 5)));
             const hasPlayerBlack = accountInfo.data[offset] === 1;
-            console.log('🔍 Parsing player_black - hasPlayerBlack byte:', accountInfo.data[offset]);
+            console.log('🔍 Parsing player_black - hasPlayerBlack byte:', accountInfo.data[offset], 'equals 1?', hasPlayerBlack);
             offset += 1;
             let playerBlack = null;
             if (hasPlayerBlack) {
@@ -891,6 +898,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
               console.log('🔍 No player_black found - option is None');
               offset += 32; // Skip the 32 zero bytes
             }
+            console.log('🔍 Offset after player_black:', offset);
             
             // Parse stake_amount (8 bytes u64)
             const stakeAmountBuffer = accountInfo.data.slice(offset, offset + 8);
