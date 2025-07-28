@@ -36,15 +36,12 @@ async function checkGameState(roomId) {
     const playerWhiteBytes = accountInfo.data.slice(offset, offset + 32);
     const playerWhite = new PublicKey(playerWhiteBytes); offset += 32;
     
-    // Parse player_black (option - 1 byte for is_some, then 32 bytes if some)
-    const hasPlayerBlack = accountInfo.data[offset] === 1; offset += 1;
-    let playerBlack = null;
-    if (hasPlayerBlack) {
-      const playerBlackBytes = accountInfo.data.slice(offset, offset + 32);
-      playerBlack = new PublicKey(playerBlackBytes); offset += 32;
-    } else { 
-      offset += 32; // Skip the 32 zero bytes
-    }
+    // Parse player_black (direct Pubkey - 32 bytes, not an Option!)
+    const playerBlackBytes = accountInfo.data.slice(offset, offset + 32);
+    const playerBlackPubkey = new PublicKey(playerBlackBytes);
+    const defaultPubkey = new PublicKey('11111111111111111111111111111111');
+    const playerBlack = playerBlackPubkey.equals(defaultPubkey) ? null : playerBlackPubkey;
+    offset += 32;
     
     // Parse stake_amount (8 bytes u64)
     const stakeAmountBuffer = accountInfo.data.slice(offset, offset + 8);

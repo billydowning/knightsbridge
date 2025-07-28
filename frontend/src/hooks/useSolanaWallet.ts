@@ -30,6 +30,7 @@ export interface SolanaWalletHook {
   checkBalance: () => Promise<void>;
   refreshBalance: () => Promise<void>;
   createEscrow: (roomId: string, betAmount: number, playerRole: 'white' | 'black') => Promise<boolean>;
+  depositStake: (roomId: string, betAmount: number) => Promise<boolean>;
   joinAndDepositStake: (roomId: string, betAmount: number) => Promise<boolean>;
   claimWinnings: (roomId: string, playerRole: string, gameWinner: string | null, isDraw: boolean) => Promise<string>;
   recordMove: (roomId: string, moveNotation: string, positionHash: Uint8Array) => Promise<boolean>;
@@ -642,6 +643,133 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     };
 
     /**
+     * Deposit stake for an existing game after both players have joined
+     * @param roomId - Room ID to deposit for
+     * @param betAmount - Amount to bet in SOL
+     * @returns Success status
+     */
+    const depositStake = async (roomId: string, betAmount: number): Promise<boolean> => {
+      if (!connected || !publicKey) {
+        setError('Please connect your wallet first');
+        return false;
+      }
+
+      if (balance < betAmount) {
+        setError(`Insufficient balance! Need ${betAmount} SOL, have ${balance.toFixed(3)} SOL`);
+        return false;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        console.log('🔍 Debug - DepositStake - Starting function');
+        console.log('🔍 Debug - DepositStake - Room ID:', roomId);
+        console.log('🔍 Debug - DepositStake - Bet Amount:', betAmount);
+
+        // Derive PDAs
+        const [gameEscrowPda] = web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("game"), Buffer.from(roomId)],
+          CHESS_PROGRAM_ID
+        );
+        
+        const [gameVaultPda] = web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("vault"), gameEscrowPda.toBuffer()],
+          CHESS_PROGRAM_ID
+        );
+
+        console.log('🔍 Debug - DepositStake - Game Escrow PDA:', gameEscrowPda.toString());
+        console.log('🔍 Debug - DepositStake - Game Vault PDA:', gameVaultPda.toString());
+
+        // Try to use program first, fallback to direct RPC
+        const program = await getProgram();
+        
+        if (program && program.idl.instructions.some(i => i.name === 'deposit_stake')) {
+          console.log('🔍 Debug - Using program method for deposit_stake');
+          
+          const depositTx = await program.methods
+            .depositStake()
+            .accounts({
+              gameEscrow: gameEscrowPda,
+              player: publicKey,
+              gameVault: gameVaultPda,
+              systemProgram: SystemProgram.programId,
+            })
+            .rpc();
+          
+          console.log('✅ DepositStake successful via program:', depositTx);
+          
+        } else {
+          console.log('🔍 Debug - Using direct RPC for deposit_stake');
+          
+          // Create deposit_stake instruction manually
+          const depositStakeDiscriminator = Buffer.from([160, 167, 9, 220, 74, 243, 228, 43]);
+          
+          const depositStakeIx = new web3.TransactionInstruction({
+            keys: [
+              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
+              { pubkey: publicKey, isSigner: true, isWritable: true },
+              { pubkey: gameVaultPda, isSigner: false, isWritable: true },
+              { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+            ],
+            programId: new PublicKey(CHESS_PROGRAM_ID),
+            data: depositStakeDiscriminator, // No arguments for deposit_stake
+          });
+
+          // Get fresh blockhash
+          const { blockhash } = await connection.getLatestBlockhash('confirmed');
+          
+          // Create and send transaction
+          const transaction = new Transaction();
+          transaction.recentBlockhash = blockhash;
+          transaction.feePayer = publicKey;
+          transaction.add(depositStakeIx);
+          
+          const signature = await sendTransaction(transaction, connection, {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed',
+          });
+          
+          console.log('✅ DepositStake successful via direct RPC:', signature);
+        }
+
+        // Update balance after successful deposit
+        setTimeout(() => {
+          checkBalance();
+        }, 1000);
+
+        return true;
+        
+      } catch (err: any) {
+        let errorMessage = 'Failed to deposit stake';
+        
+        if (err.error?.errorCode?.code) {
+          switch (err.error.errorCode.code) {
+            case 'InvalidGameStateForDeposit':
+              errorMessage = 'Game is not ready for deposits';
+              break;
+            case 'UnauthorizedPlayer':
+              errorMessage = 'You are not authorized for this game';
+              break;
+            case 'AlreadyDeposited':
+              errorMessage = 'You have already deposited for this game';
+              break;
+            default:
+              errorMessage = err.error.errorCode.code;
+          }
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        
+        setError(errorMessage);
+        console.error('❌ Deposit stake error:', err);
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    /**
      * Join existing game and deposit stake
      * @param roomId - Room ID to join
      * @param betAmount - Amount to bet in SOL
@@ -869,23 +997,12 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             offset += 32;
             console.log('🔍 Offset after player_white:', offset);
             
-            // Parse player_black (option - 1 byte for is_some, then 32 bytes if some)
-            console.log('🔍 Checking player_black at offset:', offset);
-            console.log('🔍 Next 5 bytes:', Array.from(accountInfo.data.slice(offset, offset + 5)));
-            const hasPlayerBlack = accountInfo.data[offset] === 1;
-            console.log('🔍 Parsing player_black - hasPlayerBlack byte:', accountInfo.data[offset], 'equals 1?', hasPlayerBlack);
-            offset += 1;
-            let playerBlack = null;
-            if (hasPlayerBlack) {
-              const playerBlackBytes = accountInfo.data.slice(offset, offset + 32);
-              playerBlack = new web3.PublicKey(playerBlackBytes);
-              console.log('🔍 Found player_black:', playerBlack.toString());
-              offset += 32;
-            } else {
-              console.log('🔍 No player_black found - option is None');
-              offset += 32; // Skip the 32 zero bytes
-            }
-            console.log('🔍 Offset after player_black:', offset);
+            // Parse player_black (direct Pubkey - 32 bytes, not an Option!)
+            const playerBlackBytes = accountInfo.data.slice(offset, offset + 32);
+            const playerBlackPubkey = new PublicKey(playerBlackBytes);
+            const defaultPubkey = new PublicKey('11111111111111111111111111111111');
+            const playerBlack = playerBlackPubkey.equals(defaultPubkey) ? null : playerBlackPubkey;
+            offset += 32;
             
             // Parse stake_amount (8 bytes u64)
             const stakeAmountBuffer = accountInfo.data.slice(offset, offset + 8);
@@ -1361,6 +1478,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       checkBalance,
       refreshBalance,
       createEscrow,
+      depositStake,
       joinAndDepositStake,
       claimWinnings,
       recordMove,
@@ -1382,6 +1500,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       checkBalance: async () => {},
       refreshBalance: async () => {},
       createEscrow: async () => false,
+      depositStake: async () => false,
       joinAndDepositStake: async () => false,
       claimWinnings: async () => 'Error',
       recordMove: async () => false,
