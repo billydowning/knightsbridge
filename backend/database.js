@@ -71,7 +71,7 @@ async function roomService(action, data) {
       case 'join':
         return await poolInstance.query(
           'UPDATE rooms SET player2 = $1, status = $2 WHERE room_id = $3 RETURNING *',
-          [data.player2, 'active', data.roomId]
+          [data.player2, 'waiting_for_deposits', data.roomId]
         );
       case 'get':
         return await poolInstance.query('SELECT * FROM rooms WHERE room_id = $1', [data.roomId]);
