@@ -202,6 +202,19 @@ function ChessApp() {
   // Performance monitoring
   useRenderPerformance('ChessApp');
 
+  // Helper function to get piece color from both text and Unicode formats
+  const getPieceColorFromAnyFormat = (piece: string): 'white' | 'black' | null => {
+    // First try Unicode format
+    const unicodeColor = ChessEngine.getPieceColor(piece);
+    if (unicodeColor) return unicodeColor;
+    
+    // Then try text format
+    if (piece.includes('white-')) return 'white';
+    if (piece.includes('black-')) return 'black';
+    
+    return null;
+  };
+
   // App state
   const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
   const [roomId, setRoomId] = useState<string>('');
@@ -644,7 +657,7 @@ function ChessApp() {
       console.log('🔍 Piece on square:', piece);
       
       if (piece) {
-        const pieceColor = ChessEngine.getPieceColor(piece);
+        const pieceColor = getPieceColorFromAnyFormat(piece);
         console.log('🔍 Piece color:', pieceColor);
         console.log('🔍 Current player:', gameState.currentPlayer);
         console.log('🔍 Colors match:', pieceColor === gameState.currentPlayer);
@@ -722,7 +735,7 @@ function ChessApp() {
       // Invalid move - just update selection
       const piece = gameState.position[square];
       if (piece) {
-        const pieceColor = ChessEngine.getPieceColor(piece);
+        const pieceColor = getPieceColorFromAnyFormat(piece);
         if (pieceColor === gameState.currentPlayer) {
           setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
         } else {
