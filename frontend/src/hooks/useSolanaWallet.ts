@@ -905,8 +905,20 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             const stakeAmount = new BN(stakeAmountBuffer, 'le');
             offset += 8;
             
-            // Skip boolean fields (game_started, white_deposited, black_deposited - 3 bytes total)
-            offset += 3;
+            // Parse boolean fields (game_started, white_deposited, black_deposited - 3 bytes total)
+            const gameStarted = accountInfo.data[offset] === 1;
+            offset += 1;
+            const whiteDeposited = accountInfo.data[offset] === 1;
+            offset += 1;
+            const blackDeposited = accountInfo.data[offset] === 1;
+            offset += 1;
+            
+            console.log('🔍 Game state flags:', {
+              gameStarted,
+              whiteDeposited,
+              blackDeposited,
+              note: 'gameStarted must be true for declare_result'
+            });
             
             // Parse fee_collector (32 bytes)
             const feeCollectorBytes = accountInfo.data.slice(offset, offset + 32);
