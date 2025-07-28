@@ -839,29 +839,132 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         if (useDirectRPC) {
           console.log('🔧 Using direct RPC for declare_result instruction');
           
-          // Since we can't fetch the account, we'll use placeholder addresses
-          // In production, you'd implement proper account parsing from raw data
-          const feeCollectorPda = new web3.PublicKey("11111111111111111111111111111111"); // Placeholder
-          
-          // Manually construct the instruction
-          const instruction = {
-            programId: CHESS_PROGRAM_ID,
-            keys: [
-              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
-              { pubkey: publicKey, isSigner: true, isWritable: false },
-              { pubkey: gameVaultPda, isSigner: false, isWritable: true },
-              { pubkey: publicKey, isSigner: false, isWritable: true }, // playerWhite placeholder
-              { pubkey: publicKey, isSigner: false, isWritable: true }, // playerBlack placeholder  
-              { pubkey: feeCollectorPda, isSigner: false, isWritable: true },
-              { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
-            ],
-            data: Buffer.from([]) // Would need proper instruction encoding
-          };
-          
-          // For now, return a helpful message
-          const errorMsg = '🚧 Direct RPC claim winnings is not fully implemented yet. The escrow funds are safe on-chain. Please contact support to manually process the claim.';
-          setError(errorMsg);
-          return errorMsg;
+          try {
+            // Fetch the account data directly using connection
+            const accountInfo = await provider.connection.getAccountInfo(gameEscrowPda);
+            
+            if (!accountInfo) {
+              throw new Error('Game escrow account not found');
+            }
+            
+            console.log('📊 Raw account data length:', accountInfo.data.length);
+            
+            // Parse the account data manually based on GameEscrow structure
+            let offset = 8; // Skip discriminator
+            
+            // Parse room_id (string - first 4 bytes are length, then string bytes)
+            const roomIdLength = accountInfo.data.readUInt32LE(offset);
+            offset += 4;
+            const roomIdBytes = accountInfo.data.slice(offset, offset + roomIdLength);
+            const parsedRoomId = roomIdBytes.toString('utf8');
+            offset += roomIdLength;
+            
+            // Parse player_white (32 bytes)
+            const playerWhiteBytes = accountInfo.data.slice(offset, offset + 32);
+            const playerWhite = new web3.PublicKey(playerWhiteBytes);
+            offset += 32;
+            
+            // Parse player_black (option - 1 byte for is_some, then 32 bytes if some)
+            const hasPlayerBlack = accountInfo.data[offset] === 1;
+            offset += 1;
+            let playerBlack = null;
+            if (hasPlayerBlack) {
+              const playerBlackBytes = accountInfo.data.slice(offset, offset + 32);
+              playerBlack = new web3.PublicKey(playerBlackBytes);
+              offset += 32;
+            } else {
+              offset += 32; // Skip the 32 zero bytes
+            }
+            
+            // Parse stake_amount (8 bytes u64)
+            const stakeAmountBuffer = accountInfo.data.slice(offset, offset + 8);
+            const stakeAmount = new BN(stakeAmountBuffer, 'le');
+            offset += 8;
+            
+            // Skip boolean fields (game_started, white_deposited, black_deposited - 3 bytes total)
+            offset += 3;
+            
+            // Parse fee_collector (32 bytes)
+            const feeCollectorBytes = accountInfo.data.slice(offset, offset + 32);
+            const feeCollector = new web3.PublicKey(feeCollectorBytes);
+            
+            console.log('✅ Parsed escrow data:', {
+              roomId: parsedRoomId,
+              playerWhite: playerWhite.toString(),
+              playerBlack: playerBlack?.toString(),
+              stakeAmount: stakeAmount.toString(),
+              feeCollector: feeCollector.toString()
+            });
+            
+            // Encode winner enum (0 = White, 1 = Black, 2 = Draw)
+            let winnerVariant;
+            if (isDraw) {
+              winnerVariant = 2; // Draw
+            } else if (gameWinner === 'white') {
+              winnerVariant = 0; // White
+            } else {
+              winnerVariant = 1; // Black
+            }
+            
+            // Encode reason enum (0 = Checkmate, 1 = Timeout, 2 = Agreement, 3 = Stalemate, 4 = InsufficientMaterial)
+            const reasonVariant = 0; // Default to Checkmate
+            
+            // Create instruction data: discriminator + winner + reason
+            const discriminator = Buffer.from([205, 129, 155, 217, 131, 167, 175, 38]);
+            const winnerBuffer = Buffer.alloc(1);
+            winnerBuffer.writeUInt8(winnerVariant, 0);
+            const reasonBuffer = Buffer.alloc(1);
+            reasonBuffer.writeUInt8(reasonVariant, 0);
+            
+            const instructionData = Buffer.concat([discriminator, winnerBuffer, reasonBuffer]);
+            
+            // Create the instruction
+            const instruction = new web3.TransactionInstruction({
+              programId: new web3.PublicKey(CHESS_PROGRAM_ID),
+              keys: [
+                { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
+                { pubkey: publicKey, isSigner: true, isWritable: false },
+                { pubkey: gameVaultPda, isSigner: false, isWritable: true },
+                { pubkey: playerWhite, isSigner: false, isWritable: true },
+                { pubkey: playerBlack || web3.SystemProgram.programId, isSigner: false, isWritable: true },
+                { pubkey: feeCollector, isSigner: false, isWritable: true },
+                { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
+              ],
+              data: instructionData
+            });
+            
+            // Get recent blockhash for transaction uniqueness
+            const { blockhash } = await provider.connection.getLatestBlockhash('finalized');
+            
+            // Create and send transaction
+            const transaction = new web3.Transaction();
+            transaction.recentBlockhash = blockhash;
+            transaction.feePayer = publicKey;
+            transaction.add(instruction);
+            
+            console.log('📤 Sending declare_result transaction...');
+            tx = await provider.sendAndConfirm(transaction);
+            console.log('✅ Declare result transaction confirmed:', tx);
+            
+            // Calculate actual amounts for display
+            const totalPot = stakeAmount.toNumber() * 2 / web3.LAMPORTS_PER_SOL;
+            
+            if (gameWinner === playerRole) {
+              const winnings = totalPot * 0.99; // 1% fee
+              return `🎉 SUCCESS! You won ${winnings.toFixed(3)} SOL! Transaction: ${tx}`;
+            } else if (isDraw) {
+              const refund = (stakeAmount.toNumber() / web3.LAMPORTS_PER_SOL) * 0.99;
+              return `🤝 Draw! You received ${refund.toFixed(3)} SOL back. Transaction: ${tx}`;
+            } else {
+              return `❌ You lost this game. Better luck next time!`;
+            }
+            
+          } catch (directRpcError) {
+            console.error('❌ Direct RPC approach failed:', directRpcError);
+            const errorMsg = `❌ Failed to claim winnings via direct RPC: ${directRpcError.message}`;
+            setError(errorMsg);
+            return errorMsg;
+          }
           
         } else {
           // Use the normal Anchor approach
