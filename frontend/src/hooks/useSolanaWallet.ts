@@ -430,6 +430,19 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         console.log('🔍 Debug - CreateEscrow - Fee Collector:', FEE_WALLET_ADDRESS.toString());
         console.log('🔍 Debug - CreateEscrow - System Program:', SystemProgram.programId.toString());
         
+        // Check if the escrow account already exists
+        try {
+          const existingAccount = await connection.getAccountInfo(gameEscrowPda);
+          if (existingAccount && playerRole === 'white') {
+            console.log('⚠️ Game escrow already exists for this room. White player trying to initialize existing game.');
+            setError('Game escrow already exists for this room. Please join an existing game or use a different room.');
+            return false;
+          }
+          console.log('🔍 Escrow account check:', existingAccount ? 'EXISTS' : 'DOES NOT EXIST');
+        } catch (accountError) {
+          console.log('🔍 Account check failed (continuing anyway):', accountError);
+        }
+        
         let escrowAddedToDb = false; // Flag to prevent duplicate database calls
         
         try {
