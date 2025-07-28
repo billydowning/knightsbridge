@@ -904,6 +904,11 @@ export const useSolanaWallet = (): SolanaWalletHook => {
               feeCollector: feeCollector.toString()
             });
             
+            // Validate game state
+            if (!playerBlack) {
+              throw new Error('Game incomplete: Black player has not joined yet. Both players must join before claiming winnings.');
+            }
+            
             // Encode winner enum (0 = White, 1 = Black, 2 = Draw)
             let winnerVariant;
             if (isDraw) {
@@ -934,7 +939,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
                 { pubkey: publicKey, isSigner: true, isWritable: false },
                 { pubkey: gameVaultPda, isSigner: false, isWritable: true },
                 { pubkey: playerWhite, isSigner: false, isWritable: true },
-                { pubkey: playerBlack || web3.SystemProgram.programId, isSigner: false, isWritable: true },
+                { pubkey: playerBlack, isSigner: false, isWritable: true },
                 { pubkey: feeCollector, isSigner: false, isWritable: true },
                 { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
               ],
