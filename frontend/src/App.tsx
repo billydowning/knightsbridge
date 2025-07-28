@@ -617,24 +617,50 @@ function ChessApp() {
   };
 
   const handleSquareClick = (square: string) => {
+    console.log('🔍 Square clicked:', square);
+    console.log('🔍 Game mode:', gameMode);
+    console.log('🔍 Room ID:', roomId);
+    console.log('🔍 Current player:', gameState.currentPlayer);
+    console.log('🔍 Player role:', playerRole);
+    console.log('🔍 Is player turn:', gameState.currentPlayer === playerRole);
+    
     if (!roomId || gameMode !== 'game') {
+      console.log('❌ Not in game mode or no room');
       return;
     }
     
     // Check if it's the player's turn
     if (gameState.currentPlayer !== playerRole) {
+      console.log('❌ Not player turn');
+      setGameStatus(`It's ${gameState.currentPlayer}'s turn. You are ${playerRole}.`);
       return;
     }
+    
+    console.log('✅ Player turn confirmed');
     
     // If no square is selected, select this square if it has a piece
     if (!gameState.selectedSquare) {
       const piece = gameState.position[square];
+      console.log('🔍 Piece on square:', piece);
+      
       if (piece) {
         const pieceColor = ChessEngine.getPieceColor(piece);
+        console.log('🔍 Piece color:', pieceColor);
+        console.log('🔍 Current player:', gameState.currentPlayer);
+        console.log('🔍 Colors match:', pieceColor === gameState.currentPlayer);
+        
         if (pieceColor === gameState.currentPlayer) {
+          console.log('✅ Selecting piece at', square);
           setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
+          setGameStatus(`Selected ${piece} at ${square}`);
           return;
+        } else {
+          console.log('❌ Wrong piece color');
+          setGameStatus(`Cannot select ${pieceColor} piece - it's ${gameState.currentPlayer}'s turn`);
         }
+      } else {
+        console.log('❌ No piece on square');
+        setGameStatus('No piece on this square');
       }
       return;
     }
