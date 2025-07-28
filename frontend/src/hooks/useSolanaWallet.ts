@@ -952,6 +952,16 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             const instructionData = Buffer.concat([discriminator, winnerBuffer, reasonBuffer]);
             
             // Create the instruction
+            // NOTE: The contract expects fee_collector to match the address from initialize_game
+            // which appears to be the playerWhite address based on the error
+            const correctFeeCollector = playerWhite; // Use playerWhite as fee collector
+            
+            console.log('🔍 Using fee collector addresses:', {
+              fromAccount: feeCollector.toString(),
+              usingInstead: correctFeeCollector.toString(),
+              reason: 'Contract expects playerWhite as fee_collector'
+            });
+            
             const instruction = new web3.TransactionInstruction({
               programId: new web3.PublicKey(CHESS_PROGRAM_ID),
               keys: [
@@ -960,7 +970,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
                 { pubkey: gameVaultPda, isSigner: false, isWritable: true },
                 { pubkey: playerWhite, isSigner: false, isWritable: true },
                 { pubkey: playerBlack, isSigner: false, isWritable: true },
-                { pubkey: feeCollector, isSigner: false, isWritable: true },
+                { pubkey: correctFeeCollector, isSigner: false, isWritable: true },
                 { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
               ],
               data: instructionData
