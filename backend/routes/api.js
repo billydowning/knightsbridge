@@ -713,6 +713,419 @@ router.get('/health', async (req, res) => {
 });
 
 // ========================================
+// UPDATE OPERATIONS (PUT/PATCH)
+// ========================================
+
+// Update room status and game state
+router.put('/rooms/:roomId', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { 
+      gameState, 
+      stakeAmount, 
+      timeControl, 
+      timeLimit, 
+      increment,
+      winner,
+      gameResult,
+      finalPosition,
+      pgn
+    } = req.body;
+    
+    const pool = getPool();
+    
+    // Build dynamic update query
+    const updateFields = [];
+    const values = [];
+    let paramCount = 1;
+    
+    if (gameState !== undefined) {
+      updateFields.push(`game_state = $${paramCount++}`);
+      values.push(gameState);
+    }
+    if (stakeAmount !== undefined) {
+      updateFields.push(`stake_amount = $${paramCount++}`);
+      values.push(stakeAmount);
+    }
+    if (timeControl !== undefined) {
+      updateFields.push(`time_control = $${paramCount++}`);
+      values.push(timeControl);
+    }
+    if (timeLimit !== undefined) {
+      updateFields.push(`time_limit = $${paramCount++}`);
+      values.push(timeLimit);
+    }
+    if (increment !== undefined) {
+      updateFields.push(`increment = $${paramCount++}`);
+      values.push(increment);
+    }
+    if (winner !== undefined) {
+      updateFields.push(`winner = $${paramCount++}`);
+      values.push(winner);
+    }
+    if (gameResult !== undefined) {
+      updateFields.push(`game_result = $${paramCount++}`);
+      values.push(gameResult);
+    }
+    if (finalPosition !== undefined) {
+      updateFields.push(`final_position = $${paramCount++}`);
+      values.push(finalPosition);
+    }
+    if (pgn !== undefined) {
+      updateFields.push(`pgn = $${paramCount++}`);
+      values.push(pgn);
+    }
+    
+    // Always update the timestamp
+    updateFields.push(`updated_at = $${paramCount++}`);
+    values.push(new Date());
+    
+    // Add roomId for WHERE clause
+    values.push(roomId);
+    
+    if (updateFields.length === 1) {
+      return res.status(400).json({ error: 'No fields provided to update' });
+    }
+    
+    const query = `
+      UPDATE games 
+      SET ${updateFields.join(', ')}
+      WHERE room_id = $${paramCount}
+      RETURNING *
+    `;
+    
+    console.log('🔄 Updating room:', roomId, 'with fields:', updateFields);
+    
+    const result = await pool.query(query, values);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    
+    console.log('✅ Room updated successfully:', result.rows[0]);
+    
+    res.json({ 
+      success: true, 
+      message: 'Room updated successfully',
+      room: result.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Update room error:', error);
+    res.status(500).json({ error: 'Failed to update room', details: error.message });
+  }
+});
+
+// Update user profile
+router.put('/users/:walletAddress', async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    const { 
+      username, 
+      email, 
+      avatarUrl,
+      ratingRapid,
+      ratingBlitz,
+      ratingBullet
+    } = req.body;
+    
+    const pool = getPool();
+    
+    // Build dynamic update query
+    const updateFields = [];
+    const values = [];
+    let paramCount = 1;
+    
+    if (username !== undefined) {
+      updateFields.push(`username = $${paramCount++}`);
+      values.push(username);
+    }
+    if (email !== undefined) {
+      updateFields.push(`email = $${paramCount++}`);
+      values.push(email);
+    }
+    if (avatarUrl !== undefined) {
+      updateFields.push(`avatar_url = $${paramCount++}`);
+      values.push(avatarUrl);
+    }
+    if (ratingRapid !== undefined) {
+      updateFields.push(`rating_rapid = $${paramCount++}`);
+      values.push(ratingRapid);
+    }
+    if (ratingBlitz !== undefined) {
+      updateFields.push(`rating_blitz = $${paramCount++}`);
+      values.push(ratingBlitz);
+    }
+    if (ratingBullet !== undefined) {
+      updateFields.push(`rating_bullet = $${paramCount++}`);
+      values.push(ratingBullet);
+    }
+    
+    // Always update the timestamp
+    updateFields.push(`updated_at = $${paramCount++}`);
+    values.push(new Date());
+    
+    // Add walletAddress for WHERE clause
+    values.push(walletAddress);
+    
+    if (updateFields.length === 1) {
+      return res.status(400).json({ error: 'No fields provided to update' });
+    }
+    
+    const query = `
+      UPDATE users 
+      SET ${updateFields.join(', ')}
+      WHERE wallet_address = $${paramCount}
+      RETURNING *
+    `;
+    
+    console.log('🔄 Updating user:', walletAddress, 'with fields:', updateFields);
+    
+    const result = await pool.query(query, values);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log('✅ User updated successfully:', result.rows[0]);
+    
+    res.json({ 
+      success: true, 
+      message: 'User updated successfully',
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Update user error:', error);
+    res.status(500).json({ error: 'Failed to update user', details: error.message });
+  }
+});
+
+// Update escrow status
+router.patch('/escrows/:escrowId', async (req, res) => {
+  try {
+    const { escrowId } = req.params;
+    const { status, txHash, confirmedAmount } = req.body;
+    
+    const pool = getPool();
+    
+    // Build dynamic update query
+    const updateFields = [];
+    const values = [];
+    let paramCount = 1;
+    
+    if (status !== undefined) {
+      updateFields.push(`status = $${paramCount++}`);
+      values.push(status);
+    }
+    if (txHash !== undefined) {
+      updateFields.push(`tx_hash = $${paramCount++}`);
+      values.push(txHash);
+    }
+    if (confirmedAmount !== undefined) {
+      updateFields.push(`confirmed_amount = $${paramCount++}`);
+      values.push(confirmedAmount);
+    }
+    
+    // Always update the timestamp
+    updateFields.push(`updated_at = $${paramCount++}`);
+    values.push(new Date());
+    
+    // Add escrowId for WHERE clause
+    values.push(escrowId);
+    
+    if (updateFields.length === 1) {
+      return res.status(400).json({ error: 'No fields provided to update' });
+    }
+    
+    const query = `
+      UPDATE escrows 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+    
+    console.log('🔄 Updating escrow:', escrowId, 'with fields:', updateFields);
+    
+    const result = await pool.query(query, values);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Escrow not found' });
+    }
+    
+    console.log('✅ Escrow updated successfully:', result.rows[0]);
+    
+    res.json({ 
+      success: true, 
+      message: 'Escrow updated successfully',
+      escrow: result.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Update escrow error:', error);
+    res.status(500).json({ error: 'Failed to update escrow', details: error.message });
+  }
+});
+
+// Patch room with minimal updates (useful for quick status changes)
+router.patch('/rooms/:roomId', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const updates = req.body;
+    
+    const pool = getPool();
+    
+    // Validate that we have something to update
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
+    }
+    
+    // Build dynamic update query
+    const updateFields = [];
+    const values = [];
+    let paramCount = 1;
+    
+    // Allow any field from the games table to be updated
+    const allowedFields = [
+      'game_state', 'stake_amount', 'time_control', 'time_limit', 'increment',
+      'winner', 'game_result', 'final_position', 'pgn', 'move_count',
+      'player_black_wallet', 'blockchain_tx_id', 'platform_fee',
+      'started_at', 'finished_at'
+    ];
+    
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key) && value !== undefined) {
+        updateFields.push(`${key} = $${paramCount++}`);
+        values.push(value);
+      }
+    }
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No valid fields provided to update' });
+    }
+    
+    // Always update the timestamp
+    updateFields.push(`updated_at = $${paramCount++}`);
+    values.push(new Date());
+    
+    // Add roomId for WHERE clause
+    values.push(roomId);
+    
+    const query = `
+      UPDATE games 
+      SET ${updateFields.join(', ')}
+      WHERE room_id = $${paramCount}
+      RETURNING *
+    `;
+    
+    console.log('🔄 Patching room:', roomId, 'with updates:', Object.keys(updates));
+    
+    const result = await pool.query(query, values);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    
+    console.log('✅ Room patched successfully:', result.rows[0]);
+    
+    res.json({ 
+      success: true, 
+      message: 'Room patched successfully',
+      room: result.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Patch room error:', error);
+    res.status(500).json({ error: 'Failed to patch room', details: error.message });
+  }
+});
+
+// Update user statistics (for game results)
+router.put('/users/:walletAddress/statistics', async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    const { 
+      gamesPlayed,
+      gamesWon,
+      gamesDrawn,
+      totalWinnings,
+      totalLosses,
+      winStreak,
+      ratingChange
+    } = req.body;
+    
+    const pool = getPool();
+    
+    // First check if user exists
+    const userCheck = await pool.query('SELECT id FROM users WHERE wallet_address = $1', [walletAddress]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Build update query for statistics
+    const updateFields = [];
+    const values = [];
+    let paramCount = 1;
+    
+    if (gamesPlayed !== undefined) {
+      updateFields.push(`games_played = games_played + $${paramCount++}`);
+      values.push(gamesPlayed);
+    }
+    if (gamesWon !== undefined) {
+      updateFields.push(`games_won = games_won + $${paramCount++}`);
+      values.push(gamesWon);
+    }
+    if (gamesDrawn !== undefined) {
+      updateFields.push(`games_drawn = games_drawn + $${paramCount++}`);
+      values.push(gamesDrawn);
+    }
+    if (totalWinnings !== undefined) {
+      updateFields.push(`total_winnings = total_winnings + $${paramCount++}`);
+      values.push(totalWinnings);
+    }
+    if (totalLosses !== undefined) {
+      updateFields.push(`total_losses = total_losses + $${paramCount++}`);
+      values.push(totalLosses);
+    }
+    if (winStreak !== undefined) {
+      updateFields.push(`current_win_streak = $${paramCount++}`);
+      values.push(winStreak);
+      updateFields.push(`best_win_streak = GREATEST(best_win_streak, $${paramCount++})`);
+      values.push(winStreak);
+    }
+    
+    // Always update the timestamp
+    updateFields.push(`updated_at = $${paramCount++}`);
+    values.push(new Date());
+    
+    // Add walletAddress for WHERE clause
+    values.push(walletAddress);
+    
+    if (updateFields.length === 1) {
+      return res.status(400).json({ error: 'No statistics provided to update' });
+    }
+    
+    const query = `
+      UPDATE users 
+      SET ${updateFields.join(', ')}
+      WHERE wallet_address = $${paramCount}
+      RETURNING *
+    `;
+    
+    console.log('🔄 Updating user statistics:', walletAddress);
+    
+    const result = await pool.query(query, values);
+    
+    console.log('✅ User statistics updated successfully:', result.rows[0]);
+    
+    res.json({ 
+      success: true, 
+      message: 'User statistics updated successfully',
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Update user statistics error:', error);
+    res.status(500).json({ error: 'Failed to update user statistics', details: error.message });
+  }
+});
+
+// ========================================
 // DELETE OPERATIONS (for testing/cleanup)
 // ========================================
 
