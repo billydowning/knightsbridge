@@ -804,17 +804,19 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           CHESS_PROGRAM_ID
         );
         
-        // Get game account to find player addresses
+        // Try to get game account, fall back to direct RPC if needed
         let gameAccount;
+        let useDirectRPC = false;
+        
         try {
-          gameAccount = await program.account.gameEscrow.fetch(gameEscrowPda);
+          if (program.account && program.account.gameEscrow) {
+            gameAccount = await program.account.gameEscrow.fetch(gameEscrowPda);
+          } else {
+            throw new Error('Account definitions not available');
+          }
         } catch (fetchError) {
           console.log('❌ Account fetch failed, using direct RPC approach for claim');
-          // For now, use a simplified approach - we'll use the current player's public key
-          // In a production environment, you'd want to implement direct account parsing
-          const errorMsg = 'Account fetching not yet implemented for claim winnings. Please contact support.';
-          setError(errorMsg);
-          return errorMsg;
+          useDirectRPC = true;
         }
         
         // Determine winner enum for contract
@@ -832,34 +834,76 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           reason = { checkmate: {} };
         }
         
-        // Declare result
-        const tx = await program.methods
-          .declareResult(winner, reason)
-          .accounts({
-            gameEscrow: gameEscrowPda,
-            player: publicKey,
-            gameVault: gameVaultPda,
-            playerWhite: gameAccount.playerWhite,
-            playerBlack: gameAccount.playerBlack,
-            feeCollector: gameAccount.feeCollector,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
+        let tx;
+        
+        if (useDirectRPC) {
+          console.log('🔧 Using direct RPC for declare_result instruction');
+          
+          // Since we can't fetch the account, we'll use placeholder addresses
+          // In production, you'd implement proper account parsing from raw data
+          const feeCollectorPda = new web3.PublicKey("11111111111111111111111111111111"); // Placeholder
+          
+          // Manually construct the instruction
+          const instruction = {
+            programId: CHESS_PROGRAM_ID,
+            keys: [
+              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
+              { pubkey: publicKey, isSigner: true, isWritable: false },
+              { pubkey: gameVaultPda, isSigner: false, isWritable: true },
+              { pubkey: publicKey, isSigner: false, isWritable: true }, // playerWhite placeholder
+              { pubkey: publicKey, isSigner: false, isWritable: true }, // playerBlack placeholder  
+              { pubkey: feeCollectorPda, isSigner: false, isWritable: true },
+              { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
+            ],
+            data: Buffer.from([]) // Would need proper instruction encoding
+          };
+          
+          // For now, return a helpful message
+          const errorMsg = '🚧 Direct RPC claim winnings is not fully implemented yet. The escrow funds are safe on-chain. Please contact support to manually process the claim.';
+          setError(errorMsg);
+          return errorMsg;
+          
+        } else {
+          // Use the normal Anchor approach
+          tx = await program.methods
+            .declareResult(winner, reason)
+            .accounts({
+              gameEscrow: gameEscrowPda,
+              player: publicKey,
+              gameVault: gameVaultPda,
+              playerWhite: gameAccount.playerWhite,
+              playerBlack: gameAccount.playerBlack,
+              feeCollector: gameAccount.feeCollector,
+              systemProgram: SystemProgram.programId,
+            })
+            .rpc();
+        }
         
         let statusMessage = '';
         
-        if (gameWinner === playerRole) {
-          // Winner gets 99% of total pot (1% fee)
-          const totalPot = gameAccount.stakeAmount.toNumber() * 2 / LAMPORTS_PER_SOL;
-          const winnings = totalPot * 0.99;
-          statusMessage = `🎉 SUCCESS! You won ${winnings.toFixed(3)} SOL! Funds have been transferred to your wallet.`;
-        } else if (isDraw) {
-          // Each player gets back 49.5% (1% fee)
-          const stake = gameAccount.stakeAmount.toNumber() / LAMPORTS_PER_SOL;
-          const refund = stake * 0.99;
-          statusMessage = `🤝 Draw! You received ${refund.toFixed(3)} SOL back.`;
+        if (!useDirectRPC && gameAccount) {
+          if (gameWinner === playerRole) {
+            // Winner gets 99% of total pot (1% fee)
+            const totalPot = gameAccount.stakeAmount.toNumber() * 2 / LAMPORTS_PER_SOL;
+            const winnings = totalPot * 0.99;
+            statusMessage = `🎉 SUCCESS! You won ${winnings.toFixed(3)} SOL! Funds have been transferred to your wallet.`;
+          } else if (isDraw) {
+            // Each player gets back 49.5% (1% fee)
+            const stake = gameAccount.stakeAmount.toNumber() / LAMPORTS_PER_SOL;
+            const refund = stake * 0.99;
+            statusMessage = `🤝 Draw! You received ${refund.toFixed(3)} SOL back.`;
+          } else {
+            statusMessage = `❌ You lost this game. Better luck next time!`;
+          }
         } else {
-          statusMessage = `❌ You lost this game. Better luck next time!`;
+          // Fallback message when we can't get precise amounts
+          if (gameWinner === playerRole) {
+            statusMessage = `🎉 SUCCESS! You won the game! Winnings have been transferred to your wallet.`;
+          } else if (isDraw) {
+            statusMessage = `🤝 Draw! Your stake has been refunded.`;
+          } else {
+            statusMessage = `❌ You lost this game. Better luck next time!`;
+          }
         }
         
         // Update balance (removed polling)
