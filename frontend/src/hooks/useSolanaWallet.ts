@@ -294,6 +294,11 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             data: instructionData,
           });
           
+          console.log('🔍 Direct RPC - Join game instruction accounts:', {
+            gameEscrow: gameEscrowPda.toString(),
+            player: publicKey.toString()
+          });
+          
           transaction.add(joinGameIx);
         }
         
@@ -874,13 +879,16 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             
             // Parse player_black (option - 1 byte for is_some, then 32 bytes if some)
             const hasPlayerBlack = accountInfo.data[offset] === 1;
+            console.log('🔍 Parsing player_black - hasPlayerBlack byte:', accountInfo.data[offset]);
             offset += 1;
             let playerBlack = null;
             if (hasPlayerBlack) {
               const playerBlackBytes = accountInfo.data.slice(offset, offset + 32);
               playerBlack = new web3.PublicKey(playerBlackBytes);
+              console.log('🔍 Found player_black:', playerBlack.toString());
               offset += 32;
             } else {
+              console.log('🔍 No player_black found - option is None');
               offset += 32; // Skip the 32 zero bytes
             }
             
