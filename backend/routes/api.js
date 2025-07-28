@@ -1138,15 +1138,11 @@ router.delete('/rooms/:roomId', async (req, res) => {
     console.log('🗑️ Deleting room and associated data:', roomId);
     
     // Delete in proper order due to foreign key constraints
-    // 1. Delete escrows first
+    // 1. Delete escrows first (this table exists)
     const escrowResult = await pool.query('DELETE FROM escrows WHERE room_id = $1', [roomId]);
     console.log('✅ Deleted escrows:', escrowResult.rowCount);
     
-    // 2. Delete game moves if any
-    const movesResult = await pool.query('DELETE FROM game_moves WHERE room_id = $1', [roomId]);
-    console.log('✅ Deleted game moves:', movesResult.rowCount);
-    
-    // 3. Delete the game/room
+    // 2. Delete the game/room from games table
     const gameResult = await pool.query('DELETE FROM games WHERE room_id = $1 RETURNING *', [roomId]);
     
     if (gameResult.rows.length === 0) {
@@ -1161,7 +1157,6 @@ router.delete('/rooms/:roomId', async (req, res) => {
       roomId,
       deletedCounts: {
         escrows: escrowResult.rowCount,
-        moves: movesResult.rowCount,
         room: gameResult.rowCount
       }
     });
@@ -1208,29 +1203,28 @@ router.delete('/debug/cleanup-test-data', async (req, res) => {
     // Delete test rooms and related data
     const testRoomPattern = '%test%';
     
-    // Delete escrows for test rooms
+    // Delete escrows for test rooms (this table exists)
     const escrowResult = await pool.query(`
       DELETE FROM escrows 
       WHERE room_id LIKE $1 OR player_wallet LIKE $1
     `, [testRoomPattern]);
     
-    // Delete game moves for test rooms
-    const movesResult = await pool.query(`
-      DELETE FROM game_moves 
-      WHERE room_id LIKE $1
-    `, [testRoomPattern]);
-    
-    // Delete test games
+    // Delete test games (from games table)
     const gamesResult = await pool.query(`
       DELETE FROM games 
       WHERE room_id LIKE $1 OR player_white_wallet LIKE $1 OR player_black_wallet LIKE $1
     `, [testRoomPattern]);
     
-    // Delete test users
-    const usersResult = await pool.query(`
-      DELETE FROM users 
-      WHERE wallet_address LIKE $1 OR username LIKE $1
-    `, [testRoomPattern]);
+    // Delete test users (if table exists)
+    let usersResult = { rowCount: 0 };
+    try {
+      usersResult = await pool.query(`
+        DELETE FROM users 
+        WHERE wallet_address LIKE $1 OR username LIKE $1
+      `, [testRoomPattern]);
+    } catch (userError) {
+      console.log('ℹ️ Users table not accessible or does not exist:', userError.message);
+    }
     
     console.log('✅ Test data cleanup completed');
     
@@ -1239,7 +1233,6 @@ router.delete('/debug/cleanup-test-data', async (req, res) => {
       message: 'All test data cleaned up successfully',
       deletedCounts: {
         escrows: escrowResult.rowCount,
-        moves: movesResult.rowCount,
         games: gamesResult.rowCount,
         users: usersResult.rowCount
       }
