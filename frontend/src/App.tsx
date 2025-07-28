@@ -648,6 +648,9 @@ function ChessApp() {
         }
         */
         console.log('🔍 After escrow creation check (disabled):', { escrowCount: afterStatus?.escrowCount });
+        
+        // Update room status for UI (critical for showing correct buttons)
+        await fetchRoomStatus();
       } else {
         setGameStatus('Failed to create escrow on Solana. Please try again.');
       }
