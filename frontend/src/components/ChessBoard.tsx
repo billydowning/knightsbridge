@@ -10,6 +10,26 @@ import { useRenderPerformance } from '../utils/performance';
 import { useChessBoardConfig } from '../utils/responsive';
 import type { GameState, Position } from '../types';
 
+// Convert piece text strings to Unicode symbols
+const convertPieceToUnicode = (piece: string): string => {
+  const pieceMap: { [key: string]: string } = {
+    'white-king': '♔',
+    'white-queen': '♕',
+    'white-rook': '♖',
+    'white-bishop': '♗',
+    'white-knight': '♘',
+    'white-pawn': '♙',
+    'black-king': '♚',
+    'black-queen': '♛',
+    'black-rook': '♜',
+    'black-bishop': '♝',
+    'black-knight': '♞',
+    'black-pawn': '♟'
+  };
+  
+  return pieceMap[piece] || piece; // Return original if not found
+};
+
 export interface ChessBoardProps {
   position: Position;
   onSquareClick: (square: string) => void;
@@ -68,9 +88,12 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
   }, [disabled]);
 
   const getPieceStyle = useCallback((): React.CSSProperties => {
+    // Convert piece to Unicode first if needed
+    const unicodePiece = convertPieceToUnicode(piece);
+    
     // Determine if piece is white or black
-    const isWhitePiece = ['♔', '♕', '♖', '♗', '♘', '♙'].includes(piece);
-    const isBlackPiece = ['♚', '♛', '♜', '♝', '♞', '♟'].includes(piece);
+    const isWhitePiece = ['♔', '♕', '♖', '♗', '♘', '♙'].includes(unicodePiece);
+    const isBlackPiece = ['♚', '♛', '♜', '♝', '♞', '♟'].includes(unicodePiece);
     
     // Calculate piece size as 60% of square size to prevent overflow
     const pieceSize = Math.floor(squareSize * 0.6);
@@ -139,7 +162,7 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     >
       {piece && (
         <span style={getPieceStyle()}>
-          {piece}
+          {convertPieceToUnicode(piece)}
         </span>
       )}
       {isLegalMove && !piece && (
