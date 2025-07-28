@@ -1316,6 +1316,8 @@ io.on('connection', (socket) => {
         });
         
         // Check if both players are present and both escrows are created
+        // DISABLED: Auto-start based on escrow count - wait for actual deposits instead
+        /*
         if (currentPlayers && 
             currentPlayers.player_white_wallet && 
             currentPlayers.player_black_wallet && 
@@ -1337,13 +1339,14 @@ io.on('connection', (socket) => {
           
           console.log('✅ Game started event broadcasted to room:', roomId);
         } else {
-          console.log('⏳ Game not ready yet:', {
+        */
+          console.log('⏳ Game not ready yet - waiting for deposits:', {
             bothPlayersPresent: !!(currentPlayers?.player_white_wallet && currentPlayers?.player_black_wallet),
             escrowCount: escrows.length,
             whiteWallet: currentPlayers?.player_white_wallet,
             blackWallet: currentPlayers?.player_black_wallet
           });
-        }
+        // }
       } else {
         // Test mode - use in-memory storage
         const room = testRooms.get(roomId);
