@@ -712,6 +712,131 @@ router.get('/health', async (req, res) => {
   }
 });
 
+// ========================================
+// DELETE OPERATIONS (for testing/cleanup)
+// ========================================
+
+// Delete room and all associated data
+router.delete('/rooms/:roomId', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const pool = getPool();
+    
+    console.log('🗑️ Deleting room and associated data:', roomId);
+    
+    // Delete in proper order due to foreign key constraints
+    // 1. Delete escrows first
+    const escrowResult = await pool.query('DELETE FROM escrows WHERE room_id = $1', [roomId]);
+    console.log('✅ Deleted escrows:', escrowResult.rowCount);
+    
+    // 2. Delete game moves if any
+    const movesResult = await pool.query('DELETE FROM game_moves WHERE room_id = $1', [roomId]);
+    console.log('✅ Deleted game moves:', movesResult.rowCount);
+    
+    // 3. Delete the game/room
+    const gameResult = await pool.query('DELETE FROM games WHERE room_id = $1 RETURNING *', [roomId]);
+    
+    if (gameResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    
+    console.log('✅ Deleted room:', gameResult.rows[0]);
+    
+    res.json({ 
+      success: true, 
+      message: 'Room and all associated data deleted successfully',
+      roomId,
+      deletedCounts: {
+        escrows: escrowResult.rowCount,
+        moves: movesResult.rowCount,
+        room: gameResult.rowCount
+      }
+    });
+  } catch (error) {
+    console.error('❌ Delete room error:', error);
+    res.status(500).json({ error: 'Failed to delete room', details: error.message });
+  }
+});
+
+// Delete user (be careful with this!)
+router.delete('/users/:walletAddress', async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    const pool = getPool();
+    
+    console.log('🗑️ Deleting user:', walletAddress);
+    
+    const result = await pool.query('DELETE FROM users WHERE wallet_address = $1 RETURNING *', [walletAddress]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log('✅ Deleted user:', result.rows[0]);
+    
+    res.json({ 
+      success: true, 
+      message: 'User deleted successfully',
+      deletedUser: result.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user', details: error.message });
+  }
+});
+
+// Delete all test data (for development/testing only)
+router.delete('/debug/cleanup-test-data', async (req, res) => {
+  try {
+    const pool = getPool();
+    
+    console.log('🧹 Cleaning up all test data...');
+    
+    // Delete test rooms and related data
+    const testRoomPattern = '%test%';
+    
+    // Delete escrows for test rooms
+    const escrowResult = await pool.query(`
+      DELETE FROM escrows 
+      WHERE room_id LIKE $1 OR player_wallet LIKE $1
+    `, [testRoomPattern]);
+    
+    // Delete game moves for test rooms
+    const movesResult = await pool.query(`
+      DELETE FROM game_moves 
+      WHERE room_id LIKE $1
+    `, [testRoomPattern]);
+    
+    // Delete test games
+    const gamesResult = await pool.query(`
+      DELETE FROM games 
+      WHERE room_id LIKE $1 OR player_white_wallet LIKE $1 OR player_black_wallet LIKE $1
+    `, [testRoomPattern]);
+    
+    // Delete test users
+    const usersResult = await pool.query(`
+      DELETE FROM users 
+      WHERE wallet_address LIKE $1 OR username LIKE $1
+    `, [testRoomPattern]);
+    
+    console.log('✅ Test data cleanup completed');
+    
+    res.json({ 
+      success: true, 
+      message: 'All test data cleaned up successfully',
+      deletedCounts: {
+        escrows: escrowResult.rowCount,
+        moves: movesResult.rowCount,
+        games: gamesResult.rowCount,
+        users: usersResult.rowCount
+      }
+    });
+  } catch (error) {
+    console.error('❌ Cleanup test data error:', error);
+    res.status(500).json({ error: 'Failed to cleanup test data', details: error.message });
+  }
+});
+
 // Debug endpoint to check database contents
 router.get('/debug/database', async (req, res) => {
   try {
