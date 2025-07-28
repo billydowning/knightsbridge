@@ -7,6 +7,7 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
 import { useDatabaseMultiplayerState } from './services/databaseMultiplayerState';
 import { useSolanaWallet } from './hooks/useSolanaWallet';
+import websocketService from './services/websocketService';
 import { useScreenSize, useIsMobile, useIsTabletOrSmaller, useChessBoardConfig, useContainerWidth, useLayoutConfig, useTextSizes, useIsLaptopOrLarger, useIsMacBookAir, useIsDesktopLayout } from './utils/responsive';
 import { ChessEngine } from './engine/chessEngine';
 import { MenuView } from './components/MenuView';
@@ -698,45 +699,49 @@ function ChessApp() {
         }
         */
         
-        // Start polling for game start after deposit
-        console.log('🔄 Starting game start polling after deposit...');
-        let pollCount = 0;
-        const maxPolls = 20; // Poll for up to 2 minutes (6 second intervals)
+        // Listen for game start via WebSocket instead of polling
+        console.log('🔌 Setting up WebSocket listener for game start...');
         
-        const pollForGameStart = async () => {
-          try {
-            const currentStatus = await databaseMultiplayerState.getRoomStatus(roomId);
-            console.log('🔍 Poll', pollCount + 1, '- Room status:', currentStatus);
+        const handleGameStarted = (data: any) => {
+          console.log('🎮 Game started via WebSocket!', data);
+          if (data.roomId === roomId) {
+            setGameStatus('🎮 Both players deposited! Game starting...');
+            setBothEscrowsReady(true);
             
-            if (currentStatus?.gameStarted) {
-              console.log('🎮 Game started detected via polling!');
-              setGameStatus('🎮 Both players deposited! Game starting...');
-              setBothEscrowsReady(true);
-              return; // Stop polling
-            }
-            
-            pollCount++;
-            if (pollCount < maxPolls) {
-              // Continue polling every 6 seconds
-              setTimeout(pollForGameStart, 6000);
-            } else {
-              console.log('⏰ Polling timeout - game did not start automatically');
-              setGameStatus('⏰ Deposits complete but game not started. Try refreshing the page.');
-            }
-          } catch (pollError) {
-            console.error('❌ Error during game start polling:', pollError);
-            pollCount++;
-            if (pollCount < maxPolls) {
-              setTimeout(pollForGameStart, 6000);
+            // Remove the listener after game starts
+            const socket = (websocketService as any).socket;
+            if (socket) {
+              socket.off('gameStarted', handleGameStarted);
             }
           }
         };
         
-        // Start polling after a short delay
-        setTimeout(pollForGameStart, 3000);
+        // Set up direct socket listener for gameStarted event
+        if (websocketService && websocketService.isConnected()) {
+          // Get direct socket access for this custom event
+          const socket = (websocketService as any).socket;
+          if (socket) {
+            socket.on('gameStarted', handleGameStarted);
+            
+            // Set a timeout to clean up listener if game doesn't start
+            setTimeout(() => {
+              socket.off('gameStarted', handleGameStarted);
+              console.log('⏰ WebSocket listener timeout - cleaning up');
+              
+              // Check one final time via room status
+              databaseMultiplayerState.getRoomStatus(roomId).then(finalStatus => {
+                if (finalStatus?.gameStarted) {
+                  setGameStatus('🎮 Both players deposited! Game starting...');
+                  setBothEscrowsReady(true);
+                } else {
+                  setGameStatus('⏰ Deposits complete but game not started. Try refreshing the page.');
+                }
+              });
+            }, 120000); // 2 minutes timeout
+          }
+        }
         
         console.log('🔍 After deposit check (disabled):', { escrowCount: afterStatus?.escrowCount });
-        setGameStatus('Both players have deposited! Game will start shortly...');
       } else {
         setGameStatus('Failed to deposit stake. Please try again.');
       }
