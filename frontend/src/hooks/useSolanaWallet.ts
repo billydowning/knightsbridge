@@ -681,57 +681,38 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         console.log('🔍 Debug - DepositStake - Game Escrow PDA:', gameEscrowPda.toString());
         console.log('🔍 Debug - DepositStake - Game Vault PDA:', gameVaultPda.toString());
 
-        // Try to use program first, fallback to direct RPC
-        const program = await getProgram();
+        // Use direct RPC approach for deposit_stake (more reliable)
+        console.log('🔍 Debug - Using direct RPC for deposit_stake');
         
-        if (program && program.idl.instructions.some(i => i.name === 'deposit_stake')) {
-          console.log('🔍 Debug - Using program method for deposit_stake');
-          
-          const depositTx = await program.methods
-            .depositStake()
-            .accounts({
-              gameEscrow: gameEscrowPda,
-              player: publicKey,
-              gameVault: gameVaultPda,
-              systemProgram: SystemProgram.programId,
-            })
-            .rpc();
-          
-          console.log('✅ DepositStake successful via program:', depositTx);
-          
-        } else {
-          console.log('🔍 Debug - Using direct RPC for deposit_stake');
-          
-          // Create deposit_stake instruction manually
-          const depositStakeDiscriminator = Buffer.from([160, 167, 9, 220, 74, 243, 228, 43]);
-          
-          const depositStakeIx = new web3.TransactionInstruction({
-            keys: [
-              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
-              { pubkey: publicKey, isSigner: true, isWritable: true },
-              { pubkey: gameVaultPda, isSigner: false, isWritable: true },
-              { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-            ],
-            programId: new PublicKey(CHESS_PROGRAM_ID),
-            data: depositStakeDiscriminator, // No arguments for deposit_stake
-          });
+        // Create deposit_stake instruction manually
+        const depositStakeDiscriminator = Buffer.from([160, 167, 9, 220, 74, 243, 228, 43]);
+        
+        const depositStakeIx = new web3.TransactionInstruction({
+          keys: [
+            { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
+            { pubkey: publicKey, isSigner: true, isWritable: true },
+            { pubkey: gameVaultPda, isSigner: false, isWritable: true },
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+          ],
+          programId: new PublicKey(CHESS_PROGRAM_ID),
+          data: depositStakeDiscriminator, // No arguments for deposit_stake
+        });
 
-          // Get fresh blockhash
-          const { blockhash } = await connection.getLatestBlockhash('confirmed');
-          
-          // Create and send transaction
-          const transaction = new Transaction();
-          transaction.recentBlockhash = blockhash;
-          transaction.feePayer = publicKey;
-          transaction.add(depositStakeIx);
-          
-          const signature = await sendTransaction(transaction, connection, {
-            skipPreflight: false,
-            preflightCommitment: 'confirmed',
-          });
-          
-          console.log('✅ DepositStake successful via direct RPC:', signature);
-        }
+        // Get fresh blockhash
+        const { blockhash } = await connection.getLatestBlockhash('confirmed');
+        
+        // Create and send transaction
+        const transaction = new Transaction();
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = publicKey;
+        transaction.add(depositStakeIx);
+        
+        const signature = await sendTransaction(transaction, connection, {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+        });
+        
+        console.log('✅ DepositStake successful via direct RPC:', signature);
 
         // Update balance after successful deposit
         setTimeout(() => {
