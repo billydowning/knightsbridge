@@ -1364,6 +1364,91 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle deposit completion - check if both players have deposited and start game
+  socket.on('depositComplete', async (data, callback) => {
+    try {
+      console.log('💰 Received depositComplete event:', data);
+      const { roomId, playerWallet, txId } = data;
+      
+      if (!process.env.DATABASE_URL) {
+        console.log('⚠️ DATABASE_URL not set - cannot handle deposit completion');
+        if (typeof callback === 'function') callback({ success: false, error: 'Database not configured' });
+        return;
+      }
+
+      const poolInstance = getPool();
+      
+      // Update escrow status to confirmed
+      await poolInstance.query(
+        'UPDATE escrows SET status = $1, blockchain_tx_id = $2, updated_at = NOW() WHERE room_id = $3 AND player_wallet = $4',
+        ['confirmed', txId, roomId, playerWallet]
+      );
+      console.log('✅ Escrow marked as confirmed for:', playerWallet, 'tx:', txId);
+
+      // Check if both players have confirmed deposits
+      const confirmedEscrows = await poolInstance.query(
+        'SELECT player_wallet FROM escrows WHERE room_id = $1 AND status = $2',
+        [roomId, 'confirmed']
+      ).then(r => r.rows);
+
+      const currentPlayers = await poolInstance.query(
+        'SELECT player_white_wallet, player_black_wallet FROM games WHERE room_id = $1',
+        [roomId]
+      ).then(r => r.rows[0]);
+
+      console.log('🔍 Deposit completion check:', {
+        roomId,
+        confirmedEscrows: confirmedEscrows.map(e => e.player_wallet),
+        confirmedCount: confirmedEscrows.length,
+        whiteWallet: currentPlayers?.player_white_wallet,
+        blackWallet: currentPlayers?.player_black_wallet
+      });
+
+      // Check if both players have confirmed deposits
+      if (confirmedEscrows.length === 2 && currentPlayers && 
+          currentPlayers.player_white_wallet && currentPlayers.player_black_wallet) {
+        
+        console.log('🎮 Both deposits confirmed - starting game!');
+        
+        // Update game state to active
+        await poolInstance.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
+        
+        // Broadcast game started event to ALL players in the room
+        console.log('📢 Broadcasting gameStarted event to room:', roomId);
+        io.to(roomId).emit('gameStarted', {
+          roomId: roomId,
+          gameState: {
+            position: STARTING_POSITION,
+            currentPlayer: 'white',
+            gameActive: true,
+            players: {
+              white: currentPlayers.player_white_wallet,
+              black: currentPlayers.player_black_wallet
+            }
+          }
+        });
+        console.log('✅ Game started event broadcasted to room:', roomId);
+        
+        if (typeof callback === 'function') callback({ 
+          success: true, 
+          message: 'Both deposits confirmed - game started!',
+          gameStarted: true 
+        });
+      } else {
+        console.log('⏳ Waiting for other player to complete deposit...');
+        if (typeof callback === 'function') callback({ 
+          success: true, 
+          message: 'Deposit confirmed, waiting for opponent',
+          gameStarted: false 
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ Error in depositComplete:', error);
+      if (typeof callback === 'function') callback({ success: false, error: error.message });
+    }
+  });
+
   // Debug: Log when addEscrow event handler is registered
   console.log('✅ addEscrow event handler registered for socket:', socket.id);
 
