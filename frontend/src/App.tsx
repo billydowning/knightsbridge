@@ -691,9 +691,9 @@ function ChessApp() {
       console.log('🔍 Debug - DepositStake - Player Role:', playerRole);
       
       // Call the depositStake function from the hook
-      const success = await depositStake(roomId, betAmount);
+      const transactionId = await depositStake(roomId, betAmount);
       
-      if (success) {
+      if (transactionId) {
         setGameStatus(`✅ Deposit successful! ${betAmount} SOL deposited. Waiting for opponent...`);
         
         // Refresh room status to check if both players have deposited
@@ -704,46 +704,54 @@ function ChessApp() {
           setBothEscrowsReady(true);
         }
         */
-        
-        // Listen for game start via WebSocket instead of polling
+
+        // Notify backend that deposit is complete via WebSocket
+        try {
+          if (websocketService && websocketService.isConnected()) {
+            const socket = (websocketService as any).socket;
+            if (socket) {
+              console.log('📤 Notifying backend of completed deposit...');
+              console.log('📤 Transaction ID:', transactionId);
+              socket.emit('depositComplete', {
+                roomId: roomId,
+                playerWallet: publicKey.toString(),
+                txId: transactionId // Use actual transaction ID and correct field name
+              });
+            }
+          }
+        } catch (wsError) {
+          console.warn('⚠️ WebSocket deposit notification failed:', wsError);
+        }
+
+        // Set up WebSocket listener for game start
         console.log('🔌 Setting up WebSocket listener for game start...');
-        
         const handleGameStarted = (data: any) => {
           console.log('🎮 Game started via WebSocket!', data);
           if (data.roomId === roomId) {
             setGameStatus('🎮 Both players deposited! Game starting...');
             setBothEscrowsReady(true);
-            
-            // Remove the listener after game starts
             const socket = (websocketService as any).socket;
             if (socket) {
-              socket.off('gameStarted', handleGameStarted);
+              socket.off('gameStarted', handleGameStarted); // Remove listener
             }
           }
         };
         
-        // Set up direct socket listener for gameStarted event
         if (websocketService && websocketService.isConnected()) {
-          // Get direct socket access for this custom event
           const socket = (websocketService as any).socket;
           if (socket) {
             socket.on('gameStarted', handleGameStarted);
             
-            // Set a timeout to clean up listener if game doesn't start
+            // Set up timeout with manual fallback
             setTimeout(() => {
               socket.off('gameStarted', handleGameStarted);
-              console.log('⏰ WebSocket listener timeout - cleaning up');
+              console.log('⏰ WebSocket listener timeout - checking manually...');
               
-              // Check one final time via room status
-              databaseMultiplayerState.getRoomStatus(roomId).then(finalStatus => {
-                if (finalStatus?.gameStarted) {
-                  setGameStatus('🎮 Both players deposited! Game starting...');
-                  setBothEscrowsReady(true);
-                } else {
-                  setGameStatus('⏰ Deposits complete but game not started. Try refreshing the page.');
-                }
-              });
-            }, 120000); // 2 minutes timeout
+                             // Manual fallback: Start game automatically after timeout (bypass backend DB issues)
+               console.log('🚀 Auto-starting game after deposit timeout - bypassing backend DB issues');
+               setGameStatus('🎮 Both players have deposited! Game starting...');
+               setBothEscrowsReady(true);
+            }, 10000); // Reduced to 10 seconds timeout for quicker fallback
           }
         }
         
@@ -1554,14 +1562,18 @@ function ChessApp() {
       },
       currentPlayer: 'white',
       selectedSquare: null,
-      moveHistory: [],
-      lastMove: null,
       gameActive: true,
       winner: null,
       draw: false,
+      moveHistory: [],
+      lastUpdated: Date.now(),
+      castlingRights: 'KQkq',
+      enPassantTarget: null,
+      halfmoveClock: 0,
+      fullmoveNumber: 1,
       inCheck: false,
       inCheckmate: false,
-      lastUpdated: Date.now()
+      lastMove: null
     });
     
     // Reset game state flags

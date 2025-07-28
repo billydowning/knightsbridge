@@ -30,7 +30,7 @@ export interface SolanaWalletHook {
   checkBalance: () => Promise<void>;
   refreshBalance: () => Promise<void>;
   createEscrow: (roomId: string, betAmount: number, playerRole: 'white' | 'black') => Promise<boolean>;
-  depositStake: (roomId: string, betAmount: number) => Promise<boolean>;
+  depositStake: (roomId: string, betAmount: number) => Promise<string | null>;
   joinAndDepositStake: (roomId: string, betAmount: number) => Promise<boolean>;
   claimWinnings: (roomId: string, playerRole: string, gameWinner: string | null, isDraw: boolean) => Promise<string>;
   recordMove: (roomId: string, moveNotation: string, positionHash: Uint8Array) => Promise<boolean>;
@@ -643,20 +643,17 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     };
 
     /**
-     * Deposit stake for an existing game after both players have joined
-     * @param roomId - Room ID to deposit for
-     * @param betAmount - Amount to bet in SOL
-     * @returns Success status
+     * Deposit stake using direct RPC (most reliable)
      */
-    const depositStake = async (roomId: string, betAmount: number): Promise<boolean> => {
+    const depositStake = async (roomId: string, betAmount: number): Promise<string | null> => {
       if (!connected || !publicKey) {
         setError('Please connect your wallet first');
-        return false;
+        return null;
       }
 
       if (balance < betAmount) {
         setError(`Insufficient balance! Need ${betAmount} SOL, have ${balance.toFixed(3)} SOL`);
-        return false;
+        return null;
       }
 
       try {
@@ -719,7 +716,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           checkBalance();
         }, 1000);
 
-        return true;
+        return signature; // Return the actual transaction signature
         
       } catch (err: any) {
         let errorMessage = 'Failed to deposit stake';
@@ -744,7 +741,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         
         setError(errorMessage);
         console.error('❌ Deposit stake error:', err);
-        return false;
+        return null;
       } finally {
         setIsLoading(false);
       }
@@ -1481,7 +1478,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       checkBalance: async () => {},
       refreshBalance: async () => {},
       createEscrow: async () => false,
-      depositStake: async () => false,
+      depositStake: async () => null,
       joinAndDepositStake: async () => false,
       claimWinnings: async () => 'Error',
       recordMove: async () => false,
