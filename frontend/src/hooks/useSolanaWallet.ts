@@ -792,8 +792,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       // Create provider for direct RPC calls (needed even if program creation fails)
       const walletAdapter = { 
         publicKey, 
-        signTransaction: signTransaction!, 
-        signAllTransactions: signAllTransactions! 
+        signTransaction: signTransaction!
+        // signAllTransactions is optional for our use case
       };
       const provider = new AnchorProvider(connection, walletAdapter, { commitment: 'confirmed' });
 
