@@ -162,14 +162,26 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               color: theme.successDark,
               textAlign: 'center'
             }}>
-              ✅ White Player: {roomStatus?.players?.[0]?.slice(0, 8)}...
+              ✅ White Player: {
+                roomStatus?.players?.[0] 
+                  ? (typeof roomStatus.players[0] === 'string' 
+                      ? roomStatus.players[0].slice(0, 8) + '...'
+                      : roomStatus.players[0]?.wallet?.slice(0, 8) + '...' || 'Unknown')
+                  : 'Waiting...'
+              }
             </div>
             <div style={{ 
               fontSize: textSizes.body,
               color: theme.successDark,
               textAlign: 'center'
             }}>
-              ✅ Black Player: {roomStatus?.players?.[1]?.slice(0, 8)}...
+              ✅ Black Player: {
+                roomStatus?.players?.[1] 
+                  ? (typeof roomStatus.players[1] === 'string' 
+                      ? roomStatus.players[1].slice(0, 8) + '...'
+                      : roomStatus.players[1]?.wallet?.slice(0, 8) + '...' || 'Unknown')
+                  : 'Waiting...'
+              }
             </div>
           </div>
 
