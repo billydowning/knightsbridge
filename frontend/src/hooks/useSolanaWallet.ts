@@ -285,30 +285,81 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           transaction.add(joinGameIx);
         }
         
-        // Get recent blockhash and add nonce for uniqueness
-        const { blockhash } = await connection.getLatestBlockhash();
+        // Force a small delay to ensure timestamp uniqueness
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Get fresh blockhash with finalized commitment for maximum freshness
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = publicKey;
         
-        // Add a unique nonce instruction to ensure transaction uniqueness
-        const nonceData = Buffer.from(`${Date.now()}-${Math.random()}`, 'utf8');
+        console.log('🔍 Direct RPC - Fresh blockhash:', blockhash.slice(0, 8) + '...');
+        console.log('🔍 Direct RPC - Last valid block height:', lastValidBlockHeight);
+        
+        // Add multiple uniqueness factors to ensure transaction uniqueness
+        const timestamp = Date.now();
+        const randomValue = Math.random();
+        const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 10) : 'server';
+        const uniqueId = `${timestamp}-${randomValue}-${userAgent}-${publicKey.toString().slice(0, 8)}`;
+        
+        // Create a more robust memo with player role and attempt counter
+        const attemptCounter = Math.floor(Math.random() * 1000000);
+        const memoData = `${playerRole}-${roomId.slice(-8)}-${attemptCounter}-${uniqueId}`;
+        const memoBuffer = Buffer.from(memoData.slice(0, 32), 'utf8');
+        
         const memoInstruction = new web3.TransactionInstruction({
-          keys: [],
+          keys: [
+            { pubkey: publicKey, isSigner: true, isWritable: false }, // Add signer as key for uniqueness
+          ],
           programId: new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'), // Memo program
-          data: nonceData.slice(0, 32), // Limit to 32 bytes
+          data: memoBuffer,
         });
         transaction.add(memoInstruction);
         
-        console.log('🔍 Direct RPC - Added uniqueness nonce:', nonceData.slice(0, 8).toString());
+        console.log('🔍 Direct RPC - Added enhanced uniqueness memo:', memoData.slice(0, 20) + '...');
         
-        // Sign and send the transaction
-        const signedTx = await signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signedTx.serialize());
+        // Sign and send the transaction with retry logic
+        let signature: string;
+        let retryCount = 0;
+        const maxRetries = 3;
         
-        console.log('✅ Direct RPC - Transaction sent:', signature);
+        while (retryCount < maxRetries) {
+          try {
+            const signedTx = await signTransaction(transaction);
+            
+            // Send with custom settings to avoid duplicate detection
+            signature = await connection.sendRawTransaction(signedTx.serialize(), {
+              skipPreflight: false,
+              preflightCommitment: 'finalized',
+              maxRetries: 0, // Don't auto-retry
+            });
+            
+            console.log(`✅ Direct RPC - Transaction sent (attempt ${retryCount + 1}):`, signature);
+            break;
+            
+          } catch (sendError) {
+            retryCount++;
+            console.log(`❌ Send attempt ${retryCount} failed:`, sendError.message);
+            
+            if (retryCount >= maxRetries) {
+              throw sendError;
+            }
+            
+            // Wait before retry and get fresh blockhash
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const { blockhash: newBlockhash } = await connection.getLatestBlockhash('finalized');
+            transaction.recentBlockhash = newBlockhash;
+            console.log('🔄 Retrying with new blockhash:', newBlockhash.slice(0, 8) + '...');
+          }
+        }
         
-        // Wait for confirmation
-        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+        // Wait for confirmation with timeout
+        const confirmation = await connection.confirmTransaction({
+          signature,
+          blockhash,
+          lastValidBlockHeight
+        }, 'confirmed');
+        
         console.log('✅ Direct RPC - Transaction confirmed:', confirmation);
         
         // Add to multiplayer state only if not already added
