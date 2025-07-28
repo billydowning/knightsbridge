@@ -433,21 +433,38 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         let escrowAddedToDb = false; // Flag to prevent duplicate database calls
         
         try {
-          // Try to initialize the game first
-          console.log('🔍 Debug - About to call initializeGame');
+          let gameTx: string;
           
-          const initializeTx = await program.methods
-            .initializeGame(roomId, new BN(betAmountLamports), new BN(timeLimitSeconds))
-            .accounts({
-              gameEscrow: gameEscrowPda,
-              player: publicKey,
-              gameVault: gameVaultPda,
-              feeCollector: new PublicKey(FEE_WALLET_ADDRESS),
-              systemProgram: SystemProgram.programId,
-            })
-            .rpc();
-          
-          console.log('✅ InitializeGame successful:', initializeTx);
+          if (playerRole === 'white') {
+            // White player initializes the game
+            console.log('🔍 Debug - About to call initializeGame (WHITE player)');
+            
+            gameTx = await program.methods
+              .initializeGame(roomId, new BN(betAmountLamports), new BN(timeLimitSeconds))
+              .accounts({
+                gameEscrow: gameEscrowPda,
+                player: publicKey,
+                gameVault: gameVaultPda,
+                feeCollector: new PublicKey(FEE_WALLET_ADDRESS),
+                systemProgram: SystemProgram.programId,
+              })
+              .rpc();
+            
+            console.log('✅ InitializeGame successful:', gameTx);
+          } else {
+            // Black player joins the existing game
+            console.log('🔍 Debug - About to call joinGame (BLACK player)');
+            
+            gameTx = await program.methods
+              .joinGame()
+              .accounts({
+                gameEscrow: gameEscrowPda,
+                player: publicKey,
+              })
+              .rpc();
+            
+            console.log('✅ JoinGame successful:', gameTx);
+          }
           
           try {
             // Now try to deposit stake
