@@ -398,9 +398,14 @@ function ChessApp() {
   // Watch for room status changes and set bothEscrowsReady when both escrows are present
   useEffect(() => {
     if (roomStatus && gameMode === 'lobby') {
+      // DISABLED: Auto-set bothEscrowsReady based on escrow count
+      // This was causing premature game start before deposits
+      /*
       if (roomStatus.escrowCount >= 2) {
         setBothEscrowsReady(true);
       }
+      */
+      console.log('🔍 Room status escrow check (disabled):', { escrowCount: roomStatus.escrowCount });
     }
   }, [roomStatus, gameMode]);
 
@@ -636,9 +641,13 @@ function ChessApp() {
         
         // Check if both players have created escrows
         const afterStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+        // DISABLED: Set bothEscrowsReady based on escrow count (should be based on deposits)
+        /*
         if (afterStatus && afterStatus.escrowCount >= 2) {
           setBothEscrowsReady(true);
         }
+        */
+        console.log('🔍 After escrow creation check (disabled):', { escrowCount: afterStatus?.escrowCount });
       } else {
         setGameStatus('Failed to create escrow on Solana. Please try again.');
       }
@@ -679,10 +688,14 @@ function ChessApp() {
         
         // Refresh room status to check if both players have deposited
         const afterStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+        // DISABLED: Set bothEscrowsReady based on escrow count (should be based on actual deposits)
+        /*
         if (afterStatus && afterStatus.escrowCount >= 2) {
           setBothEscrowsReady(true);
-          setGameStatus('Both players have deposited! Game will start shortly...');
         }
+        */
+        console.log('🔍 After deposit check (disabled):', { escrowCount: afterStatus?.escrowCount });
+        setGameStatus('Both players have deposited! Game will start shortly...');
       } else {
         setGameStatus('Failed to deposit stake. Please try again.');
       }
