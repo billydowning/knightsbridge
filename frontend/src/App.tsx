@@ -675,6 +675,12 @@ function ChessApp() {
       return;
     }
     
+    // Prevent multiple rapid calls
+    if (appLoading) {
+      console.log('🔍 Debug - DepositStake already in progress, ignoring duplicate call');
+      return;
+    }
+    
     try {
       setGameStatus('Depositing stake to escrow...');
       setAppLoading(true);
