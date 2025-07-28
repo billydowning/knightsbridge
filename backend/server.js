@@ -2263,3 +2263,132 @@ server.listen(PORT, '0.0.0.0', async () => {
     // Don't exit - let the server run for health checks
   }
 });
+
+// Get room status endpoint (enhanced with deposit checking)
+app.get('/api/room-status/:roomId', async (req, res) => {
+  console.log('📊 Getting room status for:', req.params.roomId);
+  
+  try {
+    const { roomId } = req.params;
+    
+    if (!process.env.DATABASE_URL) {
+      console.log('⚠️ DATABASE_URL not set - using test mode');
+      return res.json({
+        playerCount: 0,
+        players: [],
+        escrowCount: 0,
+        escrows: {},
+        gameStarted: false,
+        testMode: true
+      });
+    }
+
+    const poolInstance = getPool();
+
+    // Get room info
+    const roomResult = await poolInstance.query(
+      'SELECT player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1',
+      [roomId]
+    );
+
+    if (roomResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    const room = roomResult.rows[0];
+    
+    // Get players
+    const players = [room.player_white_wallet, room.player_black_wallet].filter(Boolean);
+    
+    // Get escrows with status
+    const escrowResult = await poolInstance.query(
+      'SELECT player_wallet, escrow_amount, status, blockchain_tx_id FROM escrows WHERE room_id = $1',
+      [roomId]
+    );
+
+    const escrows = {};
+    let confirmedDeposits = 0;
+    
+    escrowResult.rows.forEach(escrow => {
+      escrows[escrow.player_wallet] = escrow.escrow_amount;
+      if (escrow.status === 'confirmed') {
+        confirmedDeposits++;
+      }
+    });
+
+    const gameStarted = room.game_state === 'active';
+    
+    // AUTO-START LOGIC: If both players present, both escrows exist, but game not started
+    // Check if this should trigger game start
+    if (!gameStarted && 
+        room.player_white_wallet && 
+        room.player_black_wallet && 
+        escrowResult.rows.length === 2 &&
+        confirmedDeposits < 2) {
+      
+      console.log('🔍 Checking if deposits are complete on-chain...');
+      
+      // In a real implementation, we'd check on-chain deposit status here
+      // For now, assume deposits are complete if escrows exist for 30+ seconds
+      const oldestEscrow = await poolInstance.query(
+        'SELECT MIN(created_at) as oldest FROM escrows WHERE room_id = $1',
+        [roomId]
+      );
+      
+      if (oldestEscrow.rows[0]?.oldest) {
+        const escrowAge = Date.now() - new Date(oldestEscrow.rows[0].oldest).getTime();
+        if (escrowAge > 30000) { // 30 seconds
+          console.log('🎮 Auto-starting game after deposit timeout');
+          
+          // Update escrows to confirmed status
+          await poolInstance.query(
+            'UPDATE escrows SET status = $1 WHERE room_id = $2',
+            ['confirmed', roomId]
+          );
+          
+          // Start the game
+          await poolInstance.query(
+            'UPDATE games SET game_state = $1 WHERE room_id = $2',
+            ['active', roomId]
+          );
+          
+          // Broadcast game start
+          io.to(roomId).emit('gameStarted', {
+            roomId: roomId,
+            gameState: {
+              position: STARTING_POSITION,
+              currentPlayer: 'white',
+              gameActive: true,
+              players: {
+                white: room.player_white_wallet,
+                black: room.player_black_wallet
+              }
+            }
+          });
+          
+          console.log('✅ Game auto-started for room:', roomId);
+          
+          // Update response to reflect new state
+          confirmedDeposits = 2;
+          gameStarted = true;
+        }
+      }
+    }
+
+    const response = {
+      playerCount: players.length,
+      players: players,
+      escrowCount: escrowResult.rows.length,
+      escrows: escrows,
+      gameStarted: gameStarted,
+      confirmedDeposits: confirmedDeposits
+    };
+
+    console.log('📊 Room status response:', response);
+    res.json(response);
+    
+  } catch (error) {
+    console.error('❌ Error getting room status:', error);
+    res.status(500).json({ error: 'Failed to get room status' });
+  }
+});

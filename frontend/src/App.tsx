@@ -697,6 +697,44 @@ function ChessApp() {
           setBothEscrowsReady(true);
         }
         */
+        
+        // Start polling for game start after deposit
+        console.log('🔄 Starting game start polling after deposit...');
+        let pollCount = 0;
+        const maxPolls = 20; // Poll for up to 2 minutes (6 second intervals)
+        
+        const pollForGameStart = async () => {
+          try {
+            const currentStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+            console.log('🔍 Poll', pollCount + 1, '- Room status:', currentStatus);
+            
+            if (currentStatus?.gameStarted) {
+              console.log('🎮 Game started detected via polling!');
+              setGameStatus('🎮 Both players deposited! Game starting...');
+              setBothEscrowsReady(true);
+              return; // Stop polling
+            }
+            
+            pollCount++;
+            if (pollCount < maxPolls) {
+              // Continue polling every 6 seconds
+              setTimeout(pollForGameStart, 6000);
+            } else {
+              console.log('⏰ Polling timeout - game did not start automatically');
+              setGameStatus('⏰ Deposits complete but game not started. Try refreshing the page.');
+            }
+          } catch (pollError) {
+            console.error('❌ Error during game start polling:', pollError);
+            pollCount++;
+            if (pollCount < maxPolls) {
+              setTimeout(pollForGameStart, 6000);
+            }
+          }
+        };
+        
+        // Start polling after a short delay
+        setTimeout(pollForGameStart, 3000);
+        
         console.log('🔍 After deposit check (disabled):', { escrowCount: afterStatus?.escrowCount });
         setGameStatus('Both players have deposited! Game will start shortly...');
       } else {
@@ -1014,7 +1052,7 @@ function ChessApp() {
 
   // Helper function to detect checkmate
   const detectCheckmate = (position: any, currentPlayer: string): boolean => {
-    console.log('🔍 Checking for checkmate...');
+    console.log('�� Checking for checkmate...');
     console.log('Position:', position);
     console.log('Current player:', currentPlayer);
     
