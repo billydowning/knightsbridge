@@ -1958,9 +1958,14 @@ function ChessApp() {
       const checkGameState = async () => {
         try {
           const gameState = await databaseMultiplayerState.getGameState(roomId);
+          // DISABLED: Auto-switch to game mode based on database state
+          // This was causing premature game start before deposits
+          /*
           if (gameState && gameState.gameActive) {
             setGameMode('game');
           }
+          */
+          console.log('🔍 Reconnection game state check (disabled):', { gameState: gameState?.gameActive });
         } catch (error) {
           console.error('Error checking game state:', error);
         }
