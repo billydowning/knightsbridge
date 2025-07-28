@@ -20,6 +20,7 @@ export interface LobbyViewProps {
   connected: boolean;
   isLoading: boolean;
   onCreateEscrow: () => void;
+  onDepositStake: () => void;
   onStartGame: () => void;
   onBackToMenu: () => void;
 }
@@ -36,6 +37,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   connected,
   isLoading,
   onCreateEscrow,
+  onDepositStake,
   onStartGame,
   onBackToMenu
 }) => {
@@ -57,9 +59,11 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const gameStarted = roomStatus?.gameStarted || false;
   const bothPlayersPresent = playerCount === 2;
   const bothEscrowsCreated = escrowCount === 2 || (escrowCreated && opponentEscrowCreated);
+  
+  // NEW: Determine if we're in the "ready to deposit" state
+  // This happens when both players have joined (created accounts) but haven't deposited yet
+  const readyToDeposit = bothPlayersPresent && escrowCount >= 1 && !gameStarted;
   const readyToStart = bothPlayersPresent && bothEscrowsCreated;
-
-
 
   return (
     <div style={{ textAlign: 'center', color: theme.text }}>
@@ -125,6 +129,90 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         </div>
       </div>
 
+      {/* NEW: Game Ready Section (when both players joined but haven't deposited) */}
+      {readyToDeposit && !readyToStart && (
+        <div style={{ 
+          margin: isMobile ? '15px auto' : '25px auto',
+          padding: isMobile ? '15px' : (isDesktopLayout ? '25px' : '20px'),
+          backgroundColor: theme.successLight,
+          borderRadius: '12px',
+          border: `2px solid ${theme.success}`,
+          boxShadow: theme.shadow,
+          width: isDesktopLayout ? '800px' : '95%',
+          display: 'flex',
+          flexDirection: 'column' as const,
+          alignItems: 'center'
+        }}>
+          <h3 style={{ 
+            margin: '0 0 15px 0', 
+            color: theme.successDark,
+            fontSize: textSizes.h2,
+            textAlign: 'center'
+          }}>🎯 Game Ready!</h3>
+          
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '20px'
+          }}>
+            <div style={{ 
+              fontSize: textSizes.body,
+              color: theme.successDark,
+              textAlign: 'center'
+            }}>
+              ✅ White Player: {roomStatus?.players?.[0]?.slice(0, 8)}...
+            </div>
+            <div style={{ 
+              fontSize: textSizes.body,
+              color: theme.successDark,
+              textAlign: 'center'
+            }}>
+              ✅ Black Player: {roomStatus?.players?.[1]?.slice(0, 8)}...
+            </div>
+          </div>
+
+          <div style={{ 
+            fontSize: textSizes.h3,
+            color: theme.successDark,
+            marginBottom: '15px',
+            textAlign: 'center'
+          }}>
+            💰 Ready to deposit {betAmount} SOL?
+          </div>
+
+          <button
+            onClick={onDepositStake}
+            disabled={isLoading}
+            style={{
+              padding: isMobile ? '12px 20px' : '18px 35px',
+              backgroundColor: isLoading ? theme.border : theme.success,
+              color: 'white',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              fontSize: isMobile ? textSizes.body : textSizes.h3,
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              marginBottom: '10px'
+            }}
+          >
+            {isLoading ? '⏳ Depositing...' : `💰 Start Game & Deposit ${betAmount} SOL`}
+          </button>
+          
+          <div style={{ 
+            fontSize: textSizes.small,
+            color: theme.textSecondary,
+            textAlign: 'center',
+            fontStyle: 'italic'
+          }}>
+            ⏳ Waiting for both players to deposit...
+          </div>
+        </div>
+      )}
+
       {/* Room Status Section */}
       <div style={{ 
         margin: isMobile ? '10px auto' : '20px auto',
@@ -176,7 +264,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               {escrowCount}/2
             </div>
             <div style={{ fontSize: textSizes.body, color: theme.textSecondary }}>
-              Escrows
+              Deposits
             </div>
           </div>
           
@@ -230,13 +318,25 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               </div>
             )}
             
-            {bothPlayersPresent && !bothEscrowsCreated && (
+            {bothPlayersPresent && !escrowCreated && playerRole === 'white' && (
               <div style={{ color: '#2196F3', marginBottom: '4px' }}>
-                💰 Waiting for escrows to be created...
+                🤵 Please create the game escrow (White player goes first)
               </div>
             )}
             
-            {readyToStart && (
+            {bothPlayersPresent && escrowCount === 1 && playerRole === 'black' && (
+              <div style={{ color: '#2196F3', marginBottom: '4px' }}>
+                ♛ Please join the game escrow (Black player)
+              </div>
+            )}
+            
+            {readyToDeposit && !readyToStart && (
+              <div style={{ color: '#4CAF50', marginBottom: '4px' }}>
+                💰 Ready to deposit! Both players can now deposit their stakes.
+              </div>
+            )}
+            
+            {readyToStart && !gameStarted && (
               <div style={{ color: '#4CAF50', marginBottom: '4px' }}>
                 ✅ Ready to start the game!
               </div>
@@ -325,8 +425,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         justifyContent: 'center',
         width: isDesktopLayout ? '800px' : '95%'
       }}>
-        {/* Create Escrow Button */}
-        {!escrowCreated && connected && (
+        {/* Create Escrow Button (White player first) */}
+        {!escrowCreated && connected && playerRole === 'white' && escrowCount === 0 && (
           <button
             onClick={onCreateEscrow}
             disabled={isLoading}
@@ -342,12 +442,33 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               transition: 'all 0.2s ease'
             }}
           >
-            {isLoading ? '⏳ Creating...' : '💰 Create Escrow'}
+            {isLoading ? '⏳ Creating...' : '🤵 Create Game (White Player)'}
+          </button>
+        )}
+
+        {/* Join Escrow Button (Black player second) */}
+        {!escrowCreated && connected && playerRole === 'black' && escrowCount === 1 && (
+          <button
+            onClick={onCreateEscrow}
+            disabled={isLoading}
+            style={{
+              padding: isMobile ? '10px 16px' : '15px 30px',
+              backgroundColor: isLoading ? theme.border : theme.warning,
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              fontSize: textSizes.body,
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {isLoading ? '⏳ Joining...' : '♛ Join Game (Black Player)'}
           </button>
         )}
 
         {/* Escrow Created Indicator */}
-        {escrowCreated && (
+        {escrowCreated && !readyToDeposit && (
           <div style={{
             padding: isMobile ? '10px 16px' : '15px 30px',
             backgroundColor: '#d4edda',
@@ -357,11 +478,11 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             fontSize: textSizes.body,
             fontWeight: 'bold'
           }}>
-            ✅ Escrow Created
+            ✅ Joined Game - Waiting for opponent
           </div>
         )}
 
-        {/* Start Game Button */}
+        {/* Start Game Button (original, for after deposits) */}
         {readyToStart && !gameStarted && (
           <button
             onClick={onStartGame}

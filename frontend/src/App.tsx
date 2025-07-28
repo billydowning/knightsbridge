@@ -191,7 +191,8 @@ function ChessApp() {
     isLoading,
     createEscrow,
     joinAndDepositStake,
-    claimWinnings
+    claimWinnings,
+    depositStake
   } = useSolanaWallet();
   const isMobile = useIsMobile();
   const textSizes = useTextSizes();
@@ -645,6 +646,50 @@ function ChessApp() {
     } catch (error) {
       console.error('Error creating escrow:', error);
       setGameStatus(`Error creating escrow: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setAppLoading(false);
+    }
+  };
+
+  const handleDepositStake = async () => {
+    if (!connected || !publicKey) {
+      setGameStatus('Please connect your wallet first');
+      return;
+    }
+    
+    if (!roomId) {
+      setGameStatus('No room ID available');
+      return;
+    }
+    
+    try {
+      setGameStatus('Depositing stake to escrow...');
+      setAppLoading(true);
+      
+      console.log('🔍 Debug - DepositStake - Starting deposit');
+      console.log('🔍 Debug - DepositStake - Room ID:', roomId);
+      console.log('🔍 Debug - DepositStake - Bet Amount:', betAmount);
+      console.log('🔍 Debug - DepositStake - Player Role:', playerRole);
+      
+      // Call the depositStake function from the hook
+      const success = await depositStake(roomId, betAmount);
+      
+      if (success) {
+        setGameStatus(`✅ Deposit successful! ${betAmount} SOL deposited. Waiting for opponent...`);
+        
+        // Refresh room status to check if both players have deposited
+        const afterStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+        if (afterStatus && afterStatus.escrowCount >= 2) {
+          setBothEscrowsReady(true);
+          setGameStatus('Both players have deposited! Game will start shortly...');
+        }
+      } else {
+        setGameStatus('Failed to deposit stake. Please try again.');
+      }
+      
+    } catch (error) {
+      console.error('Error depositing stake:', error);
+      setGameStatus(`Error depositing stake: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setAppLoading(false);
     }
@@ -1973,6 +2018,7 @@ function ChessApp() {
             connected={connected}
             isLoading={appLoading}
             onCreateEscrow={handleCreateEscrow}
+            onDepositStake={handleDepositStake}
             onStartGame={handleStartGame}
             onBackToMenu={handleBackToMenu}
             opponentEscrowCreated={opponentEscrowCreated}
