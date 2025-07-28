@@ -225,10 +225,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         const transaction = new web3.Transaction();
         
         if (playerRole === 'white') {
-          // WHITE PLAYER: Initialize game instruction
-          console.log('🔍 Direct RPC - Creating initialize_game instruction for WHITE player');
+          // WHITE PLAYER: Use initialize_game + deposit_stake (two separate instructions)
+          console.log('🔍 Direct RPC - Creating initialize_game + deposit_stake instructions for WHITE player');
           
-          // Instruction discriminator for initialize_game: [44, 62, 102, 247, 126, 208, 130, 215]
+          // INSTRUCTION 1: initialize_game
           const initializeGameDiscriminator = Buffer.from([44, 62, 102, 247, 126, 208, 130, 215]);
           
           // Encode the arguments manually
@@ -253,10 +253,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             timeLimitBuffer
           ]);
           
-          console.log('🔍 Direct RPC - Instruction data length:', instructionData.length);
-          console.log('🔍 Direct RPC - Room ID length:', roomIdBuffer.length);
-          console.log('🔍 Direct RPC - Bet amount lamports:', betAmountLamports);
-          console.log('🔍 Direct RPC - Time limit seconds:', timeLimitSeconds);
+          console.log('🔍 Direct RPC - Initialize game instruction');
           
           // Create the initialize game instruction
           const initializeGameIx = new web3.TransactionInstruction({
@@ -271,6 +268,23 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           });
           
           transaction.add(initializeGameIx);
+          
+          // INSTRUCTION 2: deposit_stake (handles SOL transfer and game start)
+          const depositStakeDiscriminator = Buffer.from([160, 167, 9, 220, 74, 243, 228, 43]);
+          
+          const depositStakeIx = new web3.TransactionInstruction({
+            keys: [
+              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
+              { pubkey: publicKey, isSigner: true, isWritable: true },
+              { pubkey: gameVaultPda, isSigner: false, isWritable: true },
+              { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+            ],
+            programId: new PublicKey(CHESS_PROGRAM_ID),
+            data: depositStakeDiscriminator, // No arguments for deposit_stake
+          });
+          
+          console.log('🔍 Direct RPC - Deposit stake instruction for WHITE player');
+          transaction.add(depositStakeIx);
           
         } else {
           // BLACK PLAYER: Use join_game + deposit_stake (two separate instructions)
