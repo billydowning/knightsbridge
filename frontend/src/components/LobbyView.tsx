@@ -130,7 +130,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       </div>
 
       {/* NEW: Game Ready Section (when both players joined but haven't deposited) */}
-      {readyToDeposit && !readyToStart && (
+      {readyToDeposit && (
         <div style={{ 
           margin: isMobile ? '15px auto' : '25px auto',
           padding: isMobile ? '15px' : (isDesktopLayout ? '25px' : '20px'),
@@ -492,27 +492,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           }}>
             ✅ Joined Game - Waiting for opponent
           </div>
-        )}
-
-        {/* Start Game Button (original, for after deposits) */}
-        {readyToStart && !gameStarted && (
-          <button
-            onClick={onStartGame}
-            disabled={isLoading}
-            style={{
-              padding: isMobile ? '10px 16px' : '15px 30px',
-              backgroundColor: isLoading ? theme.border : theme.secondary,
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              fontSize: textSizes.body,
-              fontWeight: 'bold',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {isLoading ? '⏳ Starting...' : '🎮 Start Game'}
-          </button>
         )}
 
         {/* Back to Menu Button */}
