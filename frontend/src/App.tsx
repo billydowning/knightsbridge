@@ -215,6 +215,27 @@ function ChessApp() {
     return null;
   };
 
+  // Helper function to get piece type from both text and Unicode formats
+  const getPieceTypeFromAnyFormat = (piece: string): string | null => {
+    // Unicode format
+    if (piece === '♔' || piece === '♚') return 'king';
+    if (piece === '♕' || piece === '♛') return 'queen';
+    if (piece === '♖' || piece === '♜') return 'rook';
+    if (piece === '♗' || piece === '♝') return 'bishop';
+    if (piece === '♘' || piece === '♞') return 'knight';
+    if (piece === '♙' || piece === '♟') return 'pawn';
+    
+    // Text format
+    if (piece.includes('-king')) return 'king';
+    if (piece.includes('-queen')) return 'queen';
+    if (piece.includes('-rook')) return 'rook';
+    if (piece.includes('-bishop')) return 'bishop';
+    if (piece.includes('-knight')) return 'knight';
+    if (piece.includes('-pawn')) return 'pawn';
+    
+    return null;
+  };
+
   // App state
   const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
   const [roomId, setRoomId] = useState<string>('');
@@ -682,8 +703,16 @@ function ChessApp() {
     const fromSquare = gameState.selectedSquare;
     const toSquare = square;
     
+    console.log('🔍 Attempting move from', fromSquare, 'to', toSquare);
+    console.log('🔍 Game state position:', gameState.position);
+    console.log('🔍 Current player:', gameState.currentPlayer);
+    
     // Validate move using existing function
-    if (validateLocalMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer)) {
+    const isValidMove = validateLocalMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer);
+    console.log('🔍 Move validation result:', isValidMove);
+    
+    if (isValidMove) {
+      console.log('✅ Valid move - executing move');
       
       // Create new position by making the move
       const newPosition = { ...gameState.position };
@@ -732,17 +761,26 @@ function ChessApp() {
           setIsReceivingServerUpdate(false);
         });
     } else {
+      console.log('❌ Invalid move - updating selection instead');
+      
       // Invalid move - just update selection
       const piece = gameState.position[square];
       if (piece) {
         const pieceColor = getPieceColorFromAnyFormat(piece);
+        console.log('🔍 Destination square has piece:', piece, 'color:', pieceColor);
         if (pieceColor === gameState.currentPlayer) {
+          console.log('🔍 Selecting new piece at', square);
           setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
+          setGameStatus(`Selected ${piece} at ${square}`);
         } else {
+          console.log('🔍 Clearing selection - wrong color piece');
           setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
+          setGameStatus('Invalid move - cleared selection');
         }
       } else {
+        console.log('🔍 Clearing selection - empty destination square');
         setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
+        setGameStatus('Invalid move to empty square - cleared selection');
       }
     }
   };
@@ -1017,15 +1055,14 @@ function ChessApp() {
     const piece = position[fromSquare];
     if (!piece) return false;
     
-    // Check if piece belongs to current player
-    const whitePieces = ['♔', '♕', '♖', '♗', '♘', '♙'];
-    const pieceColor = whitePieces.includes(piece) ? 'white' : 'black';
+    // Check if piece belongs to current player using our helper function
+    const pieceColor = getPieceColorFromAnyFormat(piece);
     if (pieceColor !== currentPlayer) return false;
     
     // Check if destination square is occupied by own piece
     const targetPiece = position[toSquare];
     if (targetPiece) {
-      const targetColor = whitePieces.includes(targetPiece) ? 'white' : 'black';
+      const targetColor = getPieceColorFromAnyFormat(targetPiece);
       if (targetColor === currentPlayer) return false;
     }
     
@@ -1038,10 +1075,13 @@ function ChessApp() {
     const fileDiff = Math.abs(fromFile.charCodeAt(0) - toFile.charCodeAt(0));
     const rankDiff = Math.abs(fromRank - toRank);
     
+    // Get piece type for easier comparisons
+    const pieceType = getPieceTypeFromAnyFormat(piece);
+    
     // Pawn moves
-    if (piece === '♙' || piece === '♟') {
-      const direction = piece === '♙' ? 1 : -1;
-      const startRank = piece === '♙' ? 2 : 7;
+    if (pieceType === 'pawn') {
+      const direction = pieceColor === 'white' ? 1 : -1;
+      const startRank = pieceColor === 'white' ? 2 : 7;
       
       // Forward move
       if (fileDiff === 0 && toRank === fromRank + direction) {
@@ -1055,36 +1095,36 @@ function ChessApp() {
       }
       // Capture move
       if (fileDiff === 1 && rankDiff === 1) {
-        return targetPiece && targetPiece !== (currentPlayer === 'white' ? '♙' : '♟');
+        return targetPiece && getPieceTypeFromAnyFormat(targetPiece) !== 'pawn';
       }
       return false;
     }
     
     // King moves
-    if (piece === '♔' || piece === '♚') {
+    if (pieceType === 'king') {
       return fileDiff <= 1 && rankDiff <= 1;
     }
     
     // Queen moves
-    if (piece === '♕' || piece === '♛') {
+    if (pieceType === 'queen') {
       return (fileDiff === 0 || rankDiff === 0 || fileDiff === rankDiff) && 
              !isPathBlocked(position, fromSquare, toSquare);
     }
     
     // Rook moves
-    if (piece === '♖' || piece === '♜') {
+    if (pieceType === 'rook') {
       return (fileDiff === 0 || rankDiff === 0) && 
              !isPathBlocked(position, fromSquare, toSquare);
     }
     
     // Bishop moves
-    if (piece === '♗' || piece === '♝') {
+    if (pieceType === 'bishop') {
       return fileDiff === rankDiff && 
              !isPathBlocked(position, fromSquare, toSquare);
     }
     
     // Knight moves
-    if (piece === '♘' || piece === '♞') {
+    if (pieceType === 'knight') {
       return (fileDiff === 2 && rankDiff === 1) || (fileDiff === 1 && rankDiff === 2);
     }
     
