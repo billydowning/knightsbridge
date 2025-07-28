@@ -12,7 +12,7 @@ if (typeof window !== 'undefined') {
 
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { LAMPORTS_PER_SOL, PublicKey, SystemProgram } from '@solana/web3.js';
+import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import { useCallback, useEffect, useState } from 'react';
 import ChessEscrowIDL from '../idl/chess_escrow.json';
@@ -448,11 +448,15 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         try {
           let gameTx: string;
           
+          // Get fresh blockhash for transaction uniqueness
+          const { blockhash } = await connection.getLatestBlockhash('confirmed');
+          console.log('🔍 Debug - Using fresh blockhash for uniqueness:', blockhash.slice(0, 8) + '...');
+          
           if (playerRole === 'white') {
             // White player initializes the game
             console.log('🔍 Debug - About to call initializeGame (WHITE player)');
             
-            gameTx = await program.methods
+            const initializeInstruction = await program.methods
               .initializeGame(roomId, new BN(betAmountLamports), new BN(timeLimitSeconds))
               .accounts({
                 gameEscrow: gameEscrowPda,
@@ -461,20 +465,44 @@ export const useSolanaWallet = (): SolanaWalletHook => {
                 feeCollector: new PublicKey(FEE_WALLET_ADDRESS),
                 systemProgram: SystemProgram.programId,
               })
-              .rpc();
+              .instruction();
+
+            // Create transaction with fresh blockhash
+            const transaction = new Transaction({
+              recentBlockhash: blockhash,
+              feePayer: publicKey,
+            }).add(initializeInstruction);
+            
+            // Sign and send with unique transaction
+            gameTx = await sendTransaction(transaction, connection, {
+              skipPreflight: false,
+              preflightCommitment: 'confirmed',
+            });
             
             console.log('✅ InitializeGame successful:', gameTx);
           } else {
             // Black player joins the existing game
             console.log('🔍 Debug - About to call joinGame (BLACK player)');
             
-            gameTx = await program.methods
+            const joinInstruction = await program.methods
               .joinGame()
               .accounts({
                 gameEscrow: gameEscrowPda,
                 player: publicKey,
               })
-              .rpc();
+              .instruction();
+
+            // Create transaction with fresh blockhash
+            const transaction = new Transaction({
+              recentBlockhash: blockhash,
+              feePayer: publicKey,
+            }).add(joinInstruction);
+            
+            // Sign and send with unique transaction
+            gameTx = await sendTransaction(transaction, connection, {
+              skipPreflight: false,
+              preflightCommitment: 'confirmed',
+            });
             
             console.log('✅ JoinGame successful:', gameTx);
           }
