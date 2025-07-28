@@ -789,6 +789,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return errorMsg;
       }
 
+      // Create provider for direct RPC calls (needed even if program creation fails)
+      const walletAdapter = { 
+        publicKey, 
+        signTransaction: signTransaction!, 
+        signAllTransactions: signAllTransactions! 
+      };
+      const provider = new AnchorProvider(connection, walletAdapter, { commitment: 'confirmed' });
+
       try {
         setIsLoading(true);
         setError(null);
