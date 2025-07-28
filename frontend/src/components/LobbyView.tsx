@@ -60,9 +60,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const bothPlayersPresent = playerCount === 2;
   const bothEscrowsCreated = escrowCount === 2 || (escrowCreated && opponentEscrowCreated);
   
-  // NEW: Determine if we're in the "ready to deposit" state
-  // This happens when both players have joined (created accounts) but haven't deposited yet
-  const readyToDeposit = bothPlayersPresent && escrowCount >= 1 && !gameStarted;
+  // FIXED: Only show "Game Ready" section when BOTH players have actually joined the game on-chain
+  // Use escrowCount >= 2 to ensure both white (initialize_game) and black (join_game) have completed
+  const readyToDeposit = bothPlayersPresent && escrowCount >= 2 && !gameStarted;
   const readyToStart = bothPlayersPresent && bothEscrowsCreated;
 
   return (
