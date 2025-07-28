@@ -965,12 +965,12 @@ function ChessApp() {
     }
     
     // Find the king of the current player
-    const kingSymbol = currentPlayer === 'white' ? '♔' : '♚';
     let kingSquare = null;
     
-    // Find the king's position
+    // Find the king's position using our helper function
     for (const square in position) {
-      if (position[square] === kingSymbol) {
+      const piece = position[square];
+      if (piece && getPieceTypeFromAnyFormat(piece) === 'king' && getPieceColorFromAnyFormat(piece) === currentPlayer) {
         kingSquare = square;
         break;
       }
@@ -1026,8 +1026,7 @@ function ChessApp() {
         const targetPiece = position[targetSquare];
         
         // Check if square is empty or contains opponent piece
-        const whitePieces = ['♔', '♕', '♖', '♗', '♘', '♙'];
-        const isOwnPiece = targetPiece && whitePieces.includes(targetPiece) === (currentPlayer === 'white');
+        const isOwnPiece = targetPiece && getPieceColorFromAnyFormat(targetPiece) === currentPlayer;
         
         if (!isOwnPiece) {
           // Simulate the king move and check if it would still be in check
@@ -1156,12 +1155,12 @@ function ChessApp() {
   
   // Helper function to check if king is in check
   const isKingInCheck = (position: any, currentPlayer: string): boolean => {
-    const kingSymbol = currentPlayer === 'white' ? '♔' : '♚';
     let kingSquare = null;
     
-    // Find the king
+    // Find the king using our helper function
     for (const square in position) {
-      if (position[square] === kingSymbol) {
+      const piece = position[square];
+      if (piece && getPieceTypeFromAnyFormat(piece) === 'king' && getPieceColorFromAnyFormat(piece) === currentPlayer) {
         kingSquare = square;
         break;
       }
@@ -1170,13 +1169,13 @@ function ChessApp() {
     if (!kingSquare) return false;
     
     // Check if any opponent piece can attack the king
-    const opponentPieces = currentPlayer === 'white' ? ['♚', '♛', '♜', '♝', '♞', '♟'] : ['♔', '♕', '♖', '♗', '♘', '♙'];
+    const opponentColor = currentPlayer === 'white' ? 'black' : 'white';
     
     for (const square in position) {
       const piece = position[square];
-      if (opponentPieces.includes(piece)) {
+      if (piece && getPieceColorFromAnyFormat(piece) === opponentColor) {
         // Simple check: can this piece attack the king?
-        if (canPieceAttackSquare(position, square, kingSquare, piece, currentPlayer === 'white' ? 'black' : 'white')) {
+        if (canPieceAttackSquare(position, square, kingSquare, piece, opponentColor)) {
           return true;
         }
       }
@@ -1195,37 +1194,40 @@ function ChessApp() {
     const fileDiff = Math.abs(fromFile.charCodeAt(0) - toFile.charCodeAt(0));
     const rankDiff = Math.abs(fromRank - toRank);
     
+    // Get piece type for easier comparisons
+    const pieceType = getPieceTypeFromAnyFormat(piece);
+    
     // Pawn attacks
-    if (piece === '♙' || piece === '♟') {
-      const direction = piece === '♙' ? 1 : -1;
+    if (pieceType === 'pawn') {
+      const direction = pieceColor === 'white' ? 1 : -1;
       return fileDiff === 1 && toRank === fromRank + direction;
     }
     
     // King attacks
-    if (piece === '♔' || piece === '♚') {
+    if (pieceType === 'king') {
       return fileDiff <= 1 && rankDiff <= 1;
     }
     
     // Queen attacks
-    if (piece === '♕' || piece === '♛') {
+    if (pieceType === 'queen') {
       return (fileDiff === 0 || rankDiff === 0 || fileDiff === rankDiff) && 
              !isPathBlocked(position, fromSquare, toSquare);
     }
     
     // Rook attacks
-    if (piece === '♖' || piece === '♜') {
+    if (pieceType === 'rook') {
       return (fileDiff === 0 || rankDiff === 0) && 
              !isPathBlocked(position, fromSquare, toSquare);
     }
     
     // Bishop attacks
-    if (piece === '♗' || piece === '♝') {
+    if (pieceType === 'bishop') {
       return fileDiff === rankDiff && 
              !isPathBlocked(position, fromSquare, toSquare);
     }
     
     // Knight attacks
-    if (piece === '♘' || piece === '♞') {
+    if (pieceType === 'knight') {
       return (fileDiff === 2 && rankDiff === 1) || (fileDiff === 1 && rankDiff === 2);
     }
     
