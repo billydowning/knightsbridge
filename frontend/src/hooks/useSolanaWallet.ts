@@ -285,10 +285,21 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           transaction.add(joinGameIx);
         }
         
-        // Get recent blockhash
+        // Get recent blockhash and add nonce for uniqueness
         const { blockhash } = await connection.getLatestBlockhash();
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = publicKey;
+        
+        // Add a unique nonce instruction to ensure transaction uniqueness
+        const nonceData = Buffer.from(`${Date.now()}-${Math.random()}`, 'utf8');
+        const memoInstruction = new web3.TransactionInstruction({
+          keys: [],
+          programId: new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'), // Memo program
+          data: nonceData.slice(0, 32), // Limit to 32 bytes
+        });
+        transaction.add(memoInstruction);
+        
+        console.log('🔍 Direct RPC - Added uniqueness nonce:', nonceData.slice(0, 8).toString());
         
         // Sign and send the transaction
         const signedTx = await signTransaction(transaction);
