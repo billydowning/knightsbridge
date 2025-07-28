@@ -60,6 +60,16 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const bothPlayersPresent = playerCount === 2;
   const bothEscrowsCreated = escrowCount === 2 || (escrowCreated && opponentEscrowCreated);
   
+  // Extract the actual bet amount from room status escrows (shared between players)
+  const actualBetAmount = React.useMemo(() => {
+    if (roomStatus?.escrows && Object.keys(roomStatus.escrows).length > 0) {
+      // Get the first escrow amount (should be same for both players)
+      const escrowAmounts = Object.values(roomStatus.escrows);
+      return Number(escrowAmounts[0]) || betAmount;
+    }
+    return betAmount;
+  }, [roomStatus?.escrows, betAmount]);
+  
   // FIXED: Only show "Game Ready" section when BOTH players have actually joined the game on-chain
   // Use escrowCount >= 2 to ensure both white (initialize_game) and black (join_game) have completed
   const readyToDeposit = bothPlayersPresent && escrowCount >= 2 && !gameStarted;
@@ -191,7 +201,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             marginBottom: '15px',
             textAlign: 'center'
           }}>
-            💰 Ready to deposit {betAmount} SOL?
+            �� Ready to deposit {actualBetAmount} SOL?
           </div>
 
           <button
@@ -211,7 +221,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               marginBottom: '10px'
             }}
           >
-            {isLoading ? '⏳ Depositing...' : `💰 Start Game & Deposit ${betAmount} SOL`}
+            {isLoading ? '⏳ Depositing...' : `💰 Start Game & Deposit ${actualBetAmount} SOL`}
           </button>
           
           <div style={{ 
@@ -288,7 +298,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             border: `1px solid ${theme.border}`
           }}>
             <div style={{ fontSize: textSizes.h3, fontWeight: 'bold', color: theme.accent }}>
-              {betAmount}
+              {actualBetAmount}
             </div>
             <div style={{ fontSize: textSizes.body, color: theme.textSecondary }}>
               SOL Bet
