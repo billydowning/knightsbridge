@@ -225,10 +225,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         const transaction = new web3.Transaction();
         
         if (playerRole === 'white') {
-          // WHITE PLAYER: Use initialize_game + deposit_stake (two separate instructions)
-          console.log('🔍 Direct RPC - Creating initialize_game + deposit_stake instructions for WHITE player');
+          // WHITE PLAYER: Only initialize_game (deposit comes after black player joins)
+          console.log('🔍 Direct RPC - Creating initialize_game instruction for WHITE player');
           
-          // INSTRUCTION 1: initialize_game
+          // INSTRUCTION 1: initialize_game only
           const initializeGameDiscriminator = Buffer.from([44, 62, 102, 247, 126, 208, 130, 215]);
           
           // Encode the arguments manually
@@ -253,7 +253,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             timeLimitBuffer
           ]);
           
-          console.log('🔍 Direct RPC - Initialize game instruction');
+          console.log('🔍 Direct RPC - Initialize game instruction (no deposit yet)');
           
           // Create the initialize game instruction
           const initializeGameIx = new web3.TransactionInstruction({
@@ -269,28 +269,11 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           
           transaction.add(initializeGameIx);
           
-          // INSTRUCTION 2: deposit_stake (handles SOL transfer and game start)
-          const depositStakeDiscriminator = Buffer.from([160, 167, 9, 220, 74, 243, 228, 43]);
-          
-          const depositStakeIx = new web3.TransactionInstruction({
-            keys: [
-              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
-              { pubkey: publicKey, isSigner: true, isWritable: true },
-              { pubkey: gameVaultPda, isSigner: false, isWritable: true },
-              { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-            ],
-            programId: new PublicKey(CHESS_PROGRAM_ID),
-            data: depositStakeDiscriminator, // No arguments for deposit_stake
-          });
-          
-          console.log('🔍 Direct RPC - Deposit stake instruction for WHITE player');
-          transaction.add(depositStakeIx);
-          
         } else {
-          // BLACK PLAYER: Use join_game + deposit_stake (two separate instructions)
-          console.log('🔍 Direct RPC - Creating join_game + deposit_stake instructions for BLACK player');
+          // BLACK PLAYER: Only join_game (deposit separately after joining)
+          console.log('🔍 Direct RPC - Creating join_game instruction for BLACK player');
           
-          // INSTRUCTION 1: join_game (no arguments, minimal accounts)
+          // INSTRUCTION 1: join_game only
           const joinGameDiscriminator = Buffer.from([107, 112, 18, 38, 56, 173, 60, 128]);
           
           const joinGameIx = new web3.TransactionInstruction({
@@ -302,31 +285,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             data: joinGameDiscriminator, // No arguments for join_game
           });
           
-          console.log('🔍 Direct RPC - Join game instruction (no arguments)');
+          console.log('🔍 Direct RPC - Join game instruction only (deposit comes later)');
           transaction.add(joinGameIx);
-          
-          // INSTRUCTION 2: deposit_stake (handles SOL transfer and game start)
-          const depositStakeDiscriminator = Buffer.from([160, 167, 9, 220, 74, 243, 228, 43]);
-          
-          const depositStakeIx = new web3.TransactionInstruction({
-            keys: [
-              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
-              { pubkey: publicKey, isSigner: true, isWritable: true },
-              { pubkey: gameVaultPda, isSigner: false, isWritable: true },
-              { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-            ],
-            programId: new PublicKey(CHESS_PROGRAM_ID),
-            data: depositStakeDiscriminator, // No arguments for deposit_stake
-          });
-          
-          console.log('🔍 Direct RPC - Deposit stake instruction with accounts:', {
-            gameEscrow: gameEscrowPda.toString(),
-            player: publicKey.toString(),
-            gameVault: gameVaultPda.toString(),
-            systemProgram: SystemProgram.programId.toString()
-          });
-          
-          transaction.add(depositStakeIx);
         }
         
         // Force a small delay to ensure timestamp uniqueness
