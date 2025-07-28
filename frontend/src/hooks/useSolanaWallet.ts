@@ -273,23 +273,28 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           transaction.add(initializeGameIx);
           
         } else {
-          // BLACK PLAYER: Use join_game with proper account structure
-          console.log('🔍 Direct RPC - Creating join_game instruction for BLACK player with full accounts');
+          // BLACK PLAYER: Use join_game + deposit_stake (two separate instructions)
+          console.log('🔍 Direct RPC - Creating join_game + deposit_stake instructions for BLACK player');
           
-          // Instruction discriminator for join_game: [107, 112, 18, 38, 56, 173, 60, 128]
+          // INSTRUCTION 1: join_game (no arguments, minimal accounts)
           const joinGameDiscriminator = Buffer.from([107, 112, 18, 38, 56, 173, 60, 128]);
           
-          // join_game takes bet amount as argument
-          const betAmountLamports = Math.floor(betAmount * LAMPORTS_PER_SOL);
-          const betAmountBuffer = Buffer.alloc(8);
-          betAmountBuffer.writeBigUInt64LE(BigInt(betAmountLamports), 0);
-          
-          const instructionData = Buffer.concat([joinGameDiscriminator, betAmountBuffer]);
-          
-          console.log('🔍 Direct RPC - Join game instruction with stake amount:', betAmountLamports);
-          
-          // Create the join game instruction with full account structure like declare_result
           const joinGameIx = new web3.TransactionInstruction({
+            keys: [
+              { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
+              { pubkey: publicKey, isSigner: true, isWritable: true },
+            ],
+            programId: new PublicKey(CHESS_PROGRAM_ID),
+            data: joinGameDiscriminator, // No arguments for join_game
+          });
+          
+          console.log('🔍 Direct RPC - Join game instruction (no arguments)');
+          transaction.add(joinGameIx);
+          
+          // INSTRUCTION 2: deposit_stake (handles SOL transfer and game start)
+          const depositStakeDiscriminator = Buffer.from([160, 167, 9, 220, 74, 243, 228, 43]);
+          
+          const depositStakeIx = new web3.TransactionInstruction({
             keys: [
               { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
               { pubkey: publicKey, isSigner: true, isWritable: true },
@@ -297,17 +302,17 @@ export const useSolanaWallet = (): SolanaWalletHook => {
               { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
             ],
             programId: new PublicKey(CHESS_PROGRAM_ID),
-            data: instructionData,
+            data: depositStakeDiscriminator, // No arguments for deposit_stake
           });
           
-          console.log('🔍 Direct RPC - Join game instruction accounts:', {
+          console.log('🔍 Direct RPC - Deposit stake instruction with accounts:', {
             gameEscrow: gameEscrowPda.toString(),
             player: publicKey.toString(),
             gameVault: gameVaultPda.toString(),
             systemProgram: SystemProgram.programId.toString()
           });
           
-          transaction.add(joinGameIx);
+          transaction.add(depositStakeIx);
         }
         
         // Force a small delay to ensure timestamp uniqueness
