@@ -273,45 +273,41 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           transaction.add(initializeGameIx);
           
         } else {
-          // BLACK PLAYER: Try initialize_game first (in case join_game doesn't work properly)
-          console.log('🔍 Direct RPC - Creating initialize_game instruction for BLACK player (experimental)');
+          // BLACK PLAYER: Use join_game with proper account structure
+          console.log('🔍 Direct RPC - Creating join_game instruction for BLACK player with full accounts');
           
-          // First try initialize_game for black player
-          const initializeGameDiscriminator = Buffer.from([44, 62, 102, 247, 126, 208, 130, 215]);
+          // Instruction discriminator for join_game: [107, 112, 18, 38, 56, 173, 60, 128]
+          const joinGameDiscriminator = Buffer.from([107, 112, 18, 38, 56, 173, 60, 128]);
           
-          const roomIdBuffer = Buffer.from(roomId, 'utf8');
-          const roomIdLengthBuffer = Buffer.alloc(4);
-          roomIdLengthBuffer.writeUInt32LE(roomIdBuffer.length, 0);
-          
+          // join_game takes bet amount as argument
           const betAmountLamports = Math.floor(betAmount * LAMPORTS_PER_SOL);
           const betAmountBuffer = Buffer.alloc(8);
           betAmountBuffer.writeBigUInt64LE(BigInt(betAmountLamports), 0);
           
-          const timeLimitSeconds = 300;
-          const timeLimitBuffer = Buffer.alloc(8);
-          timeLimitBuffer.writeBigUInt64LE(BigInt(timeLimitSeconds), 0);
+          const instructionData = Buffer.concat([joinGameDiscriminator, betAmountBuffer]);
           
-          const instructionData = Buffer.concat([
-            initializeGameDiscriminator,
-            roomIdLengthBuffer,
-            roomIdBuffer,
-            betAmountBuffer,
-            timeLimitBuffer
-          ]);
+          console.log('🔍 Direct RPC - Join game instruction with stake amount:', betAmountLamports);
           
-          const initializeGameIx = new web3.TransactionInstruction({
+          // Create the join game instruction with full account structure like declare_result
+          const joinGameIx = new web3.TransactionInstruction({
             keys: [
               { pubkey: gameEscrowPda, isSigner: false, isWritable: true },
               { pubkey: publicKey, isSigner: true, isWritable: true },
-              { pubkey: new PublicKey(FEE_WALLET_ADDRESS), isSigner: false, isWritable: false },
+              { pubkey: gameVaultPda, isSigner: false, isWritable: true },
               { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
             ],
             programId: new PublicKey(CHESS_PROGRAM_ID),
             data: instructionData,
           });
           
-          transaction.add(initializeGameIx);
-          console.log('🔍 Direct RPC - Added initialize_game for BLACK player (account should already exist)');
+          console.log('🔍 Direct RPC - Join game instruction accounts:', {
+            gameEscrow: gameEscrowPda.toString(),
+            player: publicKey.toString(),
+            gameVault: gameVaultPda.toString(),
+            systemProgram: SystemProgram.programId.toString()
+          });
+          
+          transaction.add(joinGameIx);
         }
         
         // Force a small delay to ensure timestamp uniqueness
