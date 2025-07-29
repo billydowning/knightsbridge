@@ -2157,7 +2157,9 @@ function ChessApp() {
         backgroundColor: theme.background, 
         color: theme.text,
         minHeight: '100vh',
-        fontFamily: 'Arial, sans-serif'
+        fontFamily: 'Inter, Segoe UI, Roboto, system-ui, sans-serif',
+        width: '100%',
+        overflowX: 'hidden' // Prevent horizontal scroll
       }}>
         {/* Header */}
         <Header 
@@ -2170,8 +2172,12 @@ function ChessApp() {
         {/* Main Content */}
         <main style={{ 
           padding: isDesktopLayout ? '2rem' : '1rem',
+          paddingLeft: isDesktopLayout ? '2rem' : '1rem',
+          paddingRight: isDesktopLayout ? '2rem' : '1rem',
           maxWidth: '100vw',
+          width: '100%',
           overflow: 'hidden',
+          boxSizing: 'border-box',
           paddingTop: isDesktopLayout ? '2rem' : '1rem'
         }}>
           {renderContent()}

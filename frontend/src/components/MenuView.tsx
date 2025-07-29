@@ -47,16 +47,20 @@ export const MenuView: React.FC<MenuViewProps> = ({
   const isDesktopLayout = useIsDesktopLayout();
 
   const sharedButtonStyle = {
-    padding: isDesktopLayout ? '16px 24px' : '10px 16px',
+    padding: isDesktopLayout ? '16px 24px' : '12px 16px',
+    minHeight: isMobile ? '44px' : 'auto', // Ensure 44px touch target on mobile
     boxSizing: 'border-box' as const,
     fontSize: isDesktopLayout ? '16px' : textSizes.body,
     fontWeight: 'bold',
-    borderRadius: '8px',
+    borderRadius: isDesktopLayout ? '8px' : '6px',
     border: undefined,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     textAlign: 'center' as const,
-    width: '100%' // Ensure buttons fill their grid cells
+    width: '100%', // Ensure buttons fill their grid cells
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   };
 
   const handleCreateRoom = () => {
@@ -67,17 +71,25 @@ export const MenuView: React.FC<MenuViewProps> = ({
   };
 
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div style={{ 
+      textAlign: 'center',
+      width: '100%',
+      maxWidth: '100%',
+      boxSizing: 'border-box'
+    }}>
       
       {/* Hero Section */}
       <section style={{
         background: `linear-gradient(135deg, ${theme.primary}20 0%, ${theme.secondary}15 100%)`,
         padding: isDesktopLayout ? '4rem 2rem' : '2rem 1rem',
-        borderRadius: '20px',
-        marginBottom: isDesktopLayout ? '3rem' : '2rem',
+        borderRadius: isDesktopLayout ? '20px' : '16px',
+        marginBottom: isDesktopLayout ? '3rem' : '1.5rem',
         border: `1px solid ${theme.border}`,
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
       }}>
         {/* Background Pattern */}
         <div style={{
@@ -166,8 +178,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
       {/* Create Room Section */}
       <section style={{ 
         backgroundColor: theme.surface, 
-        padding: isDesktopLayout ? '3rem' : '2rem', 
-        borderRadius: '16px', 
+        padding: isDesktopLayout ? '3rem' : '1.5rem', 
+        borderRadius: isDesktopLayout ? '16px' : '12px', 
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
         maxWidth: isDesktopLayout ? '800px' : '100%',
@@ -329,19 +341,23 @@ export const MenuView: React.FC<MenuViewProps> = ({
           disabled={isButtonDisabled || betAmount === 0}
           style={{
             padding: isDesktopLayout ? '1.25rem 3rem' : '1rem 2rem',
+            minHeight: isMobile ? '48px' : 'auto', // Larger touch target for main action
             backgroundColor: (isButtonDisabled || betAmount === 0) ? theme.border : theme.secondary,
             color: 'white',
             border: 'none',
-            borderRadius: '12px',
+            borderRadius: isDesktopLayout ? '12px' : '8px',
             cursor: (isButtonDisabled || betAmount === 0) ? 'not-allowed' : 'pointer',
             fontSize: isDesktopLayout ? '1.1rem' : '1rem',
             fontWeight: 'bold',
             minWidth: isDesktopLayout ? '250px' : '200px',
+            maxWidth: isMobile ? '100%' : 'none',
             transition: 'all 0.3s ease',
             position: 'relative',
             overflow: 'hidden',
             boxShadow: (isButtonDisabled || betAmount === 0) ? 'none' : `0 6px 20px ${theme.secondary}40`,
-            transform: (isButtonDisabled || betAmount === 0) ? 'none' : 'translateY(-2px)'
+            transform: (isButtonDisabled || betAmount === 0) ? 'none' : 'translateY(-2px)',
+            width: isMobile ? '100%' : 'auto',
+            boxSizing: 'border-box'
           }}
         >
           <div style={{ position: 'relative', zIndex: 1 }}>
@@ -431,13 +447,15 @@ export const MenuView: React.FC<MenuViewProps> = ({
       {/* Join Room Section */}
       <section style={{ 
         backgroundColor: theme.surface, 
-        padding: isDesktopLayout ? '3rem' : '2rem', 
-        borderRadius: '16px', 
+        padding: isDesktopLayout ? '3rem' : '1.5rem', 
+        borderRadius: isDesktopLayout ? '16px' : '12px', 
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
         maxWidth: isDesktopLayout ? '800px' : '100%',
+        width: '100%',
         margin: '0 auto',
-        marginBottom: '2rem'
+        marginBottom: isDesktopLayout ? '2rem' : '1.5rem',
+        boxSizing: 'border-box'
       }}>
         <div style={{
           display: 'flex',
@@ -517,17 +535,21 @@ export const MenuView: React.FC<MenuViewProps> = ({
           disabled={!connected || isLoading || !roomId.trim()}
           style={{
             padding: isDesktopLayout ? '1.25rem 3rem' : '1rem 2rem',
+            minHeight: isMobile ? '48px' : 'auto', // Larger touch target for main action
             backgroundColor: (!connected || isLoading || !roomId.trim()) ? theme.border : theme.primary,
             color: 'white',
             border: 'none',
-            borderRadius: '12px',
+            borderRadius: isDesktopLayout ? '12px' : '8px',
             cursor: (!connected || isLoading || !roomId.trim()) ? 'not-allowed' : 'pointer',
             fontSize: isDesktopLayout ? '1.1rem' : '1rem',
             fontWeight: 'bold',
-            minWidth: '200px',
+            minWidth: isDesktopLayout ? '200px' : '150px',
+            maxWidth: isMobile ? '100%' : 'none',
             transition: 'all 0.3s ease',
             boxShadow: (!connected || isLoading || !roomId.trim()) ? 'none' : `0 6px 20px ${theme.primary}40`,
-            transform: (!connected || isLoading || !roomId.trim()) ? 'none' : 'translateY(-2px)'
+            transform: (!connected || isLoading || !roomId.trim()) ? 'none' : 'translateY(-2px)',
+            width: isMobile ? '100%' : 'auto',
+            boxSizing: 'border-box'
           }}
         >
           {isLoading ? '⏳ Joining...' : '🚪 Join Room'}
@@ -558,13 +580,15 @@ export const MenuView: React.FC<MenuViewProps> = ({
       {/* How to Play Section */}
       <section style={{ 
         backgroundColor: theme.background, 
-        padding: isDesktopLayout ? '3rem' : '2rem', 
-        borderRadius: '16px',
+        padding: isDesktopLayout ? '3rem' : '1.5rem', 
+        borderRadius: isDesktopLayout ? '16px' : '12px',
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
         maxWidth: isDesktopLayout ? '800px' : '100%',
+        width: '100%',
         margin: '2rem auto 0 auto',
-        textAlign: 'left'
+        textAlign: 'left',
+        boxSizing: 'border-box'
       }}>
         <h3 style={{ 
           margin: '0 0 2rem 0', 
