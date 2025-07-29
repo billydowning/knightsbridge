@@ -476,20 +476,22 @@ pub mod chess_escrow {
             match winner {
                 GameWinner::White => {
                     require!(
-                        reason == GameEndReason::Resignation && declarer == game_escrow.player_black ||
-                        reason == GameEndReason::Timeout && declarer == game_escrow.player_white,
+                        (reason == GameEndReason::Resignation && declarer == game_escrow.player_black) ||
+                        (reason == GameEndReason::Timeout && declarer == game_escrow.player_white) ||
+                        (reason == GameEndReason::Checkmate && declarer == game_escrow.player_white),
                         ChessError::InvalidWinnerDeclaration
                     );
                 },
                 GameWinner::Black => {
                     require!(
-                        reason == GameEndReason::Resignation && declarer == game_escrow.player_white ||
-                        reason == GameEndReason::Timeout && declarer == game_escrow.player_black,
+                        (reason == GameEndReason::Resignation && declarer == game_escrow.player_white) ||
+                        (reason == GameEndReason::Timeout && declarer == game_escrow.player_black) ||
+                        (reason == GameEndReason::Checkmate && declarer == game_escrow.player_black),
                         ChessError::InvalidWinnerDeclaration
                     );
                 },
                 GameWinner::Draw => {
-                    // Both players must agree to a draw, or it's a timeout
+                    // Both players must agree to a draw, or it's a stalemate
                     require!(
                         reason == GameEndReason::Agreement || reason == GameEndReason::Stalemate,
                         ChessError::InvalidDrawDeclaration
