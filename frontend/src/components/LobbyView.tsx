@@ -229,129 +229,297 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         <section style={{ 
           ...cardStyle,
           margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
-          padding: isDesktopLayout ? '2rem' : '1.5rem',
-          background: `linear-gradient(135deg, ${theme.success}15 0%, ${theme.success}08 100%)`,
-          border: `2px solid ${theme.success}`,
+          padding: isDesktopLayout ? '2.5rem' : '2rem',
+          background: `linear-gradient(135deg, ${theme.success}12 0%, ${theme.success}06 100%)`,
+          border: `1px solid ${theme.success}30`,
           position: 'relative',
           overflow: 'hidden',
           animation: 'slideInUp 0.4s ease-out'
         }}>
-          {/* Decorative elements */}
+          {/* Enhanced decorative elements */}
           <div style={{
             position: 'absolute',
-            top: '-10px',
-            right: '-10px',
+            top: '-20px',
+            right: '-20px',
+            width: '60px',
+            height: '60px',
+            background: `linear-gradient(45deg, ${theme.success}15, ${theme.success}08)`,
+            borderRadius: '50%',
+            zIndex: 0
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-15px',
+            left: '-15px',
             width: '40px',
             height: '40px',
-            background: `linear-gradient(45deg, ${theme.success}20, ${theme.success}10)`,
+            background: `linear-gradient(45deg, ${theme.primary}10, ${theme.secondary}08)`,
             borderRadius: '50%',
             zIndex: 0
           }} />
           
           <div style={{ position: 'relative', zIndex: 1 }}>
+            {/* Enhanced header with better visual hierarchy */}
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              marginBottom: '1rem'
+              textAlign: 'center',
+              marginBottom: '2rem'
             }}>
               <div style={{
-                width: '3px',
-                height: '24px',
-                background: `linear-gradient(to bottom, ${theme.success}, ${theme.success}80)`,
-                borderRadius: '2px'
-              }} />
-              <h3 style={{ 
-                margin: 0, 
-                color: theme.successDark,
-                fontSize: isDesktopLayout ? '22px' : '20px',
-                fontWeight: '600'
-              }}>🎯 Game Ready!</h3>
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                marginBottom: '0.75rem'
+              }}>
+                <div style={{
+                  width: '4px',
+                  height: '28px',
+                  background: `linear-gradient(to bottom, ${theme.success}, ${theme.success}60)`,
+                  borderRadius: '2px'
+                }} />
+                <h3 style={{ 
+                  margin: 0, 
+                  color: theme.successDark,
+                  fontSize: isDesktopLayout ? '24px' : '22px',
+                  fontWeight: '600',
+                  letterSpacing: '-0.5px'
+                }}>Game Ready!</h3>
+                <div style={{
+                  width: '4px',
+                  height: '28px',
+                  background: `linear-gradient(to bottom, ${theme.success}, ${theme.success}60)`,
+                  borderRadius: '2px'
+                }} />
+              </div>
+              
+              <div style={{
+                fontSize: isDesktopLayout ? '16px' : '14px',
+                color: theme.textSecondary,
+                fontWeight: '500'
+              }}>
+                Both players have joined • Ready to deposit stakes
+              </div>
             </div>
             
+            {/* Enhanced player display cards */}
             <div style={{ 
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '20px'
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+              gap: isDesktopLayout ? '16px' : '12px',
+              marginBottom: '2rem'
             }}>
               <div style={{ 
-                fontSize: isDesktopLayout ? '16px' : '14px',
-                color: theme.successDark,
+                background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+                border: `1px solid ${theme.success}20`,
+                borderRadius: '12px',
+                padding: isDesktopLayout ? '16px' : '12px',
                 textAlign: 'center',
-                padding: '8px 16px',
-                background: `${theme.success}20`,
-                borderRadius: '8px',
-                border: `1px solid ${theme.success}40`
-              }}>
-                ✅ White Player: {
-                  roomStatus?.players?.[0] 
-                    ? (typeof roomStatus.players[0] === 'string' 
-                        ? roomStatus.players[0].slice(0, 8) + '...'
-                        : roomStatus.players[0]?.wallet?.slice(0, 8) + '...' || 'Unknown')
-                    : 'Waiting...'
-                }
-              </div>
-              <div style={{ 
-                fontSize: isDesktopLayout ? '16px' : '14px',
-                color: theme.successDark,
-                textAlign: 'center',
-                padding: '8px 16px',
-                background: `${theme.success}20`,
-                borderRadius: '8px',
-                border: `1px solid ${theme.success}40`
-              }}>
-                ✅ Black Player: {
-                  roomStatus?.players?.[1] 
-                    ? (typeof roomStatus.players[1] === 'string' 
-                        ? roomStatus.players[1].slice(0, 8) + '...'
-                        : roomStatus.players[1]?.wallet?.slice(0, 8) + '...' || 'Unknown')
-                    : 'Waiting...'
-                }
-              </div>
-            </div>
-
-            <div style={{ 
-              fontSize: isDesktopLayout ? '18px' : '16px',
-              color: theme.successDark,
-              marginBottom: '20px',
-              textAlign: 'center',
-              fontWeight: '600'
-            }}>
-              💰 Ready to deposit {actualBetAmount} SOL?
-            </div>
-
-            <button
-              onClick={hasDeposited ? undefined : onDepositStake}
-              disabled={isLoading || hasDeposited}
-              style={{
-                ...sharedButtonStyle,
-                backgroundColor: hasDeposited ? '#4CAF50' : (isLoading ? theme.border : theme.success),
-                color: 'white',
-                border: 'none',
-                fontSize: isDesktopLayout ? '16px' : '14px',
-                fontWeight: '600' as const,
-                cursor: (isLoading || hasDeposited) ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s ease',
-                boxShadow: hasDeposited ? '0 4px 12px rgba(76, 175, 80, 0.3)' : '0 4px 12px rgba(0,0,0,0.15)',
-                marginBottom: '10px',
-                width: '100%',
-                maxWidth: isDesktopLayout ? '400px' : '300px'
-              }}
-            >
-              {hasDeposited ? '✅ Deposit Complete - Waiting for Opponent' : 
-               (isLoading ? '⏳ Depositing...' : `💰 Start Game & Deposit ${actualBetAmount} SOL`)}
-            </button>
-            
-            <div style={{ 
-              fontSize: isDesktopLayout ? '13px' : '11px',
-              color: theme.textSecondary,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              }}>
+                <div style={{
+                  fontSize: isDesktopLayout ? '14px' : '12px',
+                  color: theme.textSecondary,
+                  marginBottom: '6px',
+                  fontWeight: '600'
+                }}>
+                  White Player
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{ fontSize: '18px' }}>♔</span>
+                  <span style={{
+                    fontSize: isDesktopLayout ? '14px' : '12px',
+                    color: theme.text,
+                    fontFamily: 'monospace',
+                    fontWeight: '600'
+                  }}>
+                    {roomStatus?.players?.[0] 
+                      ? (typeof roomStatus.players[0] === 'string' 
+                          ? `${roomStatus.players[0].slice(0, 6)}...${roomStatus.players[0].slice(-4)}`
+                          : `${roomStatus.players[0]?.wallet?.slice(0, 6)}...${roomStatus.players[0]?.wallet?.slice(-4)}` || 'Unknown')
+                      : 'Waiting...'
+                    }
+                  </span>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    background: theme.success,
+                    borderRadius: '50%',
+                    boxShadow: `0 0 6px ${theme.success}60`
+                  }} />
+                </div>
+              </div>
+              
+              <div style={{ 
+                background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+                border: `1px solid ${theme.success}20`,
+                borderRadius: '12px',
+                padding: isDesktopLayout ? '16px' : '12px',
+                textAlign: 'center',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              }}>
+                <div style={{
+                  fontSize: isDesktopLayout ? '14px' : '12px',
+                  color: theme.textSecondary,
+                  marginBottom: '6px',
+                  fontWeight: '600'
+                }}>
+                  Black Player
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{ fontSize: '18px' }}>♚</span>
+                  <span style={{
+                    fontSize: isDesktopLayout ? '14px' : '12px',
+                    color: theme.text,
+                    fontFamily: 'monospace',
+                    fontWeight: '600'
+                  }}>
+                    {roomStatus?.players?.[1] 
+                      ? (typeof roomStatus.players[1] === 'string' 
+                          ? `${roomStatus.players[1].slice(0, 6)}...${roomStatus.players[1].slice(-4)}`
+                          : `${roomStatus.players[1]?.wallet?.slice(0, 6)}...${roomStatus.players[1]?.wallet?.slice(-4)}` || 'Unknown')
+                      : 'Waiting...'
+                    }
+                  </span>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    background: theme.success,
+                    borderRadius: '50%',
+                    boxShadow: `0 0 6px ${theme.success}60`
+                  }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced bet information */}
+            <div style={{
+              background: `linear-gradient(135deg, ${theme.primary}08 0%, ${theme.secondary}06 100%)`,
+              border: `1px solid ${theme.primary}20`,
+              borderRadius: '12px',
+              padding: isDesktopLayout ? '20px' : '16px',
               textAlign: 'center',
-              fontStyle: 'italic'
+              marginBottom: '2rem'
             }}>
-              ⏳ Waiting for both players to deposit...
+              <div style={{
+                fontSize: isDesktopLayout ? '14px' : '12px',
+                color: theme.textSecondary,
+                marginBottom: '8px',
+                fontWeight: '600'
+              }}>
+                Stake Amount
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '20px' }}>💰</span>
+                <span style={{
+                  fontSize: isDesktopLayout ? '24px' : '20px',
+                  color: theme.text,
+                  fontWeight: '700',
+                  fontFamily: 'monospace'
+                }}>
+                  {actualBetAmount} SOL
+                </span>
+              </div>
+              <div style={{
+                fontSize: isDesktopLayout ? '12px' : '10px',
+                color: theme.textSecondary,
+                marginTop: '4px',
+                fontStyle: 'italic'
+              }}>
+                Winner takes all • Secured by blockchain
+              </div>
+            </div>
+
+            {/* Enhanced action button */}
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={hasDeposited ? undefined : onDepositStake}
+                disabled={isLoading || hasDeposited}
+                style={{
+                  ...sharedButtonStyle,
+                  background: hasDeposited 
+                    ? `linear-gradient(135deg, #4CAF50 0%, #45a049 100%)` 
+                    : (isLoading 
+                        ? theme.border 
+                        : `linear-gradient(135deg, ${theme.success} 0%, ${theme.success}dd 100%)`),
+                  color: 'white',
+                  border: 'none',
+                  fontSize: isDesktopLayout ? '16px' : '14px',
+                  fontWeight: '600' as const,
+                  cursor: (isLoading || hasDeposited) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: hasDeposited 
+                    ? '0 6px 20px rgba(76, 175, 80, 0.3)' 
+                    : (isLoading 
+                        ? 'none' 
+                        : `0 6px 20px ${theme.success}40`),
+                  marginBottom: '12px',
+                  width: '100%',
+                  maxWidth: isDesktopLayout ? '380px' : '100%',
+                  minHeight: '56px',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading && !hasDeposited) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = `0 8px 25px ${theme.success}50`;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading && !hasDeposited) {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = `0 6px 20px ${theme.success}40`;
+                  }
+                }}
+              >
+                {/* Shimmer effect for active button */}
+                {!isLoading && !hasDeposited && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)`,
+                    animation: 'shimmer 3s infinite',
+                    zIndex: 1
+                  }} />
+                )}
+                <span style={{ position: 'relative', zIndex: 2 }}>
+                  {hasDeposited ? '✅ Deposit Complete - Waiting for Opponent' : 
+                   (isLoading ? '⏳ Processing Deposit...' : `🚀 Deposit ${actualBetAmount} SOL & Start Game`)}
+                </span>
+              </button>
+              
+              <div style={{ 
+                fontSize: isDesktopLayout ? '12px' : '10px',
+                color: theme.textSecondary,
+                textAlign: 'center',
+                fontStyle: 'italic',
+                opacity: 0.8
+              }}>
+                {hasDeposited 
+                  ? 'Your deposit is secured • Waiting for opponent to deposit'
+                  : 'Your stake will be held in secure escrow until game completion'
+                }
+              </div>
             </div>
           </div>
         </section>
