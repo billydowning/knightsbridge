@@ -9,7 +9,7 @@ chess_escrow = "F4Py3YTF1JGhbY9ACztXaseFF89ZfLS69ke5Z7EBGQGr"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

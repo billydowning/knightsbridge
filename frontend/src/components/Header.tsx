@@ -58,12 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
   const getBreadcrumbs = () => {
     const crumbs = [];
     
-    if (currentView === 'lobby') {
-      crumbs.push({ label: 'Lobby', active: true });
-    }
-    
     if (currentView === 'game') {
-      crumbs.push({ label: 'Lobby', active: false });
       crumbs.push({ label: 'Game', active: true });
     }
     
@@ -192,22 +187,21 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {/* Room ID Display */}
-          {roomId && currentView !== 'menu' && (
+          {roomId && currentView !== 'menu' && !isMobile && (
             <div style={{
-              padding: isMobile ? '3px 6px' : '4px 8px',
+              padding: '4px 8px',
               backgroundColor: `${theme.primary}20`,
               color: theme.primary,
               borderRadius: '12px',
-              fontSize: isDesktopLayout ? '11px' : '9px',
+              fontSize: '11px',
               fontWeight: '600',
               fontFamily: 'monospace',
               border: `1px solid ${theme.primary}40`,
-              maxWidth: isMobile ? '60px' : 'none',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
             }}>
-              {isMobile ? roomId.slice(-6) : roomId}
+              {roomId}
             </div>
           )}
 
