@@ -1266,4 +1266,39 @@ router.get('/debug/database', async (req, res) => {
   }
 });
 
+// Test endpoint to verify frontend version and functionality
+router.post('/test/frontend-version', async (req, res) => {
+  try {
+    const { playerWallet, testTransactionId, frontendVersion } = req.body;
+    
+    console.log('🧪 Frontend version test received:', {
+      playerWallet: playerWallet,
+      testTransactionId: testTransactionId,
+      frontendVersion: frontendVersion,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Check if this looks like a real transaction ID format
+    const isValidTxFormat = testTransactionId && 
+                           typeof testTransactionId === 'string' && 
+                           testTransactionId.length > 20 &&
+                           testTransactionId !== 'deposit-completed';
+    
+    res.json({
+      success: true,
+      message: 'Frontend version test complete',
+      playerWallet: playerWallet,
+      testTransactionId: testTransactionId,
+      frontendVersion: frontendVersion,
+      isValidTxFormat: isValidTxFormat,
+      hasFixDeployed: isValidTxFormat,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Frontend version test error:', error);
+    res.status(500).json({ error: 'Frontend version test failed', details: error.message });
+  }
+});
+
 module.exports = router; 

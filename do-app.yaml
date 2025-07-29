@@ -24,4 +24,12 @@ services:
     type: SECRET
   - key: DEBUG
     value: "false"
-    scope: RUN_AND_BUILD_TIME 
+    scope: RUN_AND_BUILD_TIME
+databases:
+- cluster_name: chess-db-do-user-24118504-0
+  db_name: defaultdb
+  db_user: doadmin
+  engine: PG
+  name: chess-db
+  production: true
+  version: "17" 

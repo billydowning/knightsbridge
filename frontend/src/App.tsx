@@ -727,10 +727,12 @@ function ChessApp() {
 
         // Set up WebSocket listener for game start
         console.log('🔌 Setting up WebSocket listener for game start...');
+        setGameStatus('💎 Deposit confirmed! Waiting for opponent to confirm their deposit...');
+        
         const handleGameStarted = (data: any) => {
           console.log('🎮 Game started via WebSocket!', data);
           if (data.roomId === roomId) {
-            setGameStatus('🎮 Both players deposited! Game starting...');
+            setGameStatus('🎮 Both players confirmed! Game starting now...');
             setBothEscrowsReady(true);
             const socket = (websocketService as any).socket;
             if (socket) {
@@ -744,16 +746,22 @@ function ChessApp() {
           if (socket) {
             socket.on('gameStarted', handleGameStarted);
             
-            // Set up timeout with manual fallback
+            // Shorter timeout for faster feedback
             setTimeout(() => {
               socket.off('gameStarted', handleGameStarted);
               console.log('⏰ WebSocket listener timeout - checking manually...');
               
-                             // Manual fallback: Start game automatically after timeout (bypass backend DB issues)
-               console.log('🚀 Auto-starting game after deposit timeout - bypassing backend DB issues');
-               setGameStatus('🎮 Both players have deposited! Game starting...');
-               setBothEscrowsReady(true);
-            }, 10000); // Reduced to 10 seconds timeout for quicker fallback
+              // Check room status before auto-starting
+              databaseMultiplayerState.getRoomStatus(roomId).then(status => {
+                if (status && status.escrowCount >= 2) {
+                  console.log('🚀 Auto-starting game - both deposits detected');
+                  setGameStatus('🎮 Both players confirmed! Game starting...');
+                  setBothEscrowsReady(true);
+                } else {
+                  setGameStatus('⏳ Still waiting for opponent deposit confirmation...');
+                }
+              });
+            }, 5000); // Reduced to 5 seconds for faster response
           }
         }
         

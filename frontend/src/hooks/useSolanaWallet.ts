@@ -543,7 +543,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             // Sign and send with unique transaction
             gameTx = await sendTransaction(transaction, connection, {
               skipPreflight: false,
-              preflightCommitment: 'confirmed',
+              preflightCommitment: 'processed', // Faster confirmation
+              maxRetries: 3,
             });
             
             console.log('✅ InitializeGame successful:', gameTx);
@@ -568,7 +569,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             // Sign and send with unique transaction
             gameTx = await sendTransaction(transaction, connection, {
               skipPreflight: false,
-              preflightCommitment: 'confirmed',
+              preflightCommitment: 'processed', // Faster confirmation
+              maxRetries: 3,
             });
             
             console.log('✅ JoinGame successful:', gameTx);
@@ -706,7 +708,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         
         const signature = await sendTransaction(transaction, connection, {
           skipPreflight: false,
-          preflightCommitment: 'confirmed',
+          preflightCommitment: 'processed', // Faster confirmation for better UX
+          maxRetries: 3,
         });
         
         console.log('✅ DepositStake successful via direct RPC:', signature);
