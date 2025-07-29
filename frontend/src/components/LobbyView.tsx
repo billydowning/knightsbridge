@@ -92,378 +92,554 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const readyToDeposit = bothPlayersPresent && escrowCount >= 2 && !gameStarted;
   const readyToStart = bothPlayersPresent && bothEscrowsCreated;
 
+  // Shared card style for consistency
+  const cardStyle = {
+    background: `linear-gradient(135deg, ${theme.surface} 0%, ${theme.background} 100%)`,
+    borderRadius: isDesktopLayout ? '20px' : '16px',
+    border: `1px solid ${theme.border}`,
+    boxShadow: theme.shadow,
+    width: isDesktopLayout ? '800px' : '95%',
+    maxWidth: '100%',
+    boxSizing: 'border-box' as const,
+    transition: 'all 0.3s ease'
+  };
+
+  // Shared button style for consistency
+  const sharedButtonStyle = {
+    padding: isDesktopLayout ? '16px 32px' : '12px 24px',
+    borderRadius: '12px',
+    border: 'none',
+    fontSize: isDesktopLayout ? '16px' : '14px',
+    fontWeight: '600' as const,
+    cursor: 'pointer' as const,
+    transition: 'all 0.2s ease',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    minHeight: '48px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    position: 'relative' as const,
+    overflow: 'hidden' as const
+  };
+
   return (
-    <div style={{ textAlign: 'center', color: theme.text }}>
+    <div style={{ 
+      textAlign: 'center', 
+      color: theme.text,
+      padding: isDesktopLayout ? '2rem' : '1rem',
+      paddingLeft: isDesktopLayout ? '2rem' : '1rem',
+      paddingRight: isDesktopLayout ? '2rem' : '1rem',
+      maxWidth: '100vw',
+      width: '100%',
+      overflow: 'hidden',
+      boxSizing: 'border-box'
+    }}>
       
       {/* Room ID Share Section */}
-      <div style={{ 
-        margin: isMobile ? '10px auto' : '20px auto',
-        padding: isMobile ? '12px' : (isDesktopLayout ? '20px' : '15px'),
-        backgroundColor: theme.surface,
-        borderRadius: '10px',
-        border: `2px solid ${theme.border}`,
-        boxShadow: theme.shadow,
-        width: isDesktopLayout ? '800px' : '95%'
+      <section style={{ 
+        ...cardStyle,
+        margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
+        padding: isDesktopLayout ? '2rem' : '1.5rem',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <h3 style={{ 
-          margin: '0 0 12px 0', 
-          color: theme.text,
-          fontSize: textSizes.h3
-        }}>📋 Share Room ID</h3>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          gap: isMobile ? '6px' : '10px',
-          flexWrap: 'wrap'
-        }}>
-          <input
-            type="text"
-            value={roomId}
-            readOnly
-            style={{
-              padding: isMobile ? '8px 10px' : '12px 16px',
-              fontSize: isMobile ? textSizes.body : '18px',
-              fontWeight: 'bold',
-              border: `2px solid ${theme.border}`,
-              borderRadius: '8px',
-              backgroundColor: theme.background,
+        {/* Decorative background pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `linear-gradient(45deg, ${theme.primary}08 0%, ${theme.secondary}05 100%)`,
+          zIndex: 0
+        }} />
+        
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '1rem'
+          }}>
+            <div style={{
+              width: '3px',
+              height: '20px',
+              background: `linear-gradient(to bottom, ${theme.primary}, ${theme.secondary})`,
+              borderRadius: '2px'
+            }} />
+            <h3 style={{ 
+              margin: 0, 
               color: theme.text,
-              minWidth: isMobile ? '180px' : '300px',
-              textAlign: 'center'
-            }}
-          />
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(roomId);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            }}
-            style={{
-              padding: isMobile ? '8px 10px' : '12px 16px',
-              backgroundColor: copied ? theme.primary : theme.surface,
-              color: copied ? 'white' : theme.text,
-              border: `2px solid ${theme.border}`,
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: textSizes.body,
-              fontWeight: 'bold',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {copied ? '✅ Copied!' : '📋 Copy'}
-          </button>
+              fontSize: isDesktopLayout ? '20px' : '18px',
+              fontWeight: '600'
+            }}>Share Room</h3>
+          </div>
+          
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: isDesktopLayout ? '12px' : '8px',
+            flexWrap: 'wrap'
+          }}>
+            <input
+              type="text"
+              value={roomId}
+              readOnly
+              style={{
+                padding: isDesktopLayout ? '14px 18px' : '12px 16px',
+                fontSize: isDesktopLayout ? '16px' : '14px',
+                fontWeight: '600',
+                border: `2px solid ${theme.border}`,
+                borderRadius: '12px',
+                backgroundColor: theme.background,
+                color: theme.text,
+                minWidth: isDesktopLayout ? '300px' : '200px',
+                textAlign: 'center',
+                fontFamily: 'monospace',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+            />
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(roomId);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              style={{
+                ...sharedButtonStyle,
+                backgroundColor: copied ? theme.success : theme.primary,
+                color: 'white',
+                border: `2px solid ${copied ? theme.success : theme.primary}`,
+                transform: copied ? 'scale(1.05)' : 'scale(1)',
+                boxShadow: copied ? `0 4px 12px ${theme.success}40` : `0 4px 12px ${theme.primary}40`
+              }}
+            >
+              {copied ? '✅ Copied!' : '📋 Copy'}
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* NEW: Game Ready Section (when both players joined but haven't deposited) */}
       {readyToDeposit && (
-        <div style={{ 
-          margin: isMobile ? '15px auto' : '25px auto',
-          padding: isMobile ? '15px' : (isDesktopLayout ? '25px' : '20px'),
-          backgroundColor: theme.successLight,
-          borderRadius: '12px',
+        <section style={{ 
+          ...cardStyle,
+          margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
+          padding: isDesktopLayout ? '2rem' : '1.5rem',
+          background: `linear-gradient(135deg, ${theme.success}15 0%, ${theme.success}08 100%)`,
           border: `2px solid ${theme.success}`,
-          boxShadow: theme.shadow,
-          width: isDesktopLayout ? '800px' : '95%',
-          display: 'flex',
-          flexDirection: 'column' as const,
-          alignItems: 'center'
+          position: 'relative',
+          overflow: 'hidden',
+          animation: 'slideInUp 0.4s ease-out'
         }}>
-          <h3 style={{ 
-            margin: '0 0 15px 0', 
-            color: theme.successDark,
-            fontSize: textSizes.h2,
-            textAlign: 'center'
-          }}>🎯 Game Ready!</h3>
+          {/* Decorative elements */}
+          <div style={{
+            position: 'absolute',
+            top: '-10px',
+            right: '-10px',
+            width: '40px',
+            height: '40px',
+            background: `linear-gradient(45deg, ${theme.success}20, ${theme.success}10)`,
+            borderRadius: '50%',
+            zIndex: 0
+          }} />
           
-          <div style={{ 
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-            marginBottom: '20px'
-          }}>
-            <div style={{ 
-              fontSize: textSizes.body,
-              color: theme.successDark,
-              textAlign: 'center'
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              marginBottom: '1rem'
             }}>
-              ✅ White Player: {
-                roomStatus?.players?.[0] 
-                  ? (typeof roomStatus.players[0] === 'string' 
-                      ? roomStatus.players[0].slice(0, 8) + '...'
-                      : roomStatus.players[0]?.wallet?.slice(0, 8) + '...' || 'Unknown')
-                  : 'Waiting...'
-              }
+              <div style={{
+                width: '3px',
+                height: '24px',
+                background: `linear-gradient(to bottom, ${theme.success}, ${theme.success}80)`,
+                borderRadius: '2px'
+              }} />
+              <h3 style={{ 
+                margin: 0, 
+                color: theme.successDark,
+                fontSize: isDesktopLayout ? '22px' : '20px',
+                fontWeight: '600'
+              }}>🎯 Game Ready!</h3>
             </div>
+            
             <div style={{ 
-              fontSize: textSizes.body,
-              color: theme.successDark,
-              textAlign: 'center'
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '20px'
             }}>
-              ✅ Black Player: {
-                roomStatus?.players?.[1] 
-                  ? (typeof roomStatus.players[1] === 'string' 
-                      ? roomStatus.players[1].slice(0, 8) + '...'
-                      : roomStatus.players[1]?.wallet?.slice(0, 8) + '...' || 'Unknown')
-                  : 'Waiting...'
-              }
+              <div style={{ 
+                fontSize: isDesktopLayout ? '16px' : '14px',
+                color: theme.successDark,
+                textAlign: 'center',
+                padding: '8px 16px',
+                background: `${theme.success}20`,
+                borderRadius: '8px',
+                border: `1px solid ${theme.success}40`
+              }}>
+                ✅ White Player: {
+                  roomStatus?.players?.[0] 
+                    ? (typeof roomStatus.players[0] === 'string' 
+                        ? roomStatus.players[0].slice(0, 8) + '...'
+                        : roomStatus.players[0]?.wallet?.slice(0, 8) + '...' || 'Unknown')
+                    : 'Waiting...'
+                }
+              </div>
+              <div style={{ 
+                fontSize: isDesktopLayout ? '16px' : '14px',
+                color: theme.successDark,
+                textAlign: 'center',
+                padding: '8px 16px',
+                background: `${theme.success}20`,
+                borderRadius: '8px',
+                border: `1px solid ${theme.success}40`
+              }}>
+                ✅ Black Player: {
+                  roomStatus?.players?.[1] 
+                    ? (typeof roomStatus.players[1] === 'string' 
+                        ? roomStatus.players[1].slice(0, 8) + '...'
+                        : roomStatus.players[1]?.wallet?.slice(0, 8) + '...' || 'Unknown')
+                    : 'Waiting...'
+                }
+              </div>
+            </div>
+
+            <div style={{ 
+              fontSize: isDesktopLayout ? '18px' : '16px',
+              color: theme.successDark,
+              marginBottom: '20px',
+              textAlign: 'center',
+              fontWeight: '600'
+            }}>
+              💰 Ready to deposit {actualBetAmount} SOL?
+            </div>
+
+            <button
+              onClick={hasDeposited ? undefined : onDepositStake}
+              disabled={isLoading || hasDeposited}
+              style={{
+                ...sharedButtonStyle,
+                backgroundColor: hasDeposited ? '#4CAF50' : (isLoading ? theme.border : theme.success),
+                color: 'white',
+                border: 'none',
+                fontSize: isDesktopLayout ? '16px' : '14px',
+                fontWeight: '600' as const,
+                cursor: (isLoading || hasDeposited) ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: hasDeposited ? '0 4px 12px rgba(76, 175, 80, 0.3)' : '0 4px 12px rgba(0,0,0,0.15)',
+                marginBottom: '10px',
+                width: '100%',
+                maxWidth: isDesktopLayout ? '400px' : '300px'
+              }}
+            >
+              {hasDeposited ? '✅ Deposit Complete - Waiting for Opponent' : 
+               (isLoading ? '⏳ Depositing...' : `💰 Start Game & Deposit ${actualBetAmount} SOL`)}
+            </button>
+            
+            <div style={{ 
+              fontSize: isDesktopLayout ? '13px' : '11px',
+              color: theme.textSecondary,
+              textAlign: 'center',
+              fontStyle: 'italic'
+            }}>
+              ⏳ Waiting for both players to deposit...
             </div>
           </div>
-
-          <div style={{ 
-            fontSize: textSizes.h3,
-            color: theme.successDark,
-            marginBottom: '15px',
-            textAlign: 'center'
-          }}>
-            �� Ready to deposit {actualBetAmount} SOL?
-          </div>
-
-          <button
-            onClick={hasDeposited ? undefined : onDepositStake}
-            disabled={isLoading || hasDeposited}
-            style={{
-              padding: isMobile ? '12px 20px' : '18px 35px',
-              backgroundColor: hasDeposited ? '#4CAF50' : (isLoading ? theme.border : theme.success),
-              color: 'white',
-              border: 'none',
-              borderRadius: '10px',
-              cursor: (isLoading || hasDeposited) ? 'not-allowed' : 'pointer',
-              fontSize: isMobile ? textSizes.body : textSizes.h3,
-              fontWeight: 'bold',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              marginBottom: '10px'
-            }}
-          >
-            {hasDeposited ? '✅ Deposit Complete - Waiting for Opponent' : 
-             (isLoading ? '⏳ Depositing...' : `💰 Start Game & Deposit ${actualBetAmount} SOL`)}
-          </button>
-          
-          <div style={{ 
-            fontSize: textSizes.small,
-            color: theme.textSecondary,
-            textAlign: 'center',
-            fontStyle: 'italic'
-          }}>
-            ⏳ Waiting for both players to deposit...
-          </div>
-        </div>
+        </section>
       )}
 
       {/* Room Status Section */}
-      <div style={{ 
-        margin: isMobile ? '10px auto' : '20px auto',
-        padding: isMobile ? '12px' : (isDesktopLayout ? '20px' : '15px'),
-        backgroundColor: theme.surface,
-        borderRadius: '10px',
-        border: `2px solid ${theme.border}`,
-        boxShadow: theme.shadow,
-        width: isDesktopLayout ? '800px' : '95%',
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center'
+      <section style={{ 
+        ...cardStyle,
+        margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
+        padding: isDesktopLayout ? '2rem' : '1.5rem',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <h3 style={{ 
-          margin: '0 0 12px 0', 
-          color: theme.text,
-          fontSize: textSizes.h3
-        }}>🎮 Room Status</h3>
+        {/* Decorative background pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `linear-gradient(45deg, ${theme.secondary}08 0%, ${theme.primary}05 100%)`,
+          zIndex: 0
+        }} />
         
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-          gap: isMobile ? '8px' : '15px',
-          marginBottom: isMobile ? '15px' : '20px'
-        }}>
-          <div style={{ 
-            textAlign: 'center', 
-            padding: isMobile ? '8px' : '10px',
-            backgroundColor: theme.background,
-            borderRadius: '8px',
-            border: `1px solid ${theme.border}`
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '1.5rem'
           }}>
-            <div style={{ fontSize: textSizes.h3, fontWeight: 'bold', color: theme.primary }}>
-              {playerCount}/2
-            </div>
-            <div style={{ fontSize: textSizes.body, color: theme.textSecondary }}>
-              Players
-            </div>
+            <div style={{
+              width: '3px',
+              height: '20px',
+              background: `linear-gradient(to bottom, ${theme.secondary}, ${theme.primary})`,
+              borderRadius: '2px'
+            }} />
+            <h3 style={{ 
+              margin: 0, 
+              color: theme.text,
+              fontSize: isDesktopLayout ? '20px' : '18px',
+              fontWeight: '600'
+            }}>Room Status</h3>
           </div>
           
           <div style={{ 
-            textAlign: 'center', 
-            padding: isMobile ? '8px' : '10px',
-            backgroundColor: theme.background,
-            borderRadius: '8px',
-            border: `1px solid ${theme.border}`
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+            gap: isDesktopLayout ? '16px' : '12px',
+            marginBottom: isDesktopLayout ? '24px' : '20px'
           }}>
-            <div style={{ fontSize: textSizes.h3, fontWeight: 'bold', color: theme.secondary }}>
-              {escrowCount}/2
+            <div style={{ 
+              textAlign: 'center', 
+              padding: isDesktopLayout ? '16px' : '12px',
+              background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+              borderRadius: '12px',
+              border: `1px solid ${theme.border}`,
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}>
+              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: theme.primary }}>
+                {playerCount}/2
+              </div>
+              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
+                Players
+              </div>
             </div>
-            <div style={{ fontSize: textSizes.body, color: theme.textSecondary }}>
-              Deposits
+            
+            <div style={{ 
+              textAlign: 'center', 
+              padding: isDesktopLayout ? '16px' : '12px',
+              background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+              borderRadius: '12px',
+              border: `1px solid ${theme.border}`,
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}>
+              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: theme.secondary }}>
+                {escrowCount}/2
+              </div>
+              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
+                Deposits
+              </div>
+            </div>
+            
+            <div style={{ 
+              textAlign: 'center', 
+              padding: isDesktopLayout ? '16px' : '12px',
+              background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+              borderRadius: '12px',
+              border: `1px solid ${theme.border}`,
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}>
+              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: theme.accent }}>
+                {actualBetAmount}
+              </div>
+              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
+                SOL Bet
+              </div>
+            </div>
+            
+            <div style={{ 
+              textAlign: 'center', 
+              padding: isDesktopLayout ? '16px' : '12px',
+              background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+              borderRadius: '12px',
+              border: `1px solid ${theme.border}`,
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}>
+              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: gameStarted ? '#4CAF50' : '#FF9800' }}>
+                {gameStarted ? '🎮' : '⏳'}
+              </div>
+              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
+                {gameStarted ? 'Started' : 'Waiting'}
+              </div>
             </div>
           </div>
-          
-          <div style={{ 
-            textAlign: 'center', 
-            padding: isMobile ? '8px' : '10px',
-            backgroundColor: theme.background,
-            borderRadius: '8px',
-            border: `1px solid ${theme.border}`
-          }}>
-            <div style={{ fontSize: textSizes.h3, fontWeight: 'bold', color: theme.accent }}>
-              {actualBetAmount}
-            </div>
-            <div style={{ fontSize: textSizes.body, color: theme.textSecondary }}>
-              SOL Bet
-            </div>
-          </div>
-          
-          <div style={{ 
-            textAlign: 'center', 
-            padding: isMobile ? '8px' : '10px',
-            backgroundColor: theme.background,
-            borderRadius: '8px',
-            border: `1px solid ${theme.border}`
-          }}>
-            <div style={{ fontSize: textSizes.h3, fontWeight: 'bold', color: gameStarted ? '#4CAF50' : '#FF9800' }}>
-              {gameStarted ? '🎮' : '⏳'}
-            </div>
-            <div style={{ fontSize: textSizes.body, color: theme.textSecondary }}>
-              {gameStarted ? 'Started' : 'Waiting'}
-            </div>
-          </div>
-        </div>
 
-        {/* Status Messages */}
-        <div style={{ 
-          marginTop: isMobile ? '12px' : '15px',
-          padding: isMobile ? '10px' : '15px',
-          backgroundColor: theme.background,
-          borderRadius: '8px',
-          border: `1px solid ${theme.border}`
-        }}>
-          <div style={{ fontSize: textSizes.body, color: theme.text, marginBottom: '8px' }}>
-            <strong>Current Status:</strong>
-          </div>
-          
-          <div style={{ fontSize: textSizes.body, color: theme.textSecondary }}>
-            {!bothPlayersPresent && (
-              <div style={{ color: '#FF9800', marginBottom: '4px' }}>
-                ⏳ Waiting for opponent to join...
-              </div>
-            )}
+          {/* Status Messages */}
+          <div style={{ 
+            marginTop: isDesktopLayout ? '16px' : '12px',
+            padding: isDesktopLayout ? '16px' : '12px',
+            background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+            borderRadius: '12px',
+            border: `1px solid ${theme.border}`
+          }}>
+            <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.text, marginBottom: '8px', fontWeight: '600' }}>
+              Current Status:
+            </div>
             
-            {bothPlayersPresent && !escrowCreated && playerRole === 'white' && (
-              <div style={{ color: '#2196F3', marginBottom: '4px' }}>
-                🤵 Please create the game escrow (White player goes first)
-              </div>
-            )}
-            
-            {bothPlayersPresent && escrowCount === 1 && playerRole === 'black' && (
-              <div style={{ color: '#2196F3', marginBottom: '4px' }}>
-                ♛ Please join the game escrow (Black player)
-              </div>
-            )}
-            
-            {readyToDeposit && !readyToStart && (
-              <div style={{ color: '#4CAF50', marginBottom: '4px' }}>
-                💰 Ready to deposit! Both players can now deposit their stakes.
-              </div>
-            )}
-            
-            {readyToStart && !gameStarted && (
-              <div style={{ color: '#4CAF50', marginBottom: '4px' }}>
-                ✅ Ready to start the game!
-              </div>
-            )}
-            
-            {gameStarted && (
-              <div style={{ color: '#4CAF50', marginBottom: '4px' }}>
-                🎮 Game has started!
-              </div>
-            )}
+            <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary }}>
+              {!bothPlayersPresent && (
+                <div style={{ color: '#FF9800', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>⏳</span>
+                  Waiting for opponent to join...
+                </div>
+              )}
+              
+              {bothPlayersPresent && !escrowCreated && playerRole === 'white' && (
+                <div style={{ color: '#2196F3', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>🤵</span>
+                  Please create the game escrow (White player goes first)
+                </div>
+              )}
+              
+              {bothPlayersPresent && escrowCount === 1 && playerRole === 'black' && (
+                <div style={{ color: '#2196F3', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>♛</span>
+                  Please join the game escrow (Black player)
+                </div>
+              )}
+              
+              {readyToDeposit && !readyToStart && (
+                <div style={{ color: '#4CAF50', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>💰</span>
+                  Ready to deposit! Both players can now deposit their stakes.
+                </div>
+              )}
+              
+              {readyToStart && !gameStarted && (
+                <div style={{ color: '#4CAF50', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>✅</span>
+                  Ready to start the game!
+                </div>
+              )}
+              
+              {gameStarted && (
+                <div style={{ color: '#4CAF50', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>🎮</span>
+                  Game has started!
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Player Info Section */}
-      <div style={{ 
-        margin: isMobile ? '10px auto' : '20px auto',
-        padding: isMobile ? '12px' : (isDesktopLayout ? '20px' : '15px'),
-        backgroundColor: theme.surface,
-        borderRadius: '10px',
-        border: `2px solid ${theme.border}`,
-        boxShadow: theme.shadow,
-        width: isDesktopLayout ? '800px' : '95%',
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center'
+      <section style={{ 
+        ...cardStyle,
+        margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
+        padding: isDesktopLayout ? '2rem' : '1.5rem',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <h3 style={{ 
-          margin: '0 0 12px 0', 
-          color: theme.text,
-          fontSize: textSizes.h3
-        }}>👤 Your Info</h3>
+        {/* Decorative background pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `linear-gradient(45deg, ${theme.accent}08 0%, ${theme.primary}05 100%)`,
+          zIndex: 0
+        }} />
         
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
-          gap: isMobile ? '8px' : '15px'
-        }}>
-          <div style={{ 
-            textAlign: 'left',
-            padding: isMobile ? '8px' : '12px',
-            backgroundColor: theme.background,
-            borderRadius: '8px',
-            border: `1px solid ${theme.border}`
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '1.5rem'
           }}>
-            <div style={{ fontSize: textSizes.body, color: theme.textSecondary, marginBottom: '4px' }}>
-              <strong>Role:</strong>
-            </div>
-            <div style={{ 
-              fontSize: textSizes.body, 
-              fontWeight: 'bold',
-              color: playerRole === 'white' ? '#4CAF50' : '#FF9800'
-            }}>
-              {playerRole.toUpperCase()}
-            </div>
+            <div style={{
+              width: '3px',
+              height: '20px',
+              background: `linear-gradient(to bottom, ${theme.accent}, ${theme.primary})`,
+              borderRadius: '2px'
+            }} />
+            <h3 style={{ 
+              margin: 0, 
+              color: theme.text,
+              fontSize: isDesktopLayout ? '20px' : '18px',
+              fontWeight: '600'
+            }}>Your Info</h3>
           </div>
           
           <div style={{ 
-            textAlign: 'left',
-            padding: isMobile ? '8px' : '12px',
-            backgroundColor: theme.background,
-            borderRadius: '8px',
-            border: `1px solid ${theme.border}`
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+            gap: isDesktopLayout ? '16px' : '12px'
           }}>
-            <div style={{ fontSize: textSizes.body, color: theme.textSecondary, marginBottom: '4px' }}>
-              <strong>Wallet:</strong>
-            </div>
             <div style={{ 
-              fontSize: textSizes.small, 
-              fontFamily: 'monospace',
-              color: theme.text,
-              wordBreak: 'break-all'
+              textAlign: 'left',
+              padding: isDesktopLayout ? '16px' : '12px',
+              background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+              borderRadius: '12px',
+              border: `1px solid ${theme.border}`,
+              transition: 'all 0.2s ease'
             }}>
-              {playerWallet}
+              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginBottom: '6px', fontWeight: '600' }}>
+                Role:
+              </div>
+              <div style={{ 
+                fontSize: isDesktopLayout ? '16px' : '14px', 
+                fontWeight: 'bold',
+                color: playerRole === 'white' ? '#4CAF50' : '#FF9800',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span style={{ fontSize: '18px' }}>{playerRole === 'white' ? '♔' : '♚'}</span>
+                {playerRole.toUpperCase()}
+              </div>
+            </div>
+            
+            <div style={{ 
+              textAlign: 'left',
+              padding: isDesktopLayout ? '16px' : '12px',
+              background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+              borderRadius: '12px',
+              border: `1px solid ${theme.border}`,
+              transition: 'all 0.2s ease'
+            }}>
+              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginBottom: '6px', fontWeight: '600' }}>
+                Wallet:
+              </div>
+              <div style={{ 
+                fontSize: isDesktopLayout ? '12px' : '10px', 
+                fontFamily: 'monospace',
+                color: theme.text,
+                wordBreak: 'break-all',
+                background: `${theme.primary}10`,
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: `1px solid ${theme.primary}20`
+              }}>
+                {playerWallet}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Action Buttons */}
-      <div style={{ 
-        margin: isMobile ? '15px auto' : '30px auto',
+      <section style={{ 
+        margin: isMobile ? '1.5rem auto 0 auto' : '2rem auto 0 auto',
         display: 'flex',
         flexWrap: 'wrap',
-        gap: isMobile ? '8px' : '15px',
+        gap: isDesktopLayout ? '16px' : '12px',
         justifyContent: 'center',
-        width: isDesktopLayout ? '800px' : '95%'
+        width: isDesktopLayout ? '800px' : '95%',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
       }}>
         {/* Create Escrow Button (White player first) */}
         {!escrowCreated && connected && playerRole === 'white' && escrowCount === 0 && (
@@ -471,18 +647,35 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             onClick={onCreateEscrow}
             disabled={isLoading}
             style={{
-              padding: isMobile ? '10px 16px' : '15px 30px',
+              ...sharedButtonStyle,
               backgroundColor: isLoading ? theme.border : theme.primary,
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              fontSize: isDesktopLayout ? '16px' : '14px',
+              fontWeight: '600' as const,
               cursor: isLoading ? 'not-allowed' : 'pointer',
-              fontSize: textSizes.body,
-              fontWeight: 'bold',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              boxShadow: isLoading ? 'none' : `0 4px 12px ${theme.primary}40`,
+              position: 'relative',
+              overflow: 'hidden'
             }}
           >
-            {isLoading ? '⏳ Creating...' : '🤵 Create Game (White Player)'}
+            {/* Shimmer effect for primary button */}
+            {!isLoading && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: '-100%',
+                width: '100%',
+                height: '100%',
+                background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)`,
+                animation: 'shimmer 2s infinite',
+                zIndex: 1
+              }} />
+            )}
+            <span style={{ position: 'relative', zIndex: 2 }}>
+              {isLoading ? '⏳ Creating...' : '🤵 Create Game (White Player)'}
+            </span>
           </button>
         )}
 
@@ -492,33 +685,53 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             onClick={onCreateEscrow}
             disabled={isLoading}
             style={{
-              padding: isMobile ? '10px 16px' : '15px 30px',
+              ...sharedButtonStyle,
               backgroundColor: isLoading ? theme.border : theme.warning,
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              fontSize: isDesktopLayout ? '16px' : '14px',
+              fontWeight: '600' as const,
               cursor: isLoading ? 'not-allowed' : 'pointer',
-              fontSize: textSizes.body,
-              fontWeight: 'bold',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              boxShadow: isLoading ? 'none' : `0 4px 12px ${theme.warning}40`,
+              position: 'relative',
+              overflow: 'hidden'
             }}
           >
-            {isLoading ? '⏳ Joining...' : '♛ Join Game (Black Player)'}
+            {/* Shimmer effect for warning button */}
+            {!isLoading && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: '-100%',
+                width: '100%',
+                height: '100%',
+                background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)`,
+                animation: 'shimmer 2s infinite',
+                zIndex: 1
+              }} />
+            )}
+            <span style={{ position: 'relative', zIndex: 2 }}>
+              {isLoading ? '⏳ Joining...' : '♛ Join Game (Black Player)'}
+            </span>
           </button>
         )}
 
         {/* Escrow Created Indicator */}
         {escrowCreated && !readyToDeposit && (
           <div style={{
-            padding: isMobile ? '10px 16px' : '15px 30px',
-            backgroundColor: '#d4edda',
+            ...sharedButtonStyle,
+            background: `linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)`,
             color: '#155724',
             border: '1px solid #c3e6cb',
-            borderRadius: '8px',
-            fontSize: textSizes.body,
-            fontWeight: 'bold'
+            fontSize: isDesktopLayout ? '16px' : '14px',
+            fontWeight: '600' as const,
+            boxShadow: '0 4px 12px rgba(21, 87, 36, 0.2)',
+            cursor: 'default',
+            animation: 'pulse 2s infinite'
           }}>
-            ✅ Joined Game - Waiting for opponent
+            <span style={{ fontSize: '18px', marginRight: '8px' }}>✅</span>
+            Joined Game - Waiting for opponent
           </div>
         )}
 
@@ -526,20 +739,29 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         <button
           onClick={onBackToMenu}
           style={{
-            padding: isMobile ? '10px 16px' : '15px 30px',
-            backgroundColor: theme.surface,
+            ...sharedButtonStyle,
+            background: `linear-gradient(135deg, ${theme.surface} 0%, ${theme.background} 100%)`,
             color: theme.text,
-            border: `1px solid ${theme.border}`,
-            borderRadius: '8px',
+            border: `2px solid ${theme.border}`,
+            fontSize: isDesktopLayout ? '16px' : '14px',
+            fontWeight: '600' as const,
             cursor: 'pointer',
-            fontSize: textSizes.body,
-            fontWeight: 'bold',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
           }}
         >
-          ← Back to Menu
+          <span style={{ fontSize: '16px', marginRight: '8px' }}>←</span>
+          Back to Menu
         </button>
-      </div>
+      </section>
     </div>
   );
 };
