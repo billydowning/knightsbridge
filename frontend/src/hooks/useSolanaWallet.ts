@@ -1026,6 +1026,17 @@ export const useSolanaWallet = (): SolanaWalletHook => {
               console.log('⚠️ TEMPORARY: Using current player as playerBlack:', playerBlack.toString());
             }
             
+            // CRITICAL FIX: Only the LOSING player can declare the winner
+            // The smart contract validates that the declarer lost to the winner
+            const currentPlayerWallet = publicKey.toString();
+            const isCurrentPlayerWhite = currentPlayerWallet === playerWhite.toString();
+            const isCurrentPlayerWinner = (gameWinner === 'white' && isCurrentPlayerWhite) || 
+                                        (gameWinner === 'black' && !isCurrentPlayerWhite);
+            
+            if (!isDraw && isCurrentPlayerWinner) {
+              throw new Error('❌ Winners cannot claim their own winnings. The losing player must declare the result.');
+            }
+            
             // Encode winner enum (0 = White, 1 = Black, 2 = Draw)
             let winnerVariant;
             if (isDraw) {
@@ -1036,8 +1047,9 @@ export const useSolanaWallet = (): SolanaWalletHook => {
               winnerVariant = 1; // Black
             }
             
-            // Encode reason enum (0 = Checkmate, 1 = Timeout, 2 = Agreement, 3 = Stalemate, 4 = InsufficientMaterial)
-            const reasonVariant = 0; // Default to Checkmate
+            // For checkmate: losing player declares winner
+            // For resignation: resigning player declares opponent as winner
+            const reasonVariant = 0; // Checkmate (loser declaring opponent won)
             
             // Create instruction data: discriminator + winner + reason
             const discriminator = Buffer.from([205, 129, 155, 217, 131, 167, 175, 38]);
