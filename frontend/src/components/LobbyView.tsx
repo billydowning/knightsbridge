@@ -23,6 +23,8 @@ export interface LobbyViewProps {
   onDepositStake: () => void;
   onStartGame: () => void;
   onBackToMenu: () => void;
+  onTestFrontendVersion?: () => Promise<void>;
+  hasDeposited?: boolean;
 }
 
 export const LobbyView: React.FC<LobbyViewProps> = ({
@@ -39,7 +41,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   onCreateEscrow,
   onDepositStake,
   onStartGame,
-  onBackToMenu
+  onBackToMenu,
+  onTestFrontendVersion,
+  hasDeposited = false
 }) => {
   const { theme } = useTheme();
   const [copied, setCopied] = React.useState(false);
@@ -205,15 +209,15 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           </div>
 
           <button
-            onClick={onDepositStake}
-            disabled={isLoading}
+            onClick={hasDeposited ? undefined : onDepositStake}
+            disabled={isLoading || hasDeposited}
             style={{
               padding: isMobile ? '12px 20px' : '18px 35px',
-              backgroundColor: isLoading ? theme.border : theme.success,
+              backgroundColor: hasDeposited ? '#4CAF50' : (isLoading ? theme.border : theme.success),
               color: 'white',
               border: 'none',
               borderRadius: '10px',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
+              cursor: (isLoading || hasDeposited) ? 'not-allowed' : 'pointer',
               fontSize: isMobile ? textSizes.body : textSizes.h3,
               fontWeight: 'bold',
               transition: 'all 0.2s ease',
@@ -221,7 +225,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               marginBottom: '10px'
             }}
           >
-            {isLoading ? '⏳ Depositing...' : `💰 Start Game & Deposit ${actualBetAmount} SOL`}
+            {hasDeposited ? '✅ Deposit Complete - Waiting for Opponent' : 
+             (isLoading ? '⏳ Depositing...' : `💰 Start Game & Deposit ${actualBetAmount} SOL`)}
           </button>
           
           <div style={{ 
@@ -502,6 +507,26 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           }}>
             ✅ Joined Game - Waiting for opponent
           </div>
+        )}
+
+        {/* Test Frontend Version Button */}
+        {onTestFrontendVersion && (
+          <button
+            onClick={onTestFrontendVersion}
+            style={{
+              padding: isMobile ? '8px 12px' : '10px 20px',
+              backgroundColor: '#e67e22',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: textSizes.small,
+              fontWeight: 'bold',
+              marginBottom: '10px'
+            }}
+          >
+            🧪 Test Frontend Version
+          </button>
         )}
 
         {/* Back to Menu Button */}
