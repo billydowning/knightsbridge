@@ -23,7 +23,6 @@ export interface LobbyViewProps {
   onDepositStake: () => void;
   onStartGame: () => void;
   onBackToMenu: () => void;
-  onTestFrontendVersion?: () => Promise<void>;
   hasDeposited?: boolean;
 }
 
@@ -42,7 +41,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   onDepositStake,
   onStartGame,
   onBackToMenu,
-  onTestFrontendVersion,
   hasDeposited = false
 }) => {
   const { theme } = useTheme();
@@ -507,26 +505,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           }}>
             ✅ Joined Game - Waiting for opponent
           </div>
-        )}
-
-        {/* Test Frontend Version Button */}
-        {onTestFrontendVersion && (
-          <button
-            onClick={onTestFrontendVersion}
-            style={{
-              padding: isMobile ? '8px 12px' : '10px 20px',
-              backgroundColor: '#e67e22',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: textSizes.small,
-              fontWeight: 'bold',
-              marginBottom: '10px'
-            }}
-          >
-            🧪 Test Frontend Version
-          </button>
         )}
 
         {/* Back to Menu Button */}

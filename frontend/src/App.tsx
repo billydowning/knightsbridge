@@ -2108,7 +2108,6 @@ function ChessApp() {
             onBackToMenu={handleBackToMenu}
             opponentEscrowCreated={opponentEscrowCreated}
             bothEscrowsReady={bothEscrowsReady}
-            onTestFrontendVersion={testFrontendVersion}
             hasDeposited={hasDeposited}
           />
         );
@@ -2136,49 +2135,7 @@ function ChessApp() {
     }
   };
 
-  // Test function to verify frontend fix deployment
-  const testFrontendVersion = async () => {
-    if (!publicKey) {
-      console.log('❌ Test: Wallet not connected');
-      return;
-    }
 
-    try {
-      // Simulate what happens after a successful deposit
-      const mockTransactionId = '5zYEqN4W17wiRQ7ofcwgv8bh3YrCxYyTcjVbSJxNrU9XTJdG5MckcCYENa1J1ZkxHWVYEAzU9rcQ3a2CN93TBasg';
-      
-      console.log('🧪 Testing frontend version...');
-      console.log('🧪 Mock transaction ID:', mockTransactionId);
-      
-      // Test the backend endpoint
-      const response = await fetch(`${ENV_CONFIG.API_BASE_URL}/api/test/frontend-version`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          playerWallet: publicKey.toString(),
-          testTransactionId: mockTransactionId,
-          frontendVersion: '2025-07-28-fix-depositComplete'
-        })
-      });
-      
-      const result = await response.json();
-      console.log('🧪 Frontend test result:', result);
-      
-      if (result.hasFixDeployed) {
-        console.log('✅ Frontend fix is deployed and working!');
-        setGameStatus('✅ Frontend version test passed - depositComplete fix is active');
-      } else {
-        console.log('❌ Frontend fix not detected - browser cache may need clearing');
-        setGameStatus('❌ Frontend version test failed - please refresh browser');
-      }
-      
-    } catch (error) {
-      console.error('❌ Frontend version test failed:', error);
-      setGameStatus('❌ Frontend version test error');
-    }
-  };
 
   return (
     <ErrorBoundary>
