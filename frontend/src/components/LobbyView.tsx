@@ -617,13 +617,17 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 fontSize: isDesktopLayout ? '12px' : '10px', 
                 fontFamily: 'monospace',
                 color: theme.text,
-                wordBreak: 'break-all',
                 background: `${theme.primary}10`,
                 padding: '4px 8px',
                 borderRadius: '6px',
-                border: `1px solid ${theme.primary}20`
+                border: `1px solid ${theme.primary}20`,
+                textAlign: 'center',
+                lineHeight: 1.4
               }}>
-                {playerWallet}
+                {playerWallet.length > 20 
+                  ? `${playerWallet.slice(0, 6)}...${playerWallet.slice(-4)}`
+                  : playerWallet
+                }
               </div>
             </div>
           </div>
