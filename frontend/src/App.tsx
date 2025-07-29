@@ -618,14 +618,24 @@ function ChessApp() {
       
       let success = false;
       
+      // CRITICAL FIX: Black player must use the same bet amount as white player
+      let correctBetAmount = betAmount;
+      if (playerRole === 'black' && roomStatus?.escrows && Object.keys(roomStatus.escrows).length > 0) {
+        // Black player: Use the bet amount from the existing escrow (white player's amount)
+        const escrowAmounts = Object.values(roomStatus.escrows);
+        const rawAmount = escrowAmounts[0];
+        correctBetAmount = typeof rawAmount === 'string' ? parseFloat(rawAmount) : Number(rawAmount);
+        console.log('🔧 Black player using white player\'s bet amount:', correctBetAmount, 'instead of local:', betAmount);
+      }
+      
       if (playerRole === 'white') {
         // White player - initialize the game escrow
         console.log('🔍 Debug - White player: Calling createEscrow (initialize_game)');
-        success = await createEscrow(roomId, betAmount, playerRole);
+        success = await createEscrow(roomId, correctBetAmount, playerRole);
       } else if (playerRole === 'black') {
         // Black player - join the existing escrow
         console.log('🔍 Debug - Black player: Calling createEscrow (join_game)');
-        success = await createEscrow(roomId, betAmount, playerRole);
+        success = await createEscrow(roomId, correctBetAmount, playerRole);
       } else {
         setGameStatus('Error: Player role not determined');
         setAppLoading(false);
@@ -634,12 +644,12 @@ function ChessApp() {
       
       if (success) {
         // Update database after successful blockchain transaction
-        await databaseMultiplayerState.addEscrow(roomId, playerWallet, betAmount);
+        await databaseMultiplayerState.addEscrow(roomId, playerWallet, correctBetAmount);
         
         // Update local state to show escrow was created
         setEscrowCreated(true);
         
-        setGameStatus(`Escrow created on Solana! Bet: ${betAmount} SOL. Waiting for opponent...`);
+        setGameStatus(`Escrow created on Solana! Bet: ${correctBetAmount} SOL. Waiting for opponent...`);
         
         // Check if both players have created escrows
         const afterStatus = await databaseMultiplayerState.getRoomStatus(roomId);
