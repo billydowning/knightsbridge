@@ -56,18 +56,21 @@ export const Header: React.FC<HeaderProps> = ({
   const isDesktopLayout = useIsDesktopLayout();
 
   const getBreadcrumbs = () => {
-    const crumbs = [{ label: 'Menu', active: currentView === 'menu' }];
+    const crumbs = [];
     
-    if (currentView === 'lobby' || currentView === 'game') {
-      crumbs.push({ label: 'Lobby', active: currentView === 'lobby' });
+    if (currentView === 'lobby') {
+      crumbs.push({ label: 'Lobby', active: true });
     }
     
     if (currentView === 'game') {
-      crumbs.push({ label: 'Game', active: currentView === 'game' });
+      crumbs.push({ label: 'Lobby', active: false });
+      crumbs.push({ label: 'Game', active: true });
     }
     
     return crumbs;
   };
+
+  const crumbs = getBreadcrumbs();
 
   return (
     <header style={{
@@ -90,9 +93,9 @@ export const Header: React.FC<HeaderProps> = ({
       }}>
         
         {/* Left: Logo and Branding */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{
-            fontSize: isDesktopLayout ? '32px' : '24px',
+            fontSize: isDesktopLayout ? '24px' : '20px',
             lineHeight: 1
           }}>
             ♔
@@ -100,15 +103,15 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <h1 style={{
               margin: 0,
-              fontSize: isDesktopLayout ? '24px' : '20px',
-              fontWeight: 'bold',
+              fontSize: isDesktopLayout ? '18px' : '16px',
+              fontWeight: '600',
               color: theme.text,
               lineHeight: 1.2
             }}>
               Knightsbridge
             </h1>
             <div style={{
-              fontSize: isDesktopLayout ? '12px' : '10px',
+              fontSize: isDesktopLayout ? '10px' : '9px',
               color: theme.textSecondary,
               fontWeight: '500',
               letterSpacing: '0.5px',
@@ -120,29 +123,29 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Center: Navigation Breadcrumbs */}
-        {!isMobile && (
+        {!isMobile && crumbs.length > 0 && (
           <nav style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '6px',
             flex: 1,
             justifyContent: 'center'
           }}>
-            {getBreadcrumbs().map((crumb, index) => (
+            {crumbs.map((crumb, index) => (
               <React.Fragment key={crumb.label}>
                 {index > 0 && (
                   <span style={{
                     color: theme.textSecondary,
-                    fontSize: '14px'
+                    fontSize: '12px'
                   }}>
                     →
                   </span>
                 )}
                 <span style={{
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  fontWeight: crumb.active ? 'bold' : '500',
+                  padding: '3px 6px',
+                  borderRadius: '3px',
+                  fontSize: '12px',
+                  fontWeight: crumb.active ? '600' : '500',
                   color: crumb.active ? theme.primary : theme.textSecondary,
                   backgroundColor: crumb.active ? `${theme.primary}15` : 'transparent'
                 }}>
@@ -163,12 +166,12 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Balance Display */}
           {connected && typeof balance === 'number' && (
             <div style={{
-              padding: '6px 12px',
+              padding: '4px 8px',
               backgroundColor: `${theme.success}20`,
               color: theme.success,
-              borderRadius: '20px',
-              fontSize: isDesktopLayout ? '14px' : '12px',
-              fontWeight: 'bold',
+              borderRadius: '12px',
+              fontSize: isDesktopLayout ? '12px' : '11px',
+              fontWeight: '600',
               border: `1px solid ${theme.success}40`
             }}>
               {balance.toFixed(3)} SOL
@@ -178,12 +181,12 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Room ID Display */}
           {roomId && currentView !== 'menu' && (
             <div style={{
-              padding: '6px 12px',
+              padding: '4px 8px',
               backgroundColor: `${theme.primary}20`,
               color: theme.primary,
-              borderRadius: '20px',
-              fontSize: isDesktopLayout ? '12px' : '10px',
-              fontWeight: 'bold',
+              borderRadius: '12px',
+              fontSize: isDesktopLayout ? '11px' : '10px',
+              fontWeight: '600',
               fontFamily: 'monospace',
               border: `1px solid ${theme.primary}40`,
               maxWidth: isMobile ? '80px' : 'none',

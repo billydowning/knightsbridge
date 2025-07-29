@@ -96,7 +96,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
         
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{
-            fontSize: isDesktopLayout ? '4rem' : '3rem',
+            fontSize: isDesktopLayout ? '3rem' : '2.5rem',
             marginBottom: '1rem',
             filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
           }}>
@@ -104,8 +104,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
           </div>
           
           <h1 style={{
-            fontSize: isDesktopLayout ? '3rem' : '2rem',
-            fontWeight: 'bold',
+            fontSize: isDesktopLayout ? '2rem' : '1.5rem',
+            fontWeight: '600',
             color: theme.text,
             margin: '0 0 1rem 0',
             textShadow: '0 2px 4px rgba(0,0,0,0.3)'
@@ -114,7 +114,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
           </h1>
           
           <p style={{
-            fontSize: isDesktopLayout ? '1.25rem' : '1rem',
+            fontSize: isDesktopLayout ? '1rem' : '0.9rem',
             color: theme.textSecondary,
             margin: '0 0 2rem 0',
             maxWidth: '600px',
@@ -190,8 +190,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
           <h2 style={{ 
             margin: 0, 
             color: theme.text,
-            fontSize: isDesktopLayout ? '2rem' : '1.5rem',
-            fontWeight: 'bold'
+            fontSize: isDesktopLayout ? '1.5rem' : '1.25rem',
+            fontWeight: '600'
           }}>
             Create New Game
           </h2>
@@ -208,7 +208,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
           <h3 style={{ 
             margin: '0 0 1.5rem 0', 
             color: theme.text,
-            fontSize: isDesktopLayout ? '1.25rem' : '1.1rem',
+            fontSize: isDesktopLayout ? '1.1rem' : '1rem',
             fontWeight: '600'
           }}>
             Choose Your Stakes
@@ -439,8 +439,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
           <h2 style={{ 
             margin: 0, 
             color: theme.text,
-            fontSize: isDesktopLayout ? '2rem' : '1.5rem',
-            fontWeight: 'bold'
+            fontSize: isDesktopLayout ? '1.5rem' : '1.25rem',
+            fontWeight: '600'
           }}>
             Join Existing Game
           </h2>
@@ -553,8 +553,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
         <h3 style={{ 
           margin: '0 0 2rem 0', 
           color: theme.text,
-          fontSize: isDesktopLayout ? '1.5rem' : '1.25rem',
-          fontWeight: 'bold',
+          fontSize: isDesktopLayout ? '1.25rem' : '1.1rem',
+          fontWeight: '600',
           textAlign: 'center'
         }}>
           How to Play
