@@ -45,7 +45,7 @@ export const GameView: React.FC<GameViewProps> = ({
   const { boardSize } = useChessBoardConfig();
   const isDesktopLayout = useIsDesktopLayout();
 
-  const canClaimWinnings = gameState.winner && gameState.winner === playerRole && !winningsClaimed;
+  const showClaimButton = gameState.winner && gameState.winner === playerRole;
   const isGameOver = gameState.winner || gameState.draw;
 
   return (
@@ -183,23 +183,25 @@ export const GameView: React.FC<GameViewProps> = ({
         justifyContent: 'center'
       }}>
         {/* Claim Winnings Button */}
-        {canClaimWinnings && (
+        {showClaimButton && (
           <button
-            onClick={onClaimWinnings}
-            disabled={isLoading}
+            onClick={winningsClaimed ? undefined : onClaimWinnings}
+            disabled={isLoading || winningsClaimed}
             style={{
               padding: isMobile ? '10px 20px' : '12px 24px',
-              backgroundColor: isLoading ? theme.border : theme.primary,
+              backgroundColor: winningsClaimed ? theme.success : (isLoading ? theme.border : theme.primary),
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
+              cursor: (isLoading || winningsClaimed) ? 'not-allowed' : 'pointer',
               fontSize: textSizes.body,
               fontWeight: 'bold',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              opacity: winningsClaimed ? 0.9 : 1
             }}
           >
-            {isLoading ? '⏳ Processing...' : '💰 Claim Winnings'}
+            {isLoading ? '⏳ Processing...' : 
+             winningsClaimed ? '✅ Winnings Claimed!' : '💰 Claim Winnings'}
           </button>
         )}
 
