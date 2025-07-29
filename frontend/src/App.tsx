@@ -953,9 +953,10 @@ function ChessApp() {
       // Claim winnings on Solana
       const result = await claimWinnings(roomId, playerRole, gameState.winner, isDraw);
       
-      if (result === 'success') {
+      // Check if the result indicates success (contains success emojis or positive messages)
+      if (result && (result.includes('🎉 SUCCESS') || result.includes('🤝 Draw') || result === 'success')) {
         setWinningsClaimed(true);
-        setGameStatus('Winnings claimed successfully on Solana!');
+        setGameStatus(result);
       } else {
         setGameStatus(`Failed to claim winnings: ${result}`);
       }
@@ -963,9 +964,12 @@ function ChessApp() {
     } catch (err) {
       console.error('❌ Claiming winnings failed:', err);
       
-      // Check if the error indicates the transaction was already processed
+      // Check if the error indicates the transaction was already processed or game completed
       const errorMessage = err.message || err.toString();
-      if (errorMessage.includes('already been processed') || errorMessage.includes('already processed')) {
+      if (errorMessage.includes('already been processed') || 
+          errorMessage.includes('already processed') ||
+          errorMessage.includes('GameNotInProgress') ||
+          errorMessage.includes('Game is not in progress')) {
         setWinningsClaimed(true);
         setGameStatus('✅ Winnings already claimed successfully!');
       } else {
