@@ -447,7 +447,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             </div>
 
             {/* Enhanced action button */}
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              width: '100%'
+            }}>
               <button
                 onClick={hasDeposited ? undefined : onDepositStake}
                 disabled={isLoading || hasDeposited}
@@ -470,8 +475,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                         ? 'none' 
                         : `0 6px 20px ${theme.success}40`),
                   marginBottom: '12px',
-                  width: '100%',
-                  maxWidth: isDesktopLayout ? '380px' : '100%',
+                  width: isDesktopLayout ? '380px' : '90%',
+                  maxWidth: isDesktopLayout ? '380px' : '320px',
                   minHeight: '56px',
                   position: 'relative',
                   overflow: 'hidden'
@@ -513,7 +518,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 color: theme.textSecondary,
                 textAlign: 'center',
                 fontStyle: 'italic',
-                opacity: 0.8
+                opacity: 0.8,
+                maxWidth: isDesktopLayout ? '380px' : '90%'
               }}>
                 {hasDeposited 
                   ? 'Your deposit is secured • Waiting for opponent to deposit'
