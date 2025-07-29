@@ -48,7 +48,6 @@ export const MenuView: React.FC<MenuViewProps> = ({
 
   const sharedButtonStyle = {
     padding: isDesktopLayout ? '16px 24px' : '10px 16px',
-    minWidth: isDesktopLayout ? '140px' : '80px',
     boxSizing: 'border-box' as const,
     fontSize: isDesktopLayout ? '16px' : textSizes.body,
     fontWeight: 'bold',
@@ -56,7 +55,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
     border: undefined,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    textAlign: 'center' as const
+    textAlign: 'center' as const,
+    width: '100%' // Ensure buttons fill their grid cells
   };
 
   const handleCreateRoom = () => {
@@ -171,8 +171,11 @@ export const MenuView: React.FC<MenuViewProps> = ({
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
         maxWidth: isDesktopLayout ? '800px' : '100%',
+        width: '100%',
         margin: '0 auto',
-        marginBottom: isDesktopLayout ? '2rem' : '1.5rem'
+        marginBottom: isDesktopLayout ? '2rem' : '1.5rem',
+        overflow: 'hidden', // Prevent any overflow
+        boxSizing: 'border-box'
       }}>
         <div style={{
           display: 'flex',
@@ -204,7 +207,12 @@ export const MenuView: React.FC<MenuViewProps> = ({
         </div>
         
         {/* Bet Amount Selection */}
-        <div style={{ marginBottom: '2rem' }}>
+        <div style={{ 
+          marginBottom: '2rem',
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden'
+        }}>
           <h3 style={{ 
             margin: '0 0 1.5rem 0', 
             color: theme.text,
@@ -217,9 +225,11 @@ export const MenuView: React.FC<MenuViewProps> = ({
           {/* Normal bet amounts */}
           <div style={{ 
             display: 'grid',
-            gridTemplateColumns: `repeat(${isDesktopLayout ? '5' : '3'}, 1fr)`,
+            gridTemplateColumns: `repeat(auto-fit, minmax(${isDesktopLayout ? '140px' : '100px'}, 1fr))`,
             gap: isDesktopLayout ? '1rem' : '0.75rem',
-            marginBottom: '1rem'
+            marginBottom: '1rem',
+            width: '100%',
+            maxWidth: '100%'
           }}>
             {smallBetAmounts.map((amount) => (
               <button
@@ -233,7 +243,9 @@ export const MenuView: React.FC<MenuViewProps> = ({
                   transform: betAmount === amount ? 'scale(1.05)' : 'scale(1)',
                   boxShadow: betAmount === amount ? `0 4px 12px ${theme.primary}40` : 'none',
                   position: 'relative',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  minWidth: 0, // Allow buttons to shrink
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <div style={{ position: 'relative', zIndex: 1 }}>
@@ -259,10 +271,12 @@ export const MenuView: React.FC<MenuViewProps> = ({
           {showLargerAmounts && (
             <div style={{ 
               display: 'grid',
-              gridTemplateColumns: `repeat(${isDesktopLayout ? '5' : '3'}, 1fr)`,
+              gridTemplateColumns: `repeat(auto-fit, minmax(${isDesktopLayout ? '140px' : '100px'}, 1fr))`,
               gap: isDesktopLayout ? '1rem' : '0.75rem',
               marginBottom: '1rem',
-              animation: 'fadeIn 0.3s ease-in-out'
+              animation: 'fadeIn 0.3s ease-in-out',
+              width: '100%',
+              maxWidth: '100%'
             }}>
               {largeBetAmounts.map((amount) => (
                 <button
@@ -274,7 +288,9 @@ export const MenuView: React.FC<MenuViewProps> = ({
                     color: betAmount === amount ? 'white' : theme.text,
                     border: `2px solid ${betAmount === amount ? theme.primary : theme.border}`,
                     transform: betAmount === amount ? 'scale(1.05)' : 'scale(1)',
-                    boxShadow: betAmount === amount ? `0 4px 12px ${theme.primary}40` : 'none'
+                    boxShadow: betAmount === amount ? `0 4px 12px ${theme.primary}40` : 'none',
+                    minWidth: 0, // Allow buttons to shrink
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {amount} SOL
