@@ -1259,10 +1259,10 @@ io.on('connection', (socket) => {
         // Try to insert new escrow into database (use UPSERT to handle duplicates gracefully)
         try {
           await poolInstance.query(
-            'INSERT INTO escrows (room_id, player_wallet, escrow_amount) VALUES ($1, $2, $3)',
-            [roomId, playerWallet, amount]
+            'INSERT INTO escrows (room_id, player_wallet, escrow_amount, status) VALUES ($1, $2, $3, $4)',
+            [roomId, playerWallet, amount, 'pending']
           );
-          console.log('✅ Escrow added to database:', roomId, playerWallet, amount);
+          console.log('✅ Escrow added to database:', roomId, playerWallet, amount, 'status: pending');
         } catch (insertError) {
           // Check if it's a duplicate key constraint error (code 23505)
           if (insertError.code === '23505') {
