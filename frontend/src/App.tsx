@@ -189,6 +189,34 @@ function ChessApp() {
     return null;
   };
 
+  // Helper function to get room player wallet by role
+  const getRoomPlayerWallet = (roomStatus: any, role: 'white' | 'black'): string | null => {
+    if (!roomStatus?.players) return null;
+    const player = roomStatus.players.find((p: any) => p.role === role);
+    return player?.wallet || null;
+  };
+
+  // Helper function to validate if connected wallet matches room role
+  const validateWalletForRole = (roomStatus: any, playerRole: 'white' | 'black' | null, connectedWallet: string | null): boolean => {
+    if (!roomStatus || !playerRole || !connectedWallet) return false;
+    const roomWallet = getRoomPlayerWallet(roomStatus, playerRole);
+    return roomWallet === connectedWallet;
+  };
+
+  // Helper function to get wallet mismatch message
+  const getWalletMismatchMessage = (roomStatus: any, playerRole: 'white' | 'black' | null, connectedWallet: string | null): string | null => {
+    if (!roomStatus || !playerRole || !connectedWallet) return null;
+    const roomWallet = getRoomPlayerWallet(roomStatus, playerRole);
+    if (!roomWallet) return null;
+    
+    if (roomWallet !== connectedWallet) {
+      const roleText = playerRole === 'white' ? 'White' : 'Black';
+      return `❌ Wallet mismatch! You're connected as ${connectedWallet.slice(0, 6)}...${connectedWallet.slice(-4)}, but this room's ${roleText} player is ${roomWallet.slice(0, 6)}...${roomWallet.slice(-4)}. Please connect the correct wallet.`;
+    }
+    
+    return null;
+  };
+
   // Helper function to get piece type from both text and Unicode formats
   const getPieceTypeFromAnyFormat = (piece: string): string | null => {
     // Unicode format
@@ -556,11 +584,21 @@ function ChessApp() {
   }, [gameMode, playerRole, roomId]);
 
   const handleCreateEscrow = async () => {
-    if (!connected || !publicKey) {
+    if (!publicKey) {
       setGameStatus('Please connect your wallet first');
       return;
     }
-    
+
+    // Validate wallet matches room role
+    const connectedWallet = publicKey.toString();
+    if (!validateWalletForRole(roomStatus, playerRole, connectedWallet)) {
+      const mismatchMessage = getWalletMismatchMessage(roomStatus, playerRole, connectedWallet);
+      if (mismatchMessage) {
+        setGameStatus(mismatchMessage);
+        return;
+      }
+    }
+
     if (!roomId) {
       setGameStatus('No room ID available');
       return;
@@ -648,11 +686,21 @@ function ChessApp() {
   };
 
   const handleDepositStake = async () => {
-    if (!connected || !publicKey) {
+    if (!publicKey) {
       setGameStatus('Please connect your wallet first');
       return;
     }
-    
+
+    // Validate wallet matches room role
+    const connectedWallet = publicKey.toString();
+    if (!validateWalletForRole(roomStatus, playerRole, connectedWallet)) {
+      const mismatchMessage = getWalletMismatchMessage(roomStatus, playerRole, connectedWallet);
+      if (mismatchMessage) {
+        setGameStatus(mismatchMessage);
+        return;
+      }
+    }
+
     if (!roomId) {
       setGameStatus('No room ID available');
       return;
@@ -896,7 +944,22 @@ function ChessApp() {
   };
 
   const handleClaimWinnings = async () => {
-    if (!connected || !publicKey || !roomId || !gameState.winner) {
+    if (!publicKey) {
+      setGameStatus('Please connect your wallet first');
+      return;
+    }
+
+    // Validate wallet matches room role
+    const connectedWallet = publicKey.toString();
+    if (!validateWalletForRole(roomStatus, playerRole, connectedWallet)) {
+      const mismatchMessage = getWalletMismatchMessage(roomStatus, playerRole, connectedWallet);
+      if (mismatchMessage) {
+        setGameStatus(mismatchMessage);
+        return;
+      }
+    }
+
+    if (!roomId || !gameState.winner) {
       setGameStatus('Cannot claim winnings: missing wallet, room, or winner');
       return;
     }

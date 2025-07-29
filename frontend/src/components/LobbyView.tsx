@@ -51,6 +51,31 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
   const isDesktopLayout = useIsDesktopLayout();
+
+  // Helper function to get room player wallet by role
+  const getRoomPlayerWallet = (roomStatus: any, role: 'white' | 'black'): string | null => {
+    if (!roomStatus?.players) return null;
+    const player = roomStatus.players.find((p: any) => p.role === role);
+    return player?.wallet || null;
+  };
+
+  // Helper function to check wallet mismatch
+  const hasWalletMismatch = (): boolean => {
+    if (!roomStatus || !playerRole || !playerWallet) return false;
+    const roomWallet = getRoomPlayerWallet(roomStatus, playerRole as 'white' | 'black');
+    return roomWallet !== null && roomWallet !== playerWallet;
+  };
+
+  // Helper function to get wallet mismatch info
+  const getWalletMismatchInfo = (): { roomWallet: string; mismatch: boolean } | null => {
+    if (!roomStatus || !playerRole) return null;
+    const roomWallet = getRoomPlayerWallet(roomStatus, playerRole as 'white' | 'black');
+    if (!roomWallet) return null;
+    return {
+      roomWallet,
+      mismatch: roomWallet !== playerWallet
+    };
+  };
   
   // Calculate player count based on room status
   const playerCount = roomStatus?.playerCount || 0;
@@ -403,6 +428,59 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               </div>
             </div>
 
+            {/* Wallet Mismatch Warning */}
+            {hasWalletMismatch() && (
+              <div style={{
+                background: `linear-gradient(135deg, ${theme.error}15 0%, ${theme.error}08 100%)`,
+                border: `2px solid ${theme.error}`,
+                borderRadius: '12px',
+                padding: isDesktopLayout ? '16px' : '12px',
+                marginBottom: '1.5rem',
+                textAlign: 'center',
+                animation: 'pulse 2s infinite'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginBottom: '8px'
+                }}>
+                  <span style={{ fontSize: '20px' }}>⚠️</span>
+                  <span style={{
+                    fontSize: isDesktopLayout ? '16px' : '14px',
+                    color: theme.error,
+                    fontWeight: '700'
+                  }}>
+                    Wallet Mismatch Detected
+                  </span>
+                </div>
+                <div style={{
+                  fontSize: isDesktopLayout ? '14px' : '12px',
+                  color: theme.text,
+                  lineHeight: 1.4,
+                  marginBottom: '8px'
+                }}>
+                  You're connected as <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>
+                    {playerWallet ? `${playerWallet.slice(0, 6)}...${playerWallet.slice(-4)}` : 'Unknown'}
+                  </span>, but this room's {playerRole} player is{' '}
+                  <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>
+                    {(() => {
+                      const roomWallet = getRoomPlayerWallet(roomStatus, playerRole as 'white' | 'black');
+                      return roomWallet ? `${roomWallet.slice(0, 6)}...${roomWallet.slice(-4)}` : 'Unknown';
+                    })()}
+                  </span>
+                </div>
+                <div style={{
+                  fontSize: isDesktopLayout ? '12px' : '10px',
+                  color: theme.textSecondary,
+                  fontStyle: 'italic'
+                }}>
+                  Please connect the correct wallet to continue
+                </div>
+              </div>
+            )}
+
             {/* Enhanced bet information */}
             <div style={{
               background: `linear-gradient(135deg, ${theme.primary}08 0%, ${theme.secondary}06 100%)`,
@@ -454,26 +532,30 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               width: '100%'
             }}>
               <button
-                onClick={hasDeposited ? undefined : onDepositStake}
-                disabled={isLoading || hasDeposited}
+                onClick={hasDeposited || hasWalletMismatch() ? undefined : onDepositStake}
+                disabled={isLoading || hasDeposited || hasWalletMismatch()}
                 style={{
                   ...sharedButtonStyle,
                   background: hasDeposited 
                     ? `linear-gradient(135deg, #4CAF50 0%, #45a049 100%)` 
-                    : (isLoading 
-                        ? theme.border 
-                        : `linear-gradient(135deg, ${theme.success} 0%, ${theme.success}dd 100%)`),
+                    : (hasWalletMismatch()
+                        ? `linear-gradient(135deg, ${theme.error} 0%, ${theme.error}dd 100%)`
+                        : (isLoading 
+                            ? theme.border 
+                            : `linear-gradient(135deg, ${theme.success} 0%, ${theme.success}dd 100%)`)),
                   color: 'white',
                   border: 'none',
                   fontSize: isDesktopLayout ? '16px' : '14px',
                   fontWeight: '600' as const,
-                  cursor: (isLoading || hasDeposited) ? 'not-allowed' : 'pointer',
+                  cursor: (isLoading || hasDeposited || hasWalletMismatch()) ? 'not-allowed' : 'pointer',
                   transition: 'all 0.3s ease',
                   boxShadow: hasDeposited 
                     ? '0 6px 20px rgba(76, 175, 80, 0.3)' 
-                    : (isLoading 
-                        ? 'none' 
-                        : `0 6px 20px ${theme.success}40`),
+                    : (hasWalletMismatch()
+                        ? `0 6px 20px ${theme.error}40`
+                        : (isLoading 
+                            ? 'none' 
+                            : `0 6px 20px ${theme.success}40`)),
                   marginBottom: '12px',
                   width: isDesktopLayout ? '380px' : '90%',
                   maxWidth: isDesktopLayout ? '380px' : '320px',
@@ -482,34 +564,34 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                   overflow: 'hidden'
                 }}
                 onMouseEnter={(e) => {
-                  if (!isLoading && !hasDeposited) {
+                  if (!isLoading && !hasDeposited && !hasWalletMismatch()) {
                     e.currentTarget.style.transform = 'translateY(-2px)';
                     e.currentTarget.style.boxShadow = `0 8px 25px ${theme.success}50`;
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isLoading && !hasDeposited) {
+                  if (!isLoading && !hasDeposited && !hasWalletMismatch()) {
                     e.currentTarget.style.transform = 'translateY(0)';
                     e.currentTarget.style.boxShadow = `0 6px 20px ${theme.success}40`;
                   }
                 }}
               >
                 {/* Shimmer effect for active button */}
-                {!isLoading && !hasDeposited && (
+                {!isLoading && !hasDeposited && !hasWalletMismatch() && (
                   <div style={{
                     position: 'absolute',
                     top: 0,
                     left: '-100%',
                     width: '100%',
                     height: '100%',
-                    background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)`,
-                    animation: 'shimmer 3s infinite',
-                    zIndex: 1
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                    animation: 'shimmer 2s infinite'
                   }} />
                 )}
                 <span style={{ position: 'relative', zIndex: 2 }}>
-                  {hasDeposited ? '✅ Deposit Complete - Waiting for Opponent' : 
-                   (isLoading ? '⏳ Processing Deposit...' : `🚀 Deposit ${actualBetAmount} SOL & Start Game`)}
+                  {hasWalletMismatch() ? '❌ Wrong Wallet Connected' :
+                   (hasDeposited ? '✅ Deposit Complete - Waiting for Opponent' : 
+                    (isLoading ? '⏳ Processing Deposit...' : `🚀 Deposit ${actualBetAmount} SOL & Start Game`))}
                 </span>
               </button>
               
