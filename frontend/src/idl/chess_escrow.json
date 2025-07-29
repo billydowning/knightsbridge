@@ -138,7 +138,9 @@
         {
           "name": "time_control",
           "type": {
-            "defined": "TimeControl"
+            "defined": {
+              "name": "TimeControl"
+            }
           }
         }
       ]
@@ -211,13 +213,17 @@
         {
           "name": "winner",
           "type": {
-            "defined": "GameWinner"
+            "defined": {
+              "name": "GameWinner"
+            }
           }
         },
         {
           "name": "reason",
           "type": {
-            "defined": "GameEndReason"
+            "defined": {
+              "name": "GameEndReason"
+            }
           }
         }
       ]
@@ -605,162 +611,6 @@
       ]
     }
   ],
-  "accounts": [
-    {
-      "name": "GameEscrow",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "room_id",
-            "type": "string"
-          },
-          {
-            "name": "player_white",
-            "type": "pubkey"
-          },
-          {
-            "name": "player_black",
-            "type": {
-              "option": "pubkey"
-            }
-          },
-          {
-            "name": "stake_amount",
-            "type": "u64"
-          },
-          {
-            "name": "game_started",
-            "type": "bool"
-          },
-          {
-            "name": "white_deposited",
-            "type": "bool"
-          },
-          {
-            "name": "black_deposited",
-            "type": "bool"
-          },
-          {
-            "name": "fee_collector",
-            "type": "pubkey"
-          },
-          {
-            "name": "time_limit",
-            "type": "u64"
-          },
-          {
-            "name": "last_move_time",
-            "type": "i64"
-          },
-          {
-            "name": "game_state",
-            "type": {
-              "defined": "GameState"
-            }
-          },
-          {
-            "name": "winner",
-            "type": {
-              "option": {
-                "defined": "GameWinner"
-              }
-            }
-          },
-          {
-            "name": "end_reason",
-            "type": {
-              "option": {
-                "defined": "GameEndReason"
-              }
-            }
-          },
-          {
-            "name": "moves",
-            "type": {
-              "vec": {
-                "defined": "MoveRecord"
-              }
-            }
-          },
-          {
-            "name": "flags",
-            "type": {
-              "defined": "GameFlags"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Tournament",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "tournament_id",
-            "type": "string"
-          },
-          {
-            "name": "name",
-            "type": "string"
-          },
-          {
-            "name": "creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "entry_fee",
-            "type": "u64"
-          },
-          {
-            "name": "max_participants",
-            "type": "u32"
-          },
-          {
-            "name": "time_control",
-            "type": {
-              "defined": "TimeControl"
-            }
-          },
-          {
-            "name": "status",
-            "type": {
-              "defined": "TournamentStatus"
-            }
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
-          },
-          {
-            "name": "started_at",
-            "type": "i64"
-          },
-          {
-            "name": "finished_at",
-            "type": "i64"
-          },
-          {
-            "name": "prize_pool",
-            "type": "u64"
-          },
-          {
-            "name": "participants",
-            "type": {
-              "vec": "pubkey"
-            }
-          },
-          {
-            "name": "brackets",
-            "type": {
-              "vec": "string"
-            }
-          }
-        ]
-      }
-    }
-  ],
   "events": [
     {
       "name": "GameCancelled",
@@ -1143,13 +993,17 @@
           {
             "name": "game_state",
             "type": {
-              "defined": "GameState"
+              "defined": {
+                "name": "GameState"
+              }
             }
           },
           {
             "name": "winner",
             "type": {
-              "defined": "GameWinner"
+              "defined": {
+                "name": "GameWinner"
+              }
             }
           },
           {
@@ -1191,7 +1045,9 @@
           {
             "name": "time_control",
             "type": {
-              "defined": "TimeControl"
+              "defined": {
+                "name": "TimeControl"
+              }
             }
           },
           {
@@ -1207,7 +1063,9 @@
             "name": "move_history",
             "type": {
               "vec": {
-                "defined": "MoveRecord"
+                "defined": {
+                  "name": "MoveRecord"
+                }
               }
             }
           },
@@ -1232,7 +1090,9 @@
           {
             "name": "game_flags",
             "type": {
-              "defined": "GameFlags"
+              "defined": {
+                "name": "GameFlags"
+              }
             }
           }
         ]
@@ -1250,13 +1110,17 @@
           {
             "name": "winner",
             "type": {
-              "defined": "GameWinner"
+              "defined": {
+                "name": "GameWinner"
+              }
             }
           },
           {
             "name": "reason",
             "type": {
-              "defined": "GameEndReason"
+              "defined": {
+                "name": "GameEndReason"
+              }
             }
           },
           {
@@ -1575,7 +1439,9 @@
           {
             "name": "time_control_type",
             "type": {
-              "defined": "TimeControlType"
+              "defined": {
+                "name": "TimeControlType"
+              }
             }
           }
         ]
@@ -1633,13 +1499,17 @@
           {
             "name": "status",
             "type": {
-              "defined": "TournamentStatus"
+              "defined": {
+                "name": "TournamentStatus"
+              }
             }
           },
           {
             "name": "time_control",
             "type": {
-              "defined": "TimeControl"
+              "defined": {
+                "name": "TimeControl"
+              }
             }
           },
           {
