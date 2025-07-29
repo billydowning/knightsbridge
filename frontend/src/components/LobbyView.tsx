@@ -67,7 +67,22 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     if (roomStatus?.escrows && Object.keys(roomStatus.escrows).length > 0) {
       // Get the first escrow amount (should be same for both players)
       const escrowAmounts = Object.values(roomStatus.escrows);
-      return Number(escrowAmounts[0]) || betAmount;
+      const rawAmount = escrowAmounts[0];
+      
+      // Ensure proper number parsing and formatting
+      const parsedAmount = typeof rawAmount === 'string' ? parseFloat(rawAmount) : Number(rawAmount);
+      
+      // Round to avoid floating point precision issues
+      const roundedAmount = Math.round(parsedAmount * 100000000) / 100000000; // 8 decimal places
+      
+      console.log('🔍 Bet amount calculation:', {
+        rawAmount,
+        parsedAmount,
+        roundedAmount,
+        fallbackBetAmount: betAmount
+      });
+      
+      return roundedAmount || betAmount;
     }
     return betAmount;
   }, [roomStatus?.escrows, betAmount]);
