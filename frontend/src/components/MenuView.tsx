@@ -35,8 +35,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
   const hasInsufficientBalance = connected && balance < betAmount;
   const [showLargerAmounts, setShowLargerAmounts] = React.useState(false);
 
-  const smallBetAmounts = [0.01, 0.05, 0.1, 0.5, 1];
-  const largeBetAmounts = [2, 5, 10, 50, 100];
+  const smallBetAmounts = [0.01, 0.02, 0.05, 0.1, 0.25, 0.5];
+  const largeBetAmounts = [1, 2, 5, 10, 25, 50];
 
   // Responsive utilities
   const containerWidth = useContainerWidth();
@@ -237,7 +237,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
           {/* Normal bet amounts */}
           <div style={{ 
             display: 'grid',
-            gridTemplateColumns: `repeat(auto-fit, minmax(${isDesktopLayout ? '140px' : '100px'}, 1fr))`,
+            gridTemplateColumns: isDesktopLayout ? 'repeat(6, 1fr)' : 'repeat(3, 1fr)',
             gap: isDesktopLayout ? '1rem' : '0.75rem',
             marginBottom: '1rem',
             width: '100%',
@@ -283,7 +283,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
           {showLargerAmounts && (
             <div style={{ 
               display: 'grid',
-              gridTemplateColumns: `repeat(auto-fit, minmax(${isDesktopLayout ? '140px' : '100px'}, 1fr))`,
+              gridTemplateColumns: isDesktopLayout ? 'repeat(6, 1fr)' : 'repeat(3, 1fr)',
               gap: isDesktopLayout ? '1rem' : '0.75rem',
               marginBottom: '1rem',
               animation: 'fadeIn 0.3s ease-in-out',
