@@ -89,11 +89,19 @@ export const Header: React.FC<HeaderProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '16px'
+        gap: isMobile ? '8px' : '16px',
+        width: '100%',
+        minWidth: 0 // Allow content to shrink
       }}>
         
         {/* Left: Logo and Branding */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          flexShrink: 0, // Don't let logo shrink
+          minWidth: 0
+        }}>
           <div style={{
             fontSize: isDesktopLayout ? '24px' : '20px',
             lineHeight: 1
@@ -129,7 +137,9 @@ export const Header: React.FC<HeaderProps> = ({
             alignItems: 'center',
             gap: '6px',
             flex: 1,
-            justifyContent: 'center'
+            justifyContent: 'center',
+            minWidth: 0, // Allow to shrink
+            overflow: 'hidden'
           }}>
             {crumbs.map((crumb, index) => (
               <React.Fragment key={crumb.label}>
@@ -160,19 +170,22 @@ export const Header: React.FC<HeaderProps> = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: isMobile ? '8px' : '12px'
+          gap: isMobile ? '6px' : '12px',
+          flexShrink: 0, // Prevent shrinking
+          minWidth: 0 // Allow content to shrink
         }}>
           
           {/* Balance Display */}
           {connected && typeof balance === 'number' && (
             <div style={{
-              padding: '4px 8px',
+              padding: isMobile ? '3px 6px' : '4px 8px',
               backgroundColor: `${theme.success}20`,
               color: theme.success,
               borderRadius: '12px',
-              fontSize: isDesktopLayout ? '12px' : '11px',
+              fontSize: isDesktopLayout ? '12px' : '10px',
               fontWeight: '600',
-              border: `1px solid ${theme.success}40`
+              border: `1px solid ${theme.success}40`,
+              whiteSpace: 'nowrap'
             }}>
               {balance.toFixed(3)} SOL
             </div>
@@ -181,17 +194,18 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Room ID Display */}
           {roomId && currentView !== 'menu' && (
             <div style={{
-              padding: '4px 8px',
+              padding: isMobile ? '3px 6px' : '4px 8px',
               backgroundColor: `${theme.primary}20`,
               color: theme.primary,
               borderRadius: '12px',
-              fontSize: isDesktopLayout ? '11px' : '10px',
+              fontSize: isDesktopLayout ? '11px' : '9px',
               fontWeight: '600',
               fontFamily: 'monospace',
               border: `1px solid ${theme.primary}40`,
-              maxWidth: isMobile ? '80px' : 'none',
+              maxWidth: isMobile ? '60px' : 'none',
               overflow: 'hidden',
-              textOverflow: 'ellipsis'
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
             }}>
               {isMobile ? roomId.slice(-6) : roomId}
             </div>
@@ -201,16 +215,23 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Wallet Button */}
           <div style={{
-            fontSize: isDesktopLayout ? '14px' : '12px'
+            fontSize: isDesktopLayout ? '14px' : '11px',
+            flexShrink: 0,
+            maxWidth: isMobile ? '120px' : 'none' // Limit width on mobile
           }}>
             <WalletMultiButton style={{
               backgroundColor: connected ? theme.success : theme.primary,
               borderRadius: '8px',
-              height: isDesktopLayout ? '40px' : '36px',
-              fontSize: isDesktopLayout ? '14px' : '12px',
+              height: isDesktopLayout ? '40px' : '32px',
+              fontSize: isDesktopLayout ? '14px' : '11px',
               fontWeight: 'bold',
               border: 'none',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              padding: isMobile ? '6px 8px' : '8px 12px',
+              maxWidth: isMobile ? '120px' : 'none',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
             }} />
           </div>
         </div>
