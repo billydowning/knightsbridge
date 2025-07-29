@@ -919,6 +919,18 @@ function ChessApp() {
       return;
     }
     
+    // Prevent duplicate claims
+    if (winningsClaimed) {
+      setGameStatus('Winnings have already been claimed');
+      return;
+    }
+    
+    // Prevent concurrent claims
+    if (appLoading) {
+      setGameStatus('Claim already in progress...');
+      return;
+    }
+    
     try {
       setGameStatus('Claiming winnings on Solana...');
       setAppLoading(true);
@@ -940,7 +952,15 @@ function ChessApp() {
       
     } catch (err) {
       console.error('❌ Claiming winnings failed:', err);
-      setGameStatus('Failed to claim winnings. Please try again.');
+      
+      // Check if the error indicates the transaction was already processed
+      const errorMessage = err.message || err.toString();
+      if (errorMessage.includes('already been processed') || errorMessage.includes('already processed')) {
+        setWinningsClaimed(true);
+        setGameStatus('✅ Winnings already claimed successfully!');
+      } else {
+        setGameStatus('Failed to claim winnings. Please try again.');
+      }
     } finally {
       setAppLoading(false);
     }

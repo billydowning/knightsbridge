@@ -237,12 +237,13 @@ export const GameViewEnhanced: React.FC<GameViewEnhancedProps> = ({
           {canClaimWinnings && (
             <button
               onClick={onClaimWinnings}
-              disabled={isLoading}
+              disabled={isLoading || winningsClaimed}
               className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-bold"
             >
-              {isLoading ? '⏳ Processing...' : (
-                gameState.winner === assignedColor ? '💰 Claim Winnings' : '🤝 Claim Draw Split'
-              )}
+              {isLoading ? '⏳ Processing...' : 
+               winningsClaimed ? '✅ Winnings Claimed' :
+               (gameState.winner === assignedColor ? '💰 Claim Winnings' : '🤝 Claim Draw Split')
+              }
             </button>
           )}
 
