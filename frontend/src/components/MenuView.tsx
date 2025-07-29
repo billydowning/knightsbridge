@@ -69,40 +69,157 @@ export const MenuView: React.FC<MenuViewProps> = ({
   return (
     <div style={{ textAlign: 'center' }}>
       
-      {/* Create Room Section */}
-      <div style={{ 
-        backgroundColor: theme.surface, 
-        padding: isDesktopLayout ? '40px' : '15px', 
-        borderRadius: '10px', 
-        boxShadow: theme.shadow,
-        marginBottom: isDesktopLayout ? '40px' : '20px',
+      {/* Hero Section */}
+      <section style={{
+        background: `linear-gradient(135deg, ${theme.primary}20 0%, ${theme.secondary}15 100%)`,
+        padding: isDesktopLayout ? '4rem 2rem' : '2rem 1rem',
+        borderRadius: '20px',
+        marginBottom: isDesktopLayout ? '3rem' : '2rem',
         border: `1px solid ${theme.border}`,
-        width: isDesktopLayout ? '800px' : '95%',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center'
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <h2 style={{ 
-          margin: '0 0 20px 0', 
-          color: theme.text,
-          fontSize: textSizes.h3
-        }}>🎯 Create A Room</h2>
+        {/* Background Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          opacity: 0.1,
+          backgroundImage: `
+            radial-gradient(circle at 25% 25%, ${theme.primary} 0%, transparent 50%),
+            radial-gradient(circle at 75% 75%, ${theme.secondary} 0%, transparent 50%)
+          `,
+          zIndex: 0
+        }} />
         
-        {/* Bet Amount Buttons */}
-        <div style={{ marginBottom: isDesktopLayout ? '30px' : '20px', width: '100%' }}>
-          <h4 style={{ 
-            margin: '0 0 15px 0', 
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            fontSize: isDesktopLayout ? '4rem' : '3rem',
+            marginBottom: '1rem',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+          }}>
+            ♔ ♛
+          </div>
+          
+          <h1 style={{
+            fontSize: isDesktopLayout ? '3rem' : '2rem',
+            fontWeight: 'bold',
+            color: theme.text,
+            margin: '0 0 1rem 0',
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            Welcome to Knightsbridge
+          </h1>
+          
+          <p style={{
+            fontSize: isDesktopLayout ? '1.25rem' : '1rem',
             color: theme.textSecondary,
-            fontSize: isDesktopLayout ? '1.5rem' : textSizes.h3
-          }}>Choose Bet Amount:</h4>
+            margin: '0 0 2rem 0',
+            maxWidth: '600px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            lineHeight: 1.6
+          }}>
+            Play chess for real stakes on the Solana blockchain. 
+            Create or join a room to start competing against players worldwide.
+          </p>
+          
+          {/* Quick Stats */}
+          <div style={{
+            display: 'flex',
+            gap: isDesktopLayout ? '2rem' : '1rem',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginTop: '2rem'
+          }}>
+            {[
+              { icon: '⚡', label: 'Instant Payouts' },
+              { icon: '🔒', label: 'Secure Escrows' },
+              { icon: '🌍', label: 'Global Players' }
+            ].map((stat, index) => (
+              <div key={index} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: `${theme.surface}80`,
+                borderRadius: '20px',
+                border: `1px solid ${theme.border}40`,
+                backdropFilter: 'blur(10px)'
+              }}>
+                <span style={{ fontSize: '1.2rem' }}>{stat.icon}</span>
+                <span style={{ 
+                  fontSize: isDesktopLayout ? '0.9rem' : '0.8rem',
+                  fontWeight: '600',
+                  color: theme.text
+                }}>
+                  {stat.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Create Room Section */}
+      <section style={{ 
+        backgroundColor: theme.surface, 
+        padding: isDesktopLayout ? '3rem' : '2rem', 
+        borderRadius: '16px', 
+        boxShadow: theme.shadow,
+        border: `1px solid ${theme.border}`,
+        maxWidth: isDesktopLayout ? '800px' : '100%',
+        margin: '0 auto',
+        marginBottom: isDesktopLayout ? '2rem' : '1.5rem'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+          <h2 style={{ 
+            margin: 0, 
+            color: theme.text,
+            fontSize: isDesktopLayout ? '2rem' : '1.5rem',
+            fontWeight: 'bold'
+          }}>
+            Create New Game
+          </h2>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+        </div>
+        
+        {/* Bet Amount Selection */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h3 style={{ 
+            margin: '0 0 1.5rem 0', 
+            color: theme.text,
+            fontSize: isDesktopLayout ? '1.25rem' : '1.1rem',
+            fontWeight: '600'
+          }}>
+            Choose Your Stakes
+          </h3>
           
           {/* Normal bet amounts */}
           <div style={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: isDesktopLayout ? '15px' : '6px', 
-            justifyContent: 'center' 
+            display: 'grid',
+            gridTemplateColumns: `repeat(${isDesktopLayout ? '5' : '3'}, 1fr)`,
+            gap: isDesktopLayout ? '1rem' : '0.75rem',
+            marginBottom: '1rem'
           }}>
             {smallBetAmounts.map((amount) => (
               <button
@@ -112,22 +229,40 @@ export const MenuView: React.FC<MenuViewProps> = ({
                   ...sharedButtonStyle,
                   backgroundColor: betAmount === amount ? theme.primary : theme.background,
                   color: betAmount === amount ? 'white' : theme.text,
-                  border: `2px solid ${theme.border}`
+                  border: `2px solid ${betAmount === amount ? theme.primary : theme.border}`,
+                  transform: betAmount === amount ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: betAmount === amount ? `0 4px 12px ${theme.primary}40` : 'none',
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}
               >
-                {amount} SOL
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  {amount} SOL
+                </div>
+                {betAmount === amount && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: `linear-gradient(45deg, ${theme.primary}, ${theme.secondary})`,
+                    opacity: 0.9,
+                    zIndex: 0
+                  }} />
+                )}
               </button>
             ))}
           </div>
           
-          {/* Larger bet amounts (hidden by default) */}
+          {/* Larger bet amounts (collapsible) */}
           {showLargerAmounts && (
             <div style={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: isDesktopLayout ? '15px' : '6px', 
-              justifyContent: 'center',
-              marginTop: isDesktopLayout ? '15px' : '10px'
+              display: 'grid',
+              gridTemplateColumns: `repeat(${isDesktopLayout ? '5' : '3'}, 1fr)`,
+              gap: isDesktopLayout ? '1rem' : '0.75rem',
+              marginBottom: '1rem',
+              animation: 'fadeIn 0.3s ease-in-out'
             }}>
               {largeBetAmounts.map((amount) => (
                 <button
@@ -137,7 +272,9 @@ export const MenuView: React.FC<MenuViewProps> = ({
                     ...sharedButtonStyle,
                     backgroundColor: betAmount === amount ? theme.primary : theme.background,
                     color: betAmount === amount ? 'white' : theme.text,
-                    border: `2px solid ${theme.border}`
+                    border: `2px solid ${betAmount === amount ? theme.primary : theme.border}`,
+                    transform: betAmount === amount ? 'scale(1.05)' : 'scale(1)',
+                    boxShadow: betAmount === amount ? `0 4px 12px ${theme.primary}40` : 'none'
                   }}
                 >
                   {amount} SOL
@@ -150,19 +287,23 @@ export const MenuView: React.FC<MenuViewProps> = ({
           <button
             onClick={() => setShowLargerAmounts(!showLargerAmounts)}
             style={{
-              marginTop: isDesktopLayout ? '20px' : '12px',
-              padding: isDesktopLayout ? '12px 20px' : '6px 10px',
+              padding: '0.75rem 1.5rem',
               backgroundColor: 'transparent',
               color: theme.primary,
-              border: `1px solid ${theme.primary}`,
-              borderRadius: '6px',
+              border: `1px solid ${theme.primary}60`,
+              borderRadius: '8px',
               cursor: 'pointer',
-              fontSize: isDesktopLayout ? '14px' : textSizes.small,
-              fontWeight: 'bold',
-              transition: 'all 0.2s ease'
+              fontSize: isDesktopLayout ? '0.9rem' : '0.8rem',
+              fontWeight: '600',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              margin: '0 auto'
             }}
           >
-            {showLargerAmounts ? '▼ Hide larger amounts' : '▶ Click here to see larger amounts'}
+            <span>{showLargerAmounts ? '▼' : '▶'}</span>
+            {showLargerAmounts ? 'Hide larger amounts' : 'Show larger amounts'}
           </button>
         </div>
 
@@ -171,88 +312,156 @@ export const MenuView: React.FC<MenuViewProps> = ({
           onClick={handleCreateRoom}
           disabled={isButtonDisabled || betAmount === 0}
           style={{
-            padding: isDesktopLayout ? '20px 50px' : '12px 24px',
+            padding: isDesktopLayout ? '1.25rem 3rem' : '1rem 2rem',
             backgroundColor: (isButtonDisabled || betAmount === 0) ? theme.border : theme.secondary,
             color: 'white',
             border: 'none',
-            borderRadius: '8px',
+            borderRadius: '12px',
             cursor: (isButtonDisabled || betAmount === 0) ? 'not-allowed' : 'pointer',
-            fontSize: isDesktopLayout ? '1.25rem' : textSizes.h3,
+            fontSize: isDesktopLayout ? '1.1rem' : '1rem',
             fontWeight: 'bold',
-            minWidth: isDesktopLayout ? '250px' : '140px',
-            transition: 'all 0.2s ease'
+            minWidth: isDesktopLayout ? '250px' : '200px',
+            transition: 'all 0.3s ease',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: (isButtonDisabled || betAmount === 0) ? 'none' : `0 6px 20px ${theme.secondary}40`,
+            transform: (isButtonDisabled || betAmount === 0) ? 'none' : 'translateY(-2px)'
           }}
         >
-          {isLoading ? '⏳ Creating...' : 'Create Room'}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {isLoading ? '⏳ Creating...' : `🎯 Create Room (${betAmount} SOL)`}
+          </div>
+          {!(isButtonDisabled || betAmount === 0) && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: '-100%',
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(90deg, transparent, ${theme.primary}40, transparent)`,
+              animation: 'shimmer 2s infinite'
+            }} />
+          )}
         </button>
 
         {/* Error Messages for Create Section */}
         {hasInsufficientBalance && connected && (
           <div style={{ 
-            color: theme.accent, 
-            marginTop: isDesktopLayout ? '20px' : '12px',
-            padding: isDesktopLayout ? '15px' : '8px',
-            backgroundColor: theme.background,
+            color: theme.error, 
+            marginTop: '1.5rem',
+            padding: '1rem',
+            backgroundColor: `${theme.error}10`,
             borderRadius: '8px',
-            fontSize: isDesktopLayout ? '16px' : textSizes.body,
-            border: `1px solid ${theme.accent}`
+            fontSize: isDesktopLayout ? '1rem' : '0.9rem',
+            border: `1px solid ${theme.error}40`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
           }}>
-            <strong>⚠️ Insufficient Balance!</strong><br/>
-            Need {betAmount} SOL, but you have {balance.toFixed(3)} SOL
+            <span style={{ fontSize: '1.5rem' }}>⚠️</span>
+            <div>
+              <strong>Insufficient Balance!</strong><br/>
+              Need {betAmount} SOL, but you have {balance.toFixed(3)} SOL
+            </div>
           </div>
         )}
 
         {!connected && (
           <div style={{ 
-            color: '#f39c12', 
-            marginTop: isDesktopLayout ? '20px' : '12px',
-            padding: isDesktopLayout ? '15px' : '8px',
-            backgroundColor: theme.background,
+            color: theme.warning, 
+            marginTop: '1.5rem',
+            padding: '1rem',
+            backgroundColor: `${theme.warning}10`,
             borderRadius: '8px',
-            fontSize: isDesktopLayout ? '16px' : textSizes.body,
-            border: `1px solid #f39c12`
+            fontSize: isDesktopLayout ? '1rem' : '0.9rem',
+            border: `1px solid ${theme.warning}40`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
           }}>
-            <strong>💡 Connect your wallet to create a room</strong>
+            <span style={{ fontSize: '1.5rem' }}>💡</span>
+            <div>
+              <strong>Connect your wallet to create a room</strong>
+            </div>
           </div>
         )}
-      </div>
+      </section>
 
       {/* Divider */}
       <div style={{ 
-        textAlign: 'center',
-        margin: '30px 0',
-        fontSize: '18px', 
-        fontWeight: 'bold',
-        color: theme.textSecondary
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        margin: '2rem 0',
+        maxWidth: '400px',
+        marginLeft: 'auto',
+        marginRight: 'auto'
       }}>
-        OR
+        <div style={{ flex: 1, height: '1px', backgroundColor: theme.border }} />
+        <span style={{
+          fontSize: '1rem', 
+          fontWeight: '600',
+          color: theme.textSecondary,
+          padding: '0.5rem 1rem',
+          backgroundColor: theme.surface,
+          borderRadius: '20px',
+          border: `1px solid ${theme.border}`
+        }}>
+          OR
+        </span>
+        <div style={{ flex: 1, height: '1px', backgroundColor: theme.border }} />
       </div>
 
       {/* Join Room Section */}
-      <div style={{ 
+      <section style={{ 
         backgroundColor: theme.surface, 
-        padding: isDesktopLayout ? '40px' : '15px', 
-        borderRadius: '10px', 
+        padding: isDesktopLayout ? '3rem' : '2rem', 
+        borderRadius: '16px', 
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
-        width: isDesktopLayout ? '800px' : '95%',
+        maxWidth: isDesktopLayout ? '800px' : '100%',
         margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center'
+        marginBottom: '2rem'
       }}>
-        <h2 style={{ margin: '0 0 20px 0', color: theme.text }}>🎯 Join A Room</h2>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+          <h2 style={{ 
+            margin: 0, 
+            color: theme.text,
+            fontSize: isDesktopLayout ? '2rem' : '1.5rem',
+            fontWeight: 'bold'
+          }}>
+            Join Existing Game
+          </h2>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+        </div>
         
         {/* Room ID Input */}
-        <div style={{ marginBottom: '25px' }}>
+        <div style={{ marginBottom: '2rem' }}>
           <label style={{ 
             display: 'block', 
-            marginBottom: '8px', 
-            fontSize: '16px', 
-            fontWeight: 'bold',
+            marginBottom: '1rem', 
+            fontSize: isDesktopLayout ? '1.1rem' : '1rem', 
+            fontWeight: '600',
             color: theme.text
           }}>
-            Room ID:
+            Room ID
           </label>
           <input
             type="text"
@@ -261,22 +470,24 @@ export const MenuView: React.FC<MenuViewProps> = ({
             onChange={(e) => setRoomId(e.target.value)}
             disabled={isLoading}
             style={{
-              padding: '15px 20px',
+              padding: '1rem 1.5rem',
               border: `2px solid ${theme.border}`,
-              borderRadius: '8px',
+              borderRadius: '12px',
               width: '100%',
               maxWidth: '400px',
-              fontSize: '16px',
+              fontSize: '1rem',
               textAlign: 'center',
               backgroundColor: theme.background,
               color: theme.text,
-              transition: 'border-color 0.2s ease'
+              transition: 'all 0.2s ease',
+              fontFamily: 'monospace',
+              fontWeight: 'bold'
             }}
           />
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: '0.9rem', 
             color: theme.textSecondary, 
-            marginTop: '10px',
+            marginTop: '0.75rem',
             fontStyle: 'italic',
             textAlign: 'center'
           }}>
@@ -289,63 +500,112 @@ export const MenuView: React.FC<MenuViewProps> = ({
           onClick={onJoinRoom}
           disabled={!connected || isLoading || !roomId.trim()}
           style={{
-            padding: '15px 40px',
+            padding: isDesktopLayout ? '1.25rem 3rem' : '1rem 2rem',
             backgroundColor: (!connected || isLoading || !roomId.trim()) ? theme.border : theme.primary,
             color: 'white',
             border: 'none',
-            borderRadius: '8px',
+            borderRadius: '12px',
             cursor: (!connected || isLoading || !roomId.trim()) ? 'not-allowed' : 'pointer',
-            fontSize: '16px',
+            fontSize: isDesktopLayout ? '1.1rem' : '1rem',
             fontWeight: 'bold',
             minWidth: '200px',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.3s ease',
+            boxShadow: (!connected || isLoading || !roomId.trim()) ? 'none' : `0 6px 20px ${theme.primary}40`,
+            transform: (!connected || isLoading || !roomId.trim()) ? 'none' : 'translateY(-2px)'
           }}
         >
-          {isLoading ? '⏳ Joining...' : 'Join Room'}
+          {isLoading ? '⏳ Joining...' : '🚪 Join Room'}
         </button>
 
         {/* Error Messages for Join Section */}
         {!connected && (
           <div style={{ 
-            color: '#f39c12', 
-            marginTop: '15px',
-            padding: '10px',
-            backgroundColor: theme.background,
+            color: theme.warning, 
+            marginTop: '1.5rem',
+            padding: '1rem',
+            backgroundColor: `${theme.warning}10`,
             borderRadius: '8px',
-            fontSize: '14px',
-            border: `1px solid #f39c12`
+            fontSize: isDesktopLayout ? '1rem' : '0.9rem',
+            border: `1px solid ${theme.warning}40`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
           }}>
-            <strong>💡 Connect your wallet to join a room</strong>
+            <span style={{ fontSize: '1.5rem' }}>💡</span>
+            <div>
+              <strong>Connect your wallet to join a room</strong>
+            </div>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Instructions */}
-      <div style={{ 
+      {/* How to Play Section */}
+      <section style={{ 
         backgroundColor: theme.background, 
-        padding: isDesktopLayout ? '40px' : '15px', 
-        borderRadius: '10px',
+        padding: isDesktopLayout ? '3rem' : '2rem', 
+        borderRadius: '16px',
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`,
-        width: isDesktopLayout ? '800px' : '95%',
-        margin: '50px auto 0 auto',
-        fontSize: '14px',
-        textAlign: 'left',
-        color: theme.text,
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center'
+        maxWidth: isDesktopLayout ? '800px' : '100%',
+        margin: '2rem auto 0 auto',
+        textAlign: 'left'
       }}>
-        <h4 style={{ margin: '0 0 15px 0', color: theme.text }}>📋 How to Play:</h4>
-        <ul style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
-          <li><strong>Create Room:</strong> Choose bet amount and create a new game as White</li>
-          <li><strong>Share Room ID:</strong> Share the generated Room ID with your opponent</li>
-          <li><strong>Join Room:</strong> Enter the Room ID to join as Black</li>
-          <li><strong>Create Escrows:</strong> Both players must create escrows to start the game</li>
-          <li><strong>Winner Takes All:</strong> Winner gets both escrows (minus fees)</li>
-          <li><strong>Draw:</strong> Both players get their escrow back</li>
-        </ul>
-      </div>
+        <h3 style={{ 
+          margin: '0 0 2rem 0', 
+          color: theme.text,
+          fontSize: isDesktopLayout ? '1.5rem' : '1.25rem',
+          fontWeight: 'bold',
+          textAlign: 'center'
+        }}>
+          How to Play
+        </h3>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isDesktopLayout ? 'repeat(2, 1fr)' : '1fr',
+          gap: '1.5rem'
+        }}>
+          {[
+            { icon: '🎯', title: 'Create Room', desc: 'Choose bet amount and create a new game as White' },
+            { icon: '📋', title: 'Share Room ID', desc: 'Share the generated Room ID with your opponent' },
+            { icon: '🚪', title: 'Join Room', desc: 'Enter the Room ID to join as Black' },
+            { icon: '💰', title: 'Deposit Stakes', desc: 'Both players must deposit stakes to start the game' },
+            { icon: '🏆', title: 'Winner Takes All', desc: 'Winner gets both stakes (minus fees)' },
+            { icon: '🤝', title: 'Draw Split', desc: 'Both players get their stake back on draw' }
+          ].map((step, index) => (
+            <div key={index} style={{
+              display: 'flex',
+              gap: '1rem',
+              padding: '1rem',
+              backgroundColor: theme.surface,
+              borderRadius: '8px',
+              border: `1px solid ${theme.border}`
+            }}>
+              <div style={{ fontSize: '1.5rem', minWidth: '32px' }}>
+                {step.icon}
+              </div>
+              <div>
+                <h4 style={{
+                  margin: '0 0 0.5rem 0',
+                  color: theme.text,
+                  fontSize: '1rem',
+                  fontWeight: 'bold'
+                }}>
+                  {step.title}
+                </h4>
+                <p style={{
+                  margin: 0,
+                  color: theme.textSecondary,
+                  fontSize: '0.9rem',
+                  lineHeight: 1.5
+                }}>
+                  {step.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };

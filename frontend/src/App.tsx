@@ -13,6 +13,7 @@ import { ChessEngine } from './engine/chessEngine';
 import { MenuView } from './components/MenuView';
 import { LobbyView } from './components/LobbyView';
 import { GameView } from './components/GameView';
+import { Header } from './components/Header';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -151,36 +152,7 @@ const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   );
 };
 
-// Dark mode toggle button component
-const DarkModeToggle: React.FC = () => {
-  const { isDarkMode, toggleDarkMode, theme } = useTheme();
-  const isMobile = useIsMobile();
-  const isDesktopLayout = useIsDesktopLayout();
-  const textSizes = useTextSizes();
-
-  return (
-    <button
-      onClick={toggleDarkMode}
-      style={{
-        padding: isDesktopLayout ? '12px 16px' : '6px 8px',
-        backgroundColor: theme.surface,
-        color: theme.text,
-        border: `2px solid ${theme.border}`,
-        borderRadius: '8px',
-        cursor: 'pointer',
-        fontSize: isDesktopLayout ? '16px' : textSizes.small,
-        fontWeight: 'bold',
-        display: 'flex',
-        alignItems: 'center',
-        gap: isDesktopLayout ? '8px' : '4px',
-        transition: 'all 0.2s ease',
-        whiteSpace: 'nowrap'
-      }}
-    >
-      {isDarkMode ? '☀️ Light' : '🌙 Dark'}
-    </button>
-  );
-};
+// DarkModeToggle moved to Header component
 
 function ChessApp() {
   const { theme } = useTheme();
@@ -2188,45 +2160,22 @@ function ChessApp() {
         fontFamily: 'Arial, sans-serif'
       }}>
         {/* Header */}
-        <div style={{
-          backgroundColor: theme.surface,
-          color: theme.text,
-          padding: isDesktopLayout ? '1.5rem' : '0.75rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: `1px solid ${theme.border}`,
-          flexWrap: isMobile ? 'wrap' : 'nowrap',
-          gap: isMobile ? '0.5rem' : '0'
-        }}>
-          <h1 style={{ 
-            margin: 0, 
-            fontSize: isDesktopLayout ? '2rem' : textSizes.h2,
-            flexShrink: 0
-          }}>
-            ♟️ Knightsbridge Chess
-          </h1>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: isDesktopLayout ? '1.5rem' : '0.5rem',
-            flexWrap: 'wrap',
-            justifyContent: isMobile ? 'center' : 'flex-end',
-            width: isMobile ? '100%' : 'auto'
-          }}>
-            <DarkModeToggle />
-            <WalletMultiButton />
-          </div>
-        </div>
+        <Header 
+          currentView={gameMode}
+          roomId={roomId}
+          balance={balance}
+          connected={connected}
+        />
 
         {/* Main Content */}
-        <div style={{ 
-          padding: isDesktopLayout ? '3rem' : '1rem',
+        <main style={{ 
+          padding: isDesktopLayout ? '2rem' : '1rem',
           maxWidth: '100vw',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          paddingTop: isDesktopLayout ? '2rem' : '1rem'
         }}>
           {renderContent()}
-        </div>
+        </main>
       </div>
     </ErrorBoundary>
   );
