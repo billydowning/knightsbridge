@@ -260,7 +260,7 @@ export const GameView: React.FC<GameViewProps> = ({
               color: theme.text,
               fontWeight: '600'
             }}>
-              {gameState.moveHistory.length}
+              {gameState.moveHistory?.length || Math.max(0, (gameState.fullmoveNumber - 1) * 2 + (gameState.currentPlayer === 'black' ? 1 : 0))}
             </div>
           </div>
         </div>
@@ -332,8 +332,8 @@ export const GameView: React.FC<GameViewProps> = ({
         {onSendChatMessage && (
           <div style={{
             width: isMobile ? '100%' : '300px',
-            height: isMobile ? '300px' : `${boardSize + 80}px`,
-            minHeight: isMobile ? '300px' : `${boardSize + 80}px`,
+            height: isMobile ? '300px' : `${boardSize + 140}px`,
+            minHeight: isMobile ? '300px' : `${boardSize + 140}px`,
             flex: isMobile ? 'none' : '0 0 300px',
             background: `linear-gradient(135deg, ${theme.surface} 0%, ${theme.background} 100%)`,
             borderRadius: isDesktopLayout ? '20px' : '16px',
@@ -400,7 +400,7 @@ export const GameView: React.FC<GameViewProps> = ({
               color: theme.text,
               fontWeight: '700'
             }}>
-              {gameState.moveHistory.length}
+              {gameState.moveHistory?.length || Math.max(0, (gameState.fullmoveNumber - 1) * 2 + (gameState.currentPlayer === 'black' ? 1 : 0))}
             </div>
           </div>
 
@@ -452,7 +452,7 @@ export const GameView: React.FC<GameViewProps> = ({
               color: theme.text,
               fontWeight: '700'
             }}>
-              {gameState.moveHistory.length === 0 ? 0 : gameState.fullmoveNumber}
+              {gameState.fullmoveNumber || 1}
             </div>
           </div>
 

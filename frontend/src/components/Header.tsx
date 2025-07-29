@@ -58,9 +58,10 @@ export const Header: React.FC<HeaderProps> = ({
   const getBreadcrumbs = () => {
     const crumbs = [];
     
-    if (currentView === 'game') {
-      crumbs.push({ label: 'Game', active: true });
-    }
+    // Removed: Game breadcrumb per user request
+    // if (currentView === 'game') {
+    //   crumbs.push({ label: 'Game', active: true });
+    // }
     
     return crumbs;
   };
