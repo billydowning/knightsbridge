@@ -85,7 +85,7 @@ export const GameViewEnhanced: React.FC<GameViewEnhancedProps> = ({
   }, [isConnected, assignedColor, setPlayerReady]);
 
   const isGameOver = gameState.winner || gameState.draw;
-  const canClaimWinnings = (gameState.winner === assignedColor || gameState.draw) && !winningsClaimed;
+  const showClaimButton = gameState.winner === assignedColor || gameState.draw;
   const potValue = betAmount * 2;
 
   const getGameStatusMessage = (): string => {
@@ -234,14 +234,18 @@ export const GameViewEnhanced: React.FC<GameViewEnhancedProps> = ({
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4">
           {/* Claim Winnings Button */}
-          {canClaimWinnings && (
+          {showClaimButton && (
             <button
-              onClick={onClaimWinnings}
+              onClick={winningsClaimed ? undefined : onClaimWinnings}
               disabled={isLoading || winningsClaimed}
-              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-bold"
+              className={`px-6 py-3 text-white rounded-lg font-bold ${
+                winningsClaimed 
+                  ? 'bg-green-600 cursor-default' 
+                  : 'bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed'
+              }`}
             >
               {isLoading ? '⏳ Processing...' : 
-               winningsClaimed ? '✅ Winnings Claimed' :
+               winningsClaimed ? '✅ Winnings Claimed!' :
                (gameState.winner === assignedColor ? '💰 Claim Winnings' : '🤝 Claim Draw Split')
               }
             </button>
