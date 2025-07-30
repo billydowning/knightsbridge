@@ -53,6 +53,7 @@ export const GameView: React.FC<GameViewProps> = ({
   // Timer logic - properly track each player's remaining time
   const [whiteTimeRemaining, setWhiteTimeRemaining] = React.useState(timeLimit);
   const [blackTimeRemaining, setBlackTimeRemaining] = React.useState(timeLimit);
+  const [timeoutTriggered, setTimeoutTriggered] = React.useState(false);
   
   // Debug: Log when timeLimit prop changes
   React.useEffect(() => {
@@ -75,6 +76,7 @@ export const GameView: React.FC<GameViewProps> = ({
       console.log('✅ Initializing timers with timeLimit:', timeLimit, 'seconds');
       setWhiteTimeRemaining(timeLimit);
       setBlackTimeRemaining(timeLimit);
+      setTimeoutTriggered(false); // Reset timeout flag when game starts
     }
   }, [gameState.gameActive, isGameOver, timeLimit, playerRole]);
   
@@ -85,7 +87,24 @@ export const GameView: React.FC<GameViewProps> = ({
     console.log('🔄 Updating both timer states to:', timeLimit);
     setWhiteTimeRemaining(timeLimit);
     setBlackTimeRemaining(timeLimit);
+    setTimeoutTriggered(false); // Reset timeout flag when timers reset
   }, [timeLimit]);
+
+  // Handle timeout - declare the opponent as winner
+  const handleTimeout = React.useCallback((timedOutPlayer: 'white' | 'black') => {
+    if (timeoutTriggered || isGameOver) return; // Prevent multiple calls
+    
+    console.log(`⏰ ${timedOutPlayer} player timed out - triggering automatic resignation`);
+    setTimeoutTriggered(true);
+    
+    // Trigger resignation which will declare the opponent as winner
+    if (onResignGame) {
+      // Small delay to ensure the timer shows 0:00 first
+      setTimeout(() => {
+        onResignGame();
+      }, 100);
+    }
+  }, [timeoutTriggered, isGameOver, onResignGame]);
 
   // Countdown timer for current player only
   React.useEffect(() => {
@@ -97,9 +116,9 @@ export const GameView: React.FC<GameViewProps> = ({
           const newTime = Math.max(0, prevTime - 1);
           
           // Auto-timeout if time runs out
-          if (newTime === 0) {
+          if (newTime === 0 && !timeoutTriggered) {
             console.log('⏰ White player timed out');
-            // In a real implementation, you'd trigger timeout here
+            handleTimeout('white');
           }
           
           return newTime;
@@ -109,9 +128,9 @@ export const GameView: React.FC<GameViewProps> = ({
           const newTime = Math.max(0, prevTime - 1);
           
           // Auto-timeout if time runs out  
-          if (newTime === 0) {
+          if (newTime === 0 && !timeoutTriggered) {
             console.log('⏰ Black player timed out');
-            // In a real implementation, you'd trigger timeout here
+            handleTimeout('black');
           }
           
           return newTime;
@@ -120,7 +139,7 @@ export const GameView: React.FC<GameViewProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameState.gameActive, gameState.currentPlayer, isGameOver]);
+  }, [gameState.gameActive, gameState.currentPlayer, isGameOver, handleTimeout, timeoutTriggered]);
 
   // Format time display (mm:ss)
   const formatTime = (seconds: number) => {

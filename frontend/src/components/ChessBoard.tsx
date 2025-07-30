@@ -74,15 +74,15 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
   const [isHovered, setIsHovered] = React.useState(false);
 
   const getBackgroundColor = useCallback((): string => {
-    // Enhanced color scheme for a more polished look
-    if (isInCheck) return '#ff4757'; // Vibrant red for check
-    if (isSelected) return '#f39c12'; // Rich golden orange for selection
+    // Imperial blue color scheme - elegant and sophisticated
+    if (isInCheck) return '#e74c3c'; // Rich red for check
+    if (isSelected) return '#f1c40f'; // Bright gold for selection
     if (isLastMove) return '#e67e22'; // Warm orange for last move
-    if (isLegalMove) return isHovered ? '#2ecc71' : '#58d68d'; // Rich greens for legal moves
-    if (isHovered) return isLight ? '#f4e4c1' : '#8b4513'; // Warm hover colors
+    if (isLegalMove) return isHovered ? '#27ae60' : '#52c41a'; // Rich greens for legal moves
+    if (isHovered) return isLight ? '#ecf0f1' : '#2c3e50'; // Light hover colors
     
-    // Professional chess board colors - rich and sophisticated
-    return isLight ? '#f0e6d2' : '#8b4513'; // Cream white and rich saddle brown
+    // Imperial blue chess board colors - sophisticated and royal
+    return isLight ? '#f8f9fa' : '#34495e'; // Pure white and imperial blue-gray
   }, [isInCheck, isSelected, isLastMove, isLegalMove, isHovered, isLight]);
 
   const getCursor = useCallback((): string => {
@@ -161,26 +161,26 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
         alignItems: 'center',
         justifyContent: 'center',
         background: isLight 
-          ? `linear-gradient(135deg, ${getBackgroundColor()} 0%, #f8f0e3 50%, ${getBackgroundColor()} 100%)`
-          : `linear-gradient(135deg, ${getBackgroundColor()} 0%, #7a4c2e 50%, ${getBackgroundColor()} 100%)`,
+          ? `linear-gradient(135deg, ${getBackgroundColor()} 0%, #ffffff 50%, ${getBackgroundColor()} 100%)`
+          : `linear-gradient(135deg, ${getBackgroundColor()} 0%, #2c3e50 50%, ${getBackgroundColor()} 100%)`,
         cursor: getCursor(),
-        border: isSelected ? '2px solid #f39c12' : '1px solid rgba(139, 69, 19, 0.3)',
+        border: isSelected ? '2px solid #f1c40f' : '1px solid rgba(52, 73, 94, 0.3)',
         borderRadius: '2px', // Subtle rounded corners
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
         opacity: disabled ? 0.6 : 1,
         userSelect: 'none',
         boxShadow: isSelected 
-          ? 'inset 0 0 15px rgba(243, 156, 18, 0.6), 0 0 10px rgba(243, 156, 18, 0.3)' 
+          ? 'inset 0 0 15px rgba(241, 196, 15, 0.6), 0 0 10px rgba(241, 196, 15, 0.3)' 
           : isHovered 
-            ? 'inset 0 2px 4px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.15)'
-            : 'inset 0 1px 2px rgba(0,0,0,0.05)',
+            ? 'inset 0 2px 4px rgba(0,0,0,0.1), 0 2px 8px rgba(52, 73, 94, 0.15)'
+            : 'inset 0 1px 2px rgba(52, 73, 94, 0.05)',
         padding: '1px',
         boxSizing: 'border-box',
         // Add subtle texture overlay
         backgroundImage: isLight 
-          ? 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)'
-          : 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 50%)',
+          ? 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, transparent 50%)'
+          : 'radial-gradient(circle at 50% 50%, rgba(52, 73, 94, 0.1) 0%, transparent 50%)',
         transform: isSelected ? 'scale(1.02)' : 'scale(1)'
       }}
       title={`${square}${piece ? ` - ${piece}` : ''}`}
@@ -310,22 +310,22 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
         gridTemplateColumns: 'repeat(8, 1fr)',
         width: `${boardSize}px`,
         height: `${boardSize}px`,
-        border: '4px solid #2c1810', // Rich dark brown border
+        border: '4px solid #2c3e50', // Imperial blue border
         borderRadius: '12px', // More rounded corners
         overflow: 'hidden',
         boxShadow: `
-          0 8px 32px rgba(0,0,0,0.3),
-          0 4px 16px rgba(0,0,0,0.2),
+          0 8px 32px rgba(44, 62, 80, 0.3),
+          0 4px 16px rgba(44, 62, 80, 0.2),
           inset 0 2px 4px rgba(255,255,255,0.1)
         `, // Multi-layered shadow for depth
-        background: 'linear-gradient(145deg, #3d2817 0%, #2c1810 100%)', // Rich wood-like gradient
+        background: 'linear-gradient(145deg, #34495e 0%, #2c3e50 100%)', // Imperial blue gradient
         maxWidth: '100%',
         maxHeight: '100%',
         position: 'relative',
         // Add subtle texture effect
         backgroundImage: `
-          radial-gradient(circle at 25% 25%, rgba(255,255,255,0.05) 0%, transparent 50%),
-          radial-gradient(circle at 75% 75%, rgba(255,255,255,0.03) 0%, transparent 50%)
+          radial-gradient(circle at 25% 25%, rgba(255,255,255,0.08) 0%, transparent 50%),
+          radial-gradient(circle at 75% 75%, rgba(52, 73, 94, 0.1) 0%, transparent 50%)
         `
       }}
       role="grid"
