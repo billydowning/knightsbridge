@@ -50,58 +50,52 @@ export const GameView: React.FC<GameViewProps> = ({
   const showClaimButton = gameState.winner && gameState.winner === playerRole;
   const isGameOver = gameState.winner || gameState.draw;
 
-  // Timer logic
+  // Timer logic - properly track each player's remaining time
   const [whiteTimeRemaining, setWhiteTimeRemaining] = React.useState(timeLimit);
   const [blackTimeRemaining, setBlackTimeRemaining] = React.useState(timeLimit);
-  const [lastMoveTime, setLastMoveTime] = React.useState(Date.now());
 
   // Initialize timers when game starts
   React.useEffect(() => {
     if (gameState.gameActive && !isGameOver) {
       setWhiteTimeRemaining(timeLimit);
       setBlackTimeRemaining(timeLimit);
-      setLastMoveTime(Date.now());
     }
   }, [gameState.gameActive, isGameOver, timeLimit]);
 
-  // Update last move time when a move is made
-  React.useEffect(() => {
-    if (gameState.lastUpdated) {
-      setLastMoveTime(gameState.lastUpdated);
-    }
-  }, [gameState.lastUpdated]);
-
-  // Countdown timer for current player
+  // Countdown timer for current player only
   React.useEffect(() => {
     if (!gameState.gameActive || isGameOver) return;
 
     const interval = setInterval(() => {
-      const now = Date.now();
-      const timeElapsed = Math.floor((now - lastMoveTime) / 1000);
-      
       if (gameState.currentPlayer === 'white') {
-        const newTime = Math.max(0, timeLimit - timeElapsed);
-        setWhiteTimeRemaining(newTime);
-        
-        // Auto-timeout if time runs out
-        if (newTime === 0) {
-          console.log('⏰ White player timed out');
-          // In a real implementation, you'd trigger timeout here
-        }
-      } else {
-        const newTime = Math.max(0, timeLimit - timeElapsed);
-        setBlackTimeRemaining(newTime);
-        
-        // Auto-timeout if time runs out  
-        if (newTime === 0) {
-          console.log('⏰ Black player timed out');
-          // In a real implementation, you'd trigger timeout here
-        }
+        setWhiteTimeRemaining((prevTime) => {
+          const newTime = Math.max(0, prevTime - 1);
+          
+          // Auto-timeout if time runs out
+          if (newTime === 0) {
+            console.log('⏰ White player timed out');
+            // In a real implementation, you'd trigger timeout here
+          }
+          
+          return newTime;
+        });
+      } else if (gameState.currentPlayer === 'black') {
+        setBlackTimeRemaining((prevTime) => {
+          const newTime = Math.max(0, prevTime - 1);
+          
+          // Auto-timeout if time runs out  
+          if (newTime === 0) {
+            console.log('⏰ Black player timed out');
+            // In a real implementation, you'd trigger timeout here
+          }
+          
+          return newTime;
+        });
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameState.gameActive, gameState.currentPlayer, isGameOver, lastMoveTime, timeLimit]);
+  }, [gameState.gameActive, gameState.currentPlayer, isGameOver]);
 
   // Format time display (mm:ss)
   const formatTime = (seconds: number) => {
