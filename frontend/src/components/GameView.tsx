@@ -23,6 +23,7 @@ export interface GameViewProps {
   winningsClaimed: boolean;
   isLoading: boolean;
   betAmount: number;
+  timeLimit: number;
 }
 
 export const GameView: React.FC<GameViewProps> = ({
@@ -37,7 +38,8 @@ export const GameView: React.FC<GameViewProps> = ({
   onBackToMenu,
   winningsClaimed,
   isLoading,
-  betAmount
+  betAmount,
+  timeLimit
 }) => {
   const { theme } = useTheme();
   const textSizes = useTextSizes();
@@ -47,6 +49,66 @@ export const GameView: React.FC<GameViewProps> = ({
 
   const showClaimButton = gameState.winner && gameState.winner === playerRole;
   const isGameOver = gameState.winner || gameState.draw;
+
+  // Timer logic
+  const [whiteTimeRemaining, setWhiteTimeRemaining] = React.useState(timeLimit);
+  const [blackTimeRemaining, setBlackTimeRemaining] = React.useState(timeLimit);
+  const [lastMoveTime, setLastMoveTime] = React.useState(Date.now());
+
+  // Initialize timers when game starts
+  React.useEffect(() => {
+    if (gameState.gameActive && !isGameOver) {
+      setWhiteTimeRemaining(timeLimit);
+      setBlackTimeRemaining(timeLimit);
+      setLastMoveTime(Date.now());
+    }
+  }, [gameState.gameActive, isGameOver, timeLimit]);
+
+  // Update last move time when a move is made
+  React.useEffect(() => {
+    if (gameState.lastUpdated) {
+      setLastMoveTime(gameState.lastUpdated);
+    }
+  }, [gameState.lastUpdated]);
+
+  // Countdown timer for current player
+  React.useEffect(() => {
+    if (!gameState.gameActive || isGameOver) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const timeElapsed = Math.floor((now - lastMoveTime) / 1000);
+      
+      if (gameState.currentPlayer === 'white') {
+        const newTime = Math.max(0, timeLimit - timeElapsed);
+        setWhiteTimeRemaining(newTime);
+        
+        // Auto-timeout if time runs out
+        if (newTime === 0) {
+          console.log('⏰ White player timed out');
+          // In a real implementation, you'd trigger timeout here
+        }
+      } else {
+        const newTime = Math.max(0, timeLimit - timeElapsed);
+        setBlackTimeRemaining(newTime);
+        
+        // Auto-timeout if time runs out  
+        if (newTime === 0) {
+          console.log('⏰ Black player timed out');
+          // In a real implementation, you'd trigger timeout here
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [gameState.gameActive, gameState.currentPlayer, isGameOver, lastMoveTime, timeLimit]);
+
+  // Format time display (mm:ss)
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Shared card style for consistency
   const cardStyle = {
@@ -458,29 +520,88 @@ export const GameView: React.FC<GameViewProps> = ({
             </div>
           </div>
 
+          {/* Player Timers */}
           <div style={{
-            textAlign: 'center',
-            padding: isDesktopLayout ? '12px' : '8px',
-            background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
-            borderRadius: '8px',
-            border: `1px solid ${theme.border}`
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: isDesktopLayout ? '8px' : '6px'
           }}>
+            {/* White Player Timer */}
             <div style={{
-              fontSize: isDesktopLayout ? '11px' : '10px',
-              color: theme.textSecondary,
-              fontWeight: '600',
-              marginBottom: '4px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              textAlign: 'center',
+              padding: isDesktopLayout ? '12px 8px' : '10px 6px',
+              background: gameState.currentPlayer === 'white' 
+                ? `linear-gradient(135deg, ${theme.primary}15 0%, ${theme.primary}25 100%)`
+                : `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+              borderRadius: '8px',
+              border: gameState.currentPlayer === 'white' 
+                ? `2px solid ${theme.primary}60`
+                : `1px solid ${theme.border}`,
+              transition: 'all 0.3s ease'
             }}>
-              Castling
+              <div style={{
+                fontSize: isDesktopLayout ? '10px' : '9px',
+                color: theme.textSecondary,
+                fontWeight: '600',
+                marginBottom: '2px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '3px'
+              }}>
+                <span>♔</span>
+                <span>{playerRole === 'white' ? 'YOU' : 'OPP'}</span>
+              </div>
+              <div style={{
+                fontSize: isDesktopLayout ? '16px' : '14px',
+                color: whiteTimeRemaining < 60 ? theme.error : 
+                      whiteTimeRemaining < 300 ? theme.warning : theme.text,
+                fontWeight: '700',
+                fontFamily: 'monospace'
+              }}>
+                {formatTime(whiteTimeRemaining)}
+              </div>
             </div>
+
+            {/* Black Player Timer */}
             <div style={{
-              fontSize: isDesktopLayout ? '16px' : '14px',
-              color: theme.text,
-              fontWeight: '700'
+              textAlign: 'center',
+              padding: isDesktopLayout ? '12px 8px' : '10px 6px',
+              background: gameState.currentPlayer === 'black' 
+                ? `linear-gradient(135deg, ${theme.primary}15 0%, ${theme.primary}25 100%)`
+                : `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+              borderRadius: '8px',
+              border: gameState.currentPlayer === 'black' 
+                ? `2px solid ${theme.primary}60`
+                : `1px solid ${theme.border}`,
+              transition: 'all 0.3s ease'
             }}>
-              {gameState.castlingRights || 'None'}
+              <div style={{
+                fontSize: isDesktopLayout ? '10px' : '9px',
+                color: theme.textSecondary,
+                fontWeight: '600',
+                marginBottom: '2px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '3px'
+              }}>
+                <span>♚</span>
+                <span>{playerRole === 'black' ? 'YOU' : 'OPP'}</span>
+              </div>
+              <div style={{
+                fontSize: isDesktopLayout ? '16px' : '14px',
+                color: blackTimeRemaining < 60 ? theme.error : 
+                      blackTimeRemaining < 300 ? theme.warning : theme.text,
+                fontWeight: '700',
+                fontFamily: 'monospace'
+              }}>
+                {formatTime(blackTimeRemaining)}
+              </div>
             </div>
           </div>
         </div>

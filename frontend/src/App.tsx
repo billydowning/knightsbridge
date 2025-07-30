@@ -2248,6 +2248,7 @@ function ChessApp() {
             winningsClaimed={winningsClaimed}
             isLoading={appLoading}
             betAmount={betAmount}
+            timeLimit={timeLimit}
           />
         );
       
