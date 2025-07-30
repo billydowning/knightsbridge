@@ -102,11 +102,13 @@ export const Header: React.FC<HeaderProps> = ({
             style={{
               fontSize: isDesktopLayout ? '40px' : '36px',
               color: theme.primary,
-              fontWeight: 'bold',
+              fontWeight: '900',
               textShadow: '0 2px 4px rgba(0,0,0,0.2)',
               lineHeight: 1,
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              WebkitTextStroke: '0.5px currentColor',
+              textStroke: '0.5px currentColor'
             }}
             title="Knightsbridge Chess"
           >
