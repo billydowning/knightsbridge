@@ -98,16 +98,18 @@ export const Header: React.FC<HeaderProps> = ({
           flexShrink: 0, // Don't let logo shrink
           minWidth: 0
         }}>
-          <img 
-            src="/knight-logo.svg" 
-            alt="Knight Chess Piece"
+          <span 
             style={{
-              width: isDesktopLayout ? '32px' : '28px',
-              height: isDesktopLayout ? '32px' : '28px',
-              borderRadius: '4px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              fontSize: isDesktopLayout ? '24px' : '20px',
+              color: theme.primary,
+              fontWeight: 'bold',
+              textShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              lineHeight: 1
             }}
-          />
+            title="Knightsbridge Chess"
+          >
+            ♘
+          </span>
           <div>
             <h1 style={{
               margin: 0,

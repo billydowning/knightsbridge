@@ -2,57 +2,15 @@
   <defs>
     <linearGradient id="knightGradientLarge" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
-      <stop offset="30%" style="stop-color:#34495e;stop-opacity:1" />
-      <stop offset="70%" style="stop-color:#2c3e50;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#1a252f;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="baseLarge" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1a252f;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#34495e;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#2c3e50;stop-opacity:1" />
     </linearGradient>
-    <radialGradient id="highlight" cx="50%" cy="30%" r="60%">
-      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4" />
-      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
-    </radialGradient>
   </defs>
   
   <!-- Background -->
   <rect width="180" height="180" fill="#f8f9fa" rx="20"/>
   
-  <!-- Base/Platform -->
-  <ellipse cx="90" cy="155" rx="65" ry="15" fill="url(#baseLarge)" />
-  
-  <!-- Knight body/head -->
-  <path d="M45 150 L45 100 Q45 80 55 70 Q65 60 75 65 L80 60 Q85 50 95 55 Q105 50 115 60 L120 70 Q125 80 120 90 L125 100 Q125 110 115 120 L105 130 Q95 140 90 140 L70 140 Q60 140 45 150 Z" 
-        fill="url(#knightGradientLarge)" 
-        stroke="#1a252f" 
-        stroke-width="3"/>
-  
-  <!-- Knight mane -->
-  <path d="M80 65 Q90 55 100 65 Q110 60 115 75 Q110 85 100 80 Q90 75 80 80 Q75 70 80 65 Z" 
-        fill="#34495e" 
-        stroke="#1a252f" 
-        stroke-width="2"/>
-  
-  <!-- Knight ear -->
-  <path d="M95 55 Q100 50 105 55 Q100 60 95 60 Z" 
-        fill="#2c3e50"/>
-  
-  <!-- Eye -->
-  <circle cx="100" cy="75" r="8" fill="#ffffff" opacity="0.95"/>
-  <circle cx="102" cy="73" r="5" fill="#1a252f"/>
-  <circle cx="103" cy="71" r="2" fill="#ffffff" opacity="0.8"/>
-  
-  <!-- Nostril -->
-  <ellipse cx="115" cy="90" rx="4" ry="3" fill="#1a252f" opacity="0.7"/>
-  
-  <!-- Highlight on head -->
-  <path d="M85 70 Q95 65 105 70 Q100 75 90 75 Q85 72.5 85 70 Z" 
-        fill="url(#highlight)"/>
-  
-  <!-- Additional mane details -->
-  <path d="M85 70 Q90 68 95 70 Q90 72 85 72 Z" 
-        fill="#2c3e50" 
-        opacity="0.6"/>
+  <!-- Knight symbol -->
+  <text x="90" y="110" font-family="serif" font-size="80" text-anchor="middle" fill="url(#knightGradientLarge)" font-weight="bold">♘</text>
   
 </svg>

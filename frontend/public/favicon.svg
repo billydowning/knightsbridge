@@ -2,44 +2,14 @@
   <defs>
     <linearGradient id="knightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#34495e;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2c3e50;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="baseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1a252f;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2c3e50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34495e;stop-opacity:1" />
     </linearGradient>
   </defs>
   
-  <!-- Base/Platform -->
-  <ellipse cx="16" cy="28" rx="12" ry="3" fill="url(#baseGradient)" />
+  <!-- Background -->
+  <rect width="32" height="32" fill="#f8f9fa" rx="4"/>
   
-  <!-- Knight body/head -->
-  <path d="M8 26 L8 18 Q8 14 10 12 Q12 10 14 11 L15 10 Q16 8 18 9 Q20 8 22 10 L23 12 Q24 14 23 16 L24 18 Q24 20 22 22 L20 24 Q18 26 16 26 L12 26 Q10 26 8 26 Z" 
-        fill="url(#knightGradient)" 
-        stroke="#1a252f" 
-        stroke-width="1"/>
-  
-  <!-- Knight mane -->
-  <path d="M15 11 Q17 9 19 11 Q21 10 22 13 Q21 15 19 14 Q17 13 15 14 Q14 12 15 11 Z" 
-        fill="#34495e" 
-        stroke="#1a252f" 
-        stroke-width="0.5"/>
-  
-  <!-- Knight ear -->
-  <path d="M18 9 Q19 8 20 9 Q19 10 18 10 Z" 
-        fill="#2c3e50"/>
-  
-  <!-- Eye -->
-  <circle cx="19" cy="13" r="1.5" fill="#ffffff" opacity="0.9"/>
-  <circle cx="19.3" cy="12.7" r="0.8" fill="#1a252f"/>
-  
-  <!-- Nostril -->
-  <circle cx="22" cy="16" r="0.8" fill="#1a252f" opacity="0.6"/>
-  
-  <!-- Highlight on head -->
-  <path d="M16 12 Q18 11 20 12 Q19 13 17 13 Q16 12.5 16 12 Z" 
-        fill="#ffffff" 
-        opacity="0.3"/>
+  <!-- Knight symbol -->
+  <text x="16" y="22" font-family="serif" font-size="20" text-anchor="middle" fill="url(#knightGradient)" font-weight="bold">♘</text>
   
 </svg>
