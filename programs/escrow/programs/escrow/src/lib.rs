@@ -755,9 +755,9 @@ impl<'info> DeclareResult<'info> {
             return Ok(());
         }
 
-        // Calculate 1% fee
+        // Calculate 2% fee
         let fee_amount = vault_balance
-            .checked_mul(1)
+            .checked_mul(2)
             .and_then(|x| x.checked_div(100))
             .unwrap_or(0);
 
@@ -870,9 +870,9 @@ impl<'info> HandleTimeout<'info> {
             return Ok(());
         }
 
-        // Calculate 1% fee
+        // Calculate 2% fee
         let fee_amount = vault_balance
-            .checked_mul(1)
+            .checked_mul(2)
             .and_then(|x| x.checked_div(100))
             .unwrap_or(0);
 
