@@ -56,6 +56,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
   // Ref for scrolling to game ready section
   const gameReadyRef = useRef<HTMLElement>(null);
+  const shareRoomRef = useRef<HTMLElement>(null);
 
   // Helper function to format time limit
   const formatTimeLimit = (seconds: number) => {
@@ -237,6 +238,54 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     }
   }, [readyToDeposit, playerRole]);
 
+  // Auto-scroll to Share Room section when white player creates room
+  useEffect(() => {
+    console.log('🔍 Share Room auto-scroll useEffect triggered');
+    console.log('🔍 playerRole:', playerRole);
+    console.log('🔍 roomId:', roomId);
+    console.log('🔍 shareRoomRef.current:', shareRoomRef.current);
+    
+    // Scroll when white player has created the room (roomId exists and they are white)
+    if (playerRole === 'white' && roomId && shareRoomRef.current) {
+      console.log('✅ Conditions met for Share Room auto-scroll - setting up timer');
+      
+      // Delay to ensure the section is fully rendered
+      const scrollTimer = setTimeout(() => {
+        console.log('🔍 Share Room scroll timer fired');
+        console.log('🔍 shareRoomRef.current at timer:', shareRoomRef.current);
+        
+        if (shareRoomRef.current) {
+          console.log('✅ Scrolling to Share Room section!');
+          shareRoomRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+        } else {
+          console.log('❌ shareRoomRef.current is null at scroll time');
+          
+          // Fallback: scroll to element by ID
+          const shareRoomElement = document.getElementById('share-room-section');
+          if (shareRoomElement) {
+            console.log('✅ Found Share Room element by ID - scrolling!');
+            shareRoomElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            });
+          } else {
+            console.log('❌ Could not find Share Room element by ID');
+          }
+        }
+      }, 300); // 300ms delay
+
+      return () => {
+        console.log('🔍 Cleaning up Share Room auto-scroll timer');
+        clearTimeout(scrollTimer);
+      };
+    }
+  }, [playerRole, roomId]);
+
   return (
     <div style={{ 
       textAlign: 'center', 
@@ -251,7 +300,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     }}>
       
       {/* Room ID Share Section */}
-      <section style={{ 
+      <section ref={shareRoomRef} id="share-room-section" style={{ 
         ...cardStyle,
         margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
         padding: isDesktopLayout ? '2rem' : '1.5rem',
@@ -332,7 +381,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 boxShadow: copied ? `0 4px 12px ${theme.success}40` : `0 4px 12px ${theme.primary}40`
               }}
             >
-              {copied ? '✅ Copied!' : '📋 Copy'}
+              {copied ? '✅ Copied!' : '📋 Room Created - Share Your Room ID'}
             </button>
           </div>
         </div>
@@ -794,10 +843,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               borderRadius: '12px',
               border: `1px solid ${theme.border}`,
               transition: 'all 0.2s ease',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px'
+              cursor: 'pointer'
             }}>
               <div style={{ 
                 fontSize: isDesktopLayout ? '16px' : '14px', 
@@ -811,20 +857,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 <span>💰</span>
                 <span>{actualBetAmount} SOL</span>
               </div>
-              <div style={{ 
-                fontSize: isDesktopLayout ? '14px' : '12px', 
-                fontWeight: '600',
-                color: theme.primary,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px'
-              }}>
-                <span>⏱️</span>
-                <span>{formatTimeLimit(timeLimit)}</span>
-              </div>
-              <div style={{ fontSize: isDesktopLayout ? '12px' : '10px', color: theme.textSecondary, marginTop: '2px' }}>
-                Game Settings
+              <div style={{ fontSize: isDesktopLayout ? '12px' : '10px', color: theme.textSecondary, marginTop: '4px' }}>
+                Bet Amount
               </div>
             </div>
             
@@ -837,13 +871,23 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               transition: 'all 0.2s ease',
               cursor: 'pointer'
             }}>
-              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: gameStarted ? '#4CAF50' : '#FF9800' }}>
-                {gameStarted ? '🎮' : '⏳'}
+              <div style={{ 
+                fontSize: isDesktopLayout ? '16px' : '14px', 
+                fontWeight: 'bold', 
+                color: theme.primary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px'
+              }}>
+                <span>⏱️</span>
+                <span>{formatTimeLimit(timeLimit)}</span>
               </div>
-              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
-                {gameStarted ? 'Started' : 'Waiting'}
+              <div style={{ fontSize: isDesktopLayout ? '12px' : '10px', color: theme.textSecondary, marginTop: '4px' }}>
+                Time Limit
               </div>
             </div>
+
           </div>
 
           {/* Status Messages */}
