@@ -252,6 +252,7 @@ function ChessApp() {
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
   const [winningsClaimed, setWinningsClaimed] = useState<boolean>(false);
   const [claimingInProgress, setClaimingInProgress] = useState<boolean>(false);
+  const [timeoutClaimingDone, setTimeoutClaimingDone] = useState<boolean>(false);
   const [appLoading, setAppLoading] = useState<boolean>(false);
   const [roomStatus, setRoomStatus] = useState<any>(null);
   
@@ -523,7 +524,7 @@ function ChessApp() {
 
   // Auto-claim winnings when game ends (checkmate, stalemate, draw, etc.)
   useEffect(() => {
-    if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading && !claimingInProgress) {
+    if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading && !claimingInProgress && !timeoutClaimingDone) {
       const winner = gameState.winner || (gameState.draw ? 'draw' : null);
       if (winner) {
         // Only auto-claim if this player should claim
@@ -531,18 +532,20 @@ function ChessApp() {
         
         if (shouldClaim) {
           console.log('🎉 Game ended! Auto-claiming winnings. Winner/Result:', winner, 'Player Role:', playerRole);
-          // Set flag immediately to prevent multiple attempts
+          // Set flags immediately to prevent multiple attempts
           setClaimingInProgress(true);
+          setTimeoutClaimingDone(true);
           // Small delay to ensure game state is fully updated
           setTimeout(() => {
             handleClaimWinnings();
           }, 1500);
         } else {
           console.log('💡 Game ended but not claiming - Winner:', winner, 'Player Role:', playerRole, '(loser should not claim)');
+          setTimeoutClaimingDone(true); // Mark as done even if not claiming
         }
       }
     }
-  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading, claimingInProgress, playerRole]);
+  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading, claimingInProgress, timeoutClaimingDone, playerRole]);
 
   // Reset game state when game starts
   useEffect(() => {
@@ -580,6 +583,11 @@ function ChessApp() {
       };
       
       setGameState(newGameState);
+      
+      // Reset claiming flags for new game
+      setWinningsClaimed(false);
+      setClaimingInProgress(false);
+      setTimeoutClaimingDone(false);
       
       // Save initial game state to database (only the first player to do so)
       if (roomId) {
@@ -1074,6 +1082,7 @@ function ChessApp() {
     } finally {
       setAppLoading(false);
       setClaimingInProgress(false);
+      // Don't reset timeoutClaimingDone here - let it stay true to prevent re-attempts
     }
   };
 
@@ -1210,6 +1219,7 @@ function ChessApp() {
     setEscrowCreated(false);
     setWinningsClaimed(false);
     setClaimingInProgress(false);
+    setTimeoutClaimingDone(false);
     setOpponentEscrowCreated(false);
     setBothEscrowsReady(false);
     setHasDeposited(false);
