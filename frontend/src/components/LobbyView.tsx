@@ -54,6 +54,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const isMobile = useIsMobile();
   const isDesktopLayout = useIsDesktopLayout();
 
+  // Ref for scrolling to game ready section
+  const gameReadyRef = useRef<HTMLElement>(null);
+
   // Helper function to format time limit
   const formatTimeLimit = (seconds: number) => {
     if (seconds >= 24 * 60 * 60) return `${Math.floor(seconds / (24 * 60 * 60))}d/move`;
@@ -61,6 +64,42 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     if (seconds >= 60) return `${Math.floor(seconds / 60)}m/move`;
     return `${seconds}s/move`;
   };
+
+  // Enhanced join game handler with auto-scroll
+  const handleJoinGameWithScroll = async () => {
+    if (onCreateEscrow) {
+      await onCreateEscrow();
+      
+      // After successful join, scroll to game ready section
+      setTimeout(() => {
+        if (gameReadyRef.current) {
+          gameReadyRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+        }
+      }, 500); // Small delay to allow the section to render
+    }
+  };
+
+  // Auto-scroll when game ready section appears (more reliable)
+  useEffect(() => {
+    if (readyToDeposit && gameReadyRef.current && playerRole === 'black') {
+      // Slight delay to ensure the section is fully rendered and visible
+      const scrollTimer = setTimeout(() => {
+        if (gameReadyRef.current) {
+          gameReadyRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+        }
+      }, 300);
+
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [readyToDeposit, playerRole]);
 
   // Helper function to get room player wallet by role
   const getRoomPlayerWallet = (roomStatus: any, role: 'white' | 'black'): string | null => {
@@ -240,16 +279,18 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
       {/* NEW: Game Ready Section (when both players joined but haven't deposited) */}
       {readyToDeposit && (
-        <section style={{ 
-          ...cardStyle,
-          margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
-          padding: isDesktopLayout ? '2.5rem' : '2rem',
-          background: `linear-gradient(135deg, ${theme.success}12 0%, ${theme.success}06 100%)`,
-          border: `1px solid ${theme.success}30`,
-          position: 'relative',
-          overflow: 'hidden',
-          animation: 'slideInUp 0.4s ease-out'
-        }}>
+        <section 
+          ref={gameReadyRef}
+          style={{ 
+            ...cardStyle,
+            margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
+            padding: isDesktopLayout ? '2.5rem' : '2rem',
+            background: `linear-gradient(135deg, ${theme.success}12 0%, ${theme.success}06 100%)`,
+            border: `1px solid ${theme.success}30`,
+            position: 'relative',
+            overflow: 'hidden',
+            animation: 'slideInUp 0.4s ease-out'
+          }}>
           {/* Enhanced decorative elements */}
           <div style={{
             position: 'absolute',
@@ -955,7 +996,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         {/* Join Escrow Button (Black player second) */}
         {!escrowCreated && connected && playerRole === 'black' && escrowCount === 1 && (
           <button
-            onClick={onCreateEscrow}
+            onClick={handleJoinGameWithScroll}
             disabled={isLoading}
             style={{
               ...sharedButtonStyle,
