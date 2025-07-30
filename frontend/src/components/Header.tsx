@@ -107,8 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
               lineHeight: 1,
               display: 'flex',
               alignItems: 'center',
-              WebkitTextStroke: '0.5px currentColor',
-              textStroke: '0.5px currentColor'
+              WebkitTextStroke: '0.5px currentColor'
             }}
             title="Knightsbridge Chess"
           >
