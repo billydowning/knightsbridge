@@ -1129,7 +1129,12 @@ function ChessApp() {
           // Sync time limit from room (when joining existing room)
           if (roomStatus && roomStatus.timeLimit && roomStatus.timeLimit > 0) {
             console.log('🔄 Syncing time limit from room:', roomStatus.timeLimit, 'seconds');
+            console.log('🔄 Previous timeLimit was:', timeLimit, 'seconds');
+            console.log('🔄 Setting timeLimit to:', roomStatus.timeLimit, 'seconds');
             setTimeLimit(roomStatus.timeLimit);
+          } else {
+            console.log('❌ No timeLimit found in roomStatus or timeLimit <= 0');
+            console.log('❌ roomStatus.timeLimit:', roomStatus?.timeLimit);
           }
           
           // Check if current player already has an escrow
@@ -2111,8 +2116,11 @@ function ChessApp() {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStarted = (data: any) => {
         console.log('🎮 Received gameStarted WebSocket event:', data);
+        console.log('🎮 TimeLimit at game start:', timeLimit, 'seconds');
+        console.log('🎮 Player role at game start:', playerRole);
         if (data.roomId === roomId) {
           console.log('✅ Game starting - both players deposited!');
+          console.log('✅ Current timeLimit value:', timeLimit, 'seconds');
           setGameMode('game');
         }
         // Reset game state for new game

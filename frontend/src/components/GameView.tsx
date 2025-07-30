@@ -53,14 +53,39 @@ export const GameView: React.FC<GameViewProps> = ({
   // Timer logic - properly track each player's remaining time
   const [whiteTimeRemaining, setWhiteTimeRemaining] = React.useState(timeLimit);
   const [blackTimeRemaining, setBlackTimeRemaining] = React.useState(timeLimit);
-
-  // Initialize timers when game starts
+  
+  // Debug: Log when timeLimit prop changes
   React.useEffect(() => {
+    console.log('🕐 GameView: timeLimit prop changed to:', timeLimit, 'seconds');
+    console.log('🕐 GameView: playerRole:', playerRole);
+    console.log('🕐 GameView: gameState.gameActive:', gameState.gameActive);
+  }, [timeLimit]);
+
+  // Initialize timers when game starts or timeLimit changes
+  React.useEffect(() => {
+    console.log('🔍 Timer initialization useEffect triggered');
+    console.log('🔍 gameState.gameActive:', gameState.gameActive);
+    console.log('🔍 isGameOver:', isGameOver);
+    console.log('🔍 timeLimit:', timeLimit);
+    console.log('🔍 playerRole:', playerRole);
+    console.log('🔍 Current whiteTimeRemaining:', whiteTimeRemaining);
+    console.log('🔍 Current blackTimeRemaining:', blackTimeRemaining);
+    
     if (gameState.gameActive && !isGameOver) {
+      console.log('✅ Initializing timers with timeLimit:', timeLimit, 'seconds');
       setWhiteTimeRemaining(timeLimit);
       setBlackTimeRemaining(timeLimit);
     }
-  }, [gameState.gameActive, isGameOver, timeLimit]);
+  }, [gameState.gameActive, isGameOver, timeLimit, playerRole]);
+  
+  // Also update timers when timeLimit changes (even during active game)
+  React.useEffect(() => {
+    console.log('🔄 TimeLimit changed - updating timer states');
+    console.log('🔄 New timeLimit:', timeLimit);
+    console.log('🔄 Updating both timer states to:', timeLimit);
+    setWhiteTimeRemaining(timeLimit);
+    setBlackTimeRemaining(timeLimit);
+  }, [timeLimit]);
 
   // Countdown timer for current player only
   React.useEffect(() => {
