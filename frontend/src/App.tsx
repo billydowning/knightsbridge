@@ -914,6 +914,14 @@ function ChessApp() {
           // Update local state AFTER successful database save
           setGameState(updatedGameState);
           
+          // Auto-claim winnings if game ended by checkmate
+          if (winner && !winningsClaimed) {
+            console.log('🎉 Checkmate detected! Auto-claiming winnings for winner:', winner);
+            setTimeout(() => {
+              handleClaimWinnings();
+            }, 1000); // Small delay to ensure game state is fully updated
+          }
+          
           // Reset the receiving flag after a longer delay to ensure server broadcast is processed
           setTimeout(() => {
             setIsReceivingServerUpdate(false);
