@@ -635,7 +635,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           
           <div style={{ 
             display: 'grid',
-            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
             gap: isDesktopLayout ? '16px' : '12px',
             marginBottom: isDesktopLayout ? '24px' : '20px'
           }}>
@@ -649,10 +649,27 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               cursor: 'pointer'
             }}>
               <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: theme.primary }}>
-                {playerCount}/2 Players • {confirmedDepositsCount}/2 Deposits
+                {playerCount}/2
               </div>
               <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
-                Room Status
+                Players
+              </div>
+            </div>
+            
+            <div style={{ 
+              textAlign: 'center', 
+              padding: isDesktopLayout ? '16px' : '12px',
+              background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+              borderRadius: '12px',
+              border: `1px solid ${theme.border}`,
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}>
+              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: theme.secondary }}>
+                {confirmedDepositsCount}/2
+              </div>
+              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
+                Deposits
               </div>
             </div>
             
