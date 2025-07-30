@@ -515,6 +515,20 @@ function ChessApp() {
     };
   }, [saveTimeout]);
 
+  // Auto-claim winnings when game ends (checkmate, stalemate, draw, etc.)
+  useEffect(() => {
+    if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading) {
+      const winner = gameState.winner || (gameState.draw ? 'draw' : null);
+      if (winner) {
+        console.log('🎉 Game ended! Auto-claiming winnings. Winner/Result:', winner);
+        // Small delay to ensure game state is fully updated
+        setTimeout(() => {
+          handleClaimWinnings();
+        }, 1500);
+      }
+    }
+  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading]);
+
   // Reset game state when game starts
   useEffect(() => {
     if (gameMode === 'game') {
@@ -913,14 +927,6 @@ function ChessApp() {
         .then(() => {
           // Update local state AFTER successful database save
           setGameState(updatedGameState);
-          
-          // Auto-claim winnings if game ended by checkmate
-          if (winner && !winningsClaimed) {
-            console.log('🎉 Checkmate detected! Auto-claiming winnings for winner:', winner);
-            setTimeout(() => {
-              handleClaimWinnings();
-            }, 1000); // Small delay to ensure game state is fully updated
-          }
           
           // Reset the receiving flag after a longer delay to ensure server broadcast is processed
           setTimeout(() => {
