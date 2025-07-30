@@ -635,7 +635,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           
           <div style={{ 
             display: 'grid',
-            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
             gap: isDesktopLayout ? '16px' : '12px',
             marginBottom: isDesktopLayout ? '24px' : '20px'
           }}>
@@ -652,7 +652,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 {playerCount}/2 Players • {confirmedDepositsCount}/2 Deposits
               </div>
               <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
-                Players
+                Room Status
               </div>
             </div>
             
