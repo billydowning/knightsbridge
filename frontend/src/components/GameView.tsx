@@ -284,6 +284,8 @@ export const GameView: React.FC<GameViewProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           flex: isMobile ? 'none' : '1',
+          height: isMobile ? 'auto' : `${boardSize + 140}px`,
+          minHeight: isMobile ? 'auto' : `${boardSize + 140}px`,
           background: `linear-gradient(135deg, ${theme.surface} 0%, ${theme.background} 100%)`,
           borderRadius: isDesktopLayout ? '20px' : '16px',
           border: `1px solid ${theme.border}`,
