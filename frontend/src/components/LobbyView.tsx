@@ -846,7 +846,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               cursor: 'pointer'
             }}>
               <div style={{ 
-                fontSize: isDesktopLayout ? '16px' : '14px', 
+                fontSize: isDesktopLayout ? '18px' : '16px', 
                 fontWeight: 'bold', 
                 color: theme.accent,
                 display: 'flex',
@@ -857,7 +857,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 <span>💰</span>
                 <span>{actualBetAmount} SOL</span>
               </div>
-              <div style={{ fontSize: isDesktopLayout ? '12px' : '10px', color: theme.textSecondary, marginTop: '4px' }}>
+              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
                 Bet Amount
               </div>
             </div>
@@ -872,7 +872,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               cursor: 'pointer'
             }}>
               <div style={{ 
-                fontSize: isDesktopLayout ? '16px' : '14px', 
+                fontSize: isDesktopLayout ? '18px' : '16px', 
                 fontWeight: 'bold', 
                 color: theme.primary,
                 display: 'flex',
@@ -883,7 +883,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 <span>⏱️</span>
                 <span>{formatTimeLimit(timeLimit)}</span>
               </div>
-              <div style={{ fontSize: isDesktopLayout ? '12px' : '10px', color: theme.textSecondary, marginTop: '4px' }}>
+              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
                 Time Limit
               </div>
             </div>
