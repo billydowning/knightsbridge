@@ -11,6 +11,6 @@
   <rect width="180" height="180" fill="#f8f9fa" rx="20"/>
   
   <!-- Knight symbol -->
-  <text x="90" y="120" font-family="serif" font-size="100" text-anchor="middle" fill="url(#knightGradientLarge)" font-weight="bold">♘</text>
+  <text x="90" y="120" font-family="serif" font-size="110" text-anchor="middle" fill="url(#knightGradientLarge)" font-weight="bold">♘</text>
   
 </svg>

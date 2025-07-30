@@ -100,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
         }}>
           <span 
             style={{
-              fontSize: isDesktopLayout ? '32px' : '28px',
+              fontSize: isDesktopLayout ? '36px' : '32px',
               color: theme.primary,
               fontWeight: 'bold',
               textShadow: '0 2px 4px rgba(0,0,0,0.2)',
