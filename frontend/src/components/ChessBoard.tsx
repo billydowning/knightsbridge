@@ -95,8 +95,8 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     const isWhitePiece = ['♔', '♕', '♖', '♗', '♘', '♙'].includes(unicodePiece);
     const isBlackPiece = ['♚', '♛', '♜', '♝', '♞', '♟'].includes(unicodePiece);
     
-    // Calculate piece size as 60% of square size to prevent overflow
-    const pieceSize = Math.floor(squareSize * 0.6);
+    // Calculate piece size as 70% of square size for larger, more visible pieces
+    const pieceSize = Math.floor(squareSize * 0.7);
     
     const baseStyle: React.CSSProperties = {
       fontSize: `${pieceSize}px`,
