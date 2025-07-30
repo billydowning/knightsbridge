@@ -13,6 +13,9 @@ const rateLimit = require('express-rate-limit');
 const { pool: getPool, initializePool, testConnection, roomService, chatService } = require('./database');
 const security = require('./security');
 
+// Chess starting position (FEN notation)
+const STARTING_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
 console.log('🚀 Starting Knightsbridge Chess Backend Server...');
 console.log('📋 Environment:', process.env.NODE_ENV);
 console.log('🔧 Debug mode:', process.env.DEBUG);
