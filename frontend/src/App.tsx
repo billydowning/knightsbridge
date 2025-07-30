@@ -14,6 +14,7 @@ import { MenuView } from './components/MenuView';
 import { LobbyView } from './components/LobbyView';
 import { GameView } from './components/GameView';
 import { Header } from './components/Header';
+import { NotificationSystem, useNotifications } from './components/NotificationSystem';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -172,6 +173,9 @@ function ChessApp() {
   const isLaptopOrLarger = useIsLaptopOrLarger();
   const isMacBookAir = useIsMacBookAir();
   const isDesktopLayout = useIsDesktopLayout();
+  
+  // Notification system
+  const { notifications, showSuccess, showError, removeNotification } = useNotifications();
   
   // Performance monitoring
   useRenderPerformance('ChessApp');
@@ -1013,6 +1017,19 @@ function ChessApp() {
       if (result && (result.includes('🎉 SUCCESS') || result.includes('🤝 Draw') || result === 'success')) {
         setWinningsClaimed(true);
         setGameStatus(result);
+        
+        // Show success notification to the winner
+        if (result.includes('🎉 SUCCESS')) {
+          showSuccess(
+            'Winnings Claimed!', 
+            'Your winnings have been automatically transferred to your wallet! 🎉'
+          );
+        } else if (result.includes('🤝 Draw')) {
+          showSuccess(
+            'Stake Refunded!', 
+            'Your stake has been automatically refunded due to the draw! 🤝'
+          );
+        }
       } else {
         setGameStatus(`Failed to claim winnings: ${result}`);
       }
@@ -2266,6 +2283,9 @@ function ChessApp() {
         }}>
           {renderContent()}
         </main>
+
+        {/* Notification System */}
+        <NotificationSystem notifications={notifications} onRemove={removeNotification} />
       </div>
     </ErrorBoundary>
   );
