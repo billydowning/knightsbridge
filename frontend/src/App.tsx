@@ -524,14 +524,21 @@ function ChessApp() {
     if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading) {
       const winner = gameState.winner || (gameState.draw ? 'draw' : null);
       if (winner) {
-        console.log('🎉 Game ended! Auto-claiming winnings. Winner/Result:', winner);
-        // Small delay to ensure game state is fully updated
-        setTimeout(() => {
-          handleClaimWinnings();
-        }, 1500);
+        // Only auto-claim if this player should claim
+        const shouldClaim = winner === 'draw' || winner === playerRole;
+        
+        if (shouldClaim) {
+          console.log('🎉 Game ended! Auto-claiming winnings. Winner/Result:', winner, 'Player Role:', playerRole);
+          // Small delay to ensure game state is fully updated
+          setTimeout(() => {
+            handleClaimWinnings();
+          }, 1500);
+        } else {
+          console.log('💡 Game ended but not claiming - Winner:', winner, 'Player Role:', playerRole, '(loser should not claim)');
+        }
       }
     }
-  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading]);
+  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading, playerRole]);
 
   // Reset game state when game starts
   useEffect(() => {
