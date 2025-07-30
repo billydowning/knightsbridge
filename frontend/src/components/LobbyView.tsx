@@ -106,59 +106,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     }
   };
 
-  // Auto-scroll when game ready section appears (more reliable)
-  useEffect(() => {
-    console.log('🔍 useEffect auto-scroll triggered');
-    console.log('🔍 readyToDeposit:', readyToDeposit);
-    console.log('🔍 playerRole:', playerRole);
-    console.log('🔍 gameReadyRef.current:', gameReadyRef.current);
-    
-    if (readyToDeposit && playerRole === 'black') {
-      console.log('✅ Conditions met for auto-scroll - setting up timer');
-      
-      // Slight delay to ensure the section is fully rendered and visible
-      const scrollTimer = setTimeout(() => {
-        console.log('🔍 useEffect scroll timer fired');
-        console.log('🔍 gameReadyRef.current at timer:', gameReadyRef.current);
-        
-        if (gameReadyRef.current) {
-          console.log('✅ useEffect scrolling to game ready section!');
-          gameReadyRef.current.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start',
-            inline: 'nearest'
-          });
-        } else {
-          console.log('❌ useEffect: gameReadyRef.current is null');
-          
-          // Alternative: scroll to element by class/id if ref fails
-          const gameReadyElement = document.getElementById('game-ready-section');
-          if (gameReadyElement) {
-            console.log('✅ Found game ready element by ID - scrolling!');
-            gameReadyElement.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'start',
-              inline: 'nearest'
-            });
-          } else {
-            console.log('❌ Could not find game ready element by ID');
-            
-            // Final fallback: scroll to approximate position
-            console.log('🔄 Using fallback scroll to estimated position');
-            window.scrollTo({
-              top: window.innerHeight * 0.8, // Scroll down about 80% of screen height
-              behavior: 'smooth'
-            });
-          }
-        }
-      }, 600); // Increased delay to 600ms
 
-      return () => {
-        console.log('🔍 Cleaning up auto-scroll timer');
-        clearTimeout(scrollTimer);
-      };
-    }
-  }, [readyToDeposit, playerRole]);
 
   // Helper function to get room player wallet by role
   const getRoomPlayerWallet = (roomStatus: any, role: 'white' | 'black'): string | null => {
@@ -234,6 +182,60 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     position: 'relative' as const,
     overflow: 'hidden' as const
   };
+
+  // Auto-scroll when game ready section appears (more reliable)
+  useEffect(() => {
+    console.log('🔍 useEffect auto-scroll triggered');
+    console.log('🔍 readyToDeposit:', readyToDeposit);
+    console.log('🔍 playerRole:', playerRole);
+    console.log('🔍 gameReadyRef.current:', gameReadyRef.current);
+    
+    if (readyToDeposit && playerRole === 'black') {
+      console.log('✅ Conditions met for auto-scroll - setting up timer');
+      
+      // Slight delay to ensure the section is fully rendered and visible
+      const scrollTimer = setTimeout(() => {
+        console.log('🔍 useEffect scroll timer fired');
+        console.log('🔍 gameReadyRef.current at timer:', gameReadyRef.current);
+        
+        if (gameReadyRef.current) {
+          console.log('✅ useEffect scrolling to game ready section!');
+          gameReadyRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+        } else {
+          console.log('❌ useEffect: gameReadyRef.current is null');
+          
+          // Alternative: scroll to element by class/id if ref fails
+          const gameReadyElement = document.getElementById('game-ready-section');
+          if (gameReadyElement) {
+            console.log('✅ Found game ready element by ID - scrolling!');
+            gameReadyElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            });
+          } else {
+            console.log('❌ Could not find game ready element by ID');
+            
+            // Final fallback: scroll to approximate position
+            console.log('🔄 Using fallback scroll to estimated position');
+            window.scrollTo({
+              top: window.innerHeight * 0.8, // Scroll down about 80% of screen height
+              behavior: 'smooth'
+            });
+          }
+        }
+      }, 600); // Increased delay to 600ms
+
+      return () => {
+        console.log('🔍 Cleaning up auto-scroll timer');
+        clearTimeout(scrollTimer);
+      };
+    }
+  }, [readyToDeposit, playerRole]);
 
   return (
     <div style={{ 
