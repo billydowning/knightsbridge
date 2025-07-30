@@ -981,6 +981,7 @@ io.on('connection', (socket) => {
     
     try {
       const { playerWallet, betAmount, timeLimit } = data;
+      console.log('🔍 Backend received createRoom - playerWallet:', playerWallet, 'betAmount:', betAmount, 'timeLimit:', timeLimit);
       
       // Generate a unique room ID
       const roomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -999,11 +1000,13 @@ io.on('connection', (socket) => {
         }
 
         // Insert new room into database
+        const finalTimeLimit = timeLimit || 600;
+        console.log('🔍 Storing in database - timeLimit:', timeLimit, 'finalTimeLimit:', finalTimeLimit);
         await poolInstance.query(
           'INSERT INTO games (room_id, player_white_wallet, game_state, stake_amount, time_limit, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
-          [roomId, playerWallet, 'waiting', betAmount || 0, timeLimit || 600, new Date()]
+          [roomId, playerWallet, 'waiting', betAmount || 0, finalTimeLimit, new Date()]
         );
-        console.log('✅ Room created in database:', roomId, 'for player:', playerWallet);
+        console.log('✅ Room created in database:', roomId, 'for player:', playerWallet, 'with timeLimit:', finalTimeLimit);
       } else {
         // Use in-memory storage for testing
         testRooms.set(roomId, {
@@ -1215,6 +1218,9 @@ io.on('connection', (socket) => {
           escrowsObj[escrow.player_wallet] = escrow.escrow_amount;
         });
 
+        const finalTimeLimit = parseInt(room.time_limit) || 600;
+        console.log('🔍 getRoomStatus - raw time_limit from DB:', room.time_limit, 'parsed timeLimit:', finalTimeLimit);
+        
         const roomStatus = {
           playerCount: playerCount,
           players: players,
@@ -1223,7 +1229,7 @@ io.on('connection', (socket) => {
           escrows: escrowsObj,
           gameStarted: room.game_state === 'active',
           stakeAmount: parseFloat(room.stake_amount) || 0, // Include bet amount for joining players
-          timeLimit: parseInt(room.time_limit) || 600 // Include time limit for joining players
+          timeLimit: finalTimeLimit // Include time limit for joining players
         };
 
         console.log('📊 Room status for', roomId, ':', roomStatus);
