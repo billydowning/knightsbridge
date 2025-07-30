@@ -100,11 +100,13 @@ export const Header: React.FC<HeaderProps> = ({
         }}>
           <span 
             style={{
-              fontSize: isDesktopLayout ? '24px' : '20px',
+              fontSize: isDesktopLayout ? '32px' : '28px',
               color: theme.primary,
               fontWeight: 'bold',
-              textShadow: '0 1px 3px rgba(0,0,0,0.1)',
-              lineHeight: 1
+              textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              lineHeight: 1,
+              display: 'flex',
+              alignItems: 'center'
             }}
             title="Knightsbridge Chess"
           >
