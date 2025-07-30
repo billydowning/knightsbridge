@@ -1114,7 +1114,6 @@ function ChessApp() {
         const role = await databaseMultiplayerState.joinRoom(roomId, playerWallet);
         if (role) {
           setPlayerRole(role);
-          setGameMode('lobby');
           setGameStatus(`Joined room as ${role}`);
           
           // Get room status using the current room ID
@@ -1141,6 +1140,10 @@ function ChessApp() {
           if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
             setEscrowCreated(true);
           }
+          
+          // Set game mode to lobby AFTER all syncing is complete
+          console.log('✅ All room data synced - switching to lobby view');
+          setGameMode('lobby');
         } else {
           setGameStatus('Failed to join room');
         }
