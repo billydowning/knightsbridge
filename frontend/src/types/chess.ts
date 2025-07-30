@@ -30,6 +30,7 @@ export interface GameState {
   inCheck: boolean;
   inCheckmate: boolean;
   lastMove?: { from: string; to: string } | null;
+  canClaimFiftyMoveRule?: boolean;
 }
 
 export interface MoveResult {

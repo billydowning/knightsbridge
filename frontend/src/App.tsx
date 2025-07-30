@@ -911,6 +911,18 @@ function ChessApp() {
       // Determine winner if checkmate occurs
       const winner = nextPlayerInCheckmate ? gameState.currentPlayer : null;
       
+      // 50-move rule logic
+      const movingPiece = gameState.position[fromSquare];
+      const capturedPiece = gameState.position[toSquare];
+      const isPawnMove = movingPiece && (movingPiece.includes('pawn') || movingPiece === '♙' || movingPiece === '♟');
+      const isCapture = capturedPiece && capturedPiece !== '';
+      
+      // Reset halfmove clock if pawn move or capture, otherwise increment
+      const newHalfmoveClock = (isPawnMove || isCapture) ? 0 : (gameState.halfmoveClock || 0) + 1;
+      
+      // Check for 50-move rule draw (100 half-moves = 50 full moves)
+      const canClaimFiftyMoveRule = newHalfmoveClock >= 100;
+      
       // Create updated game state
       const updatedGameState = {
         ...gameState,
@@ -929,6 +941,8 @@ function ChessApp() {
         inCheckmate: nextPlayerInCheckmate,
         winner: winner,
         gameActive: winner ? false : gameState.gameActive,
+        halfmoveClock: newHalfmoveClock,
+        canClaimFiftyMoveRule: canClaimFiftyMoveRule,
         lastUpdated: Date.now()
       };
       

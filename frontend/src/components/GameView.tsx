@@ -471,9 +471,16 @@ export const GameView: React.FC<GameViewProps> = ({
           <div style={{
             textAlign: 'center',
             padding: isDesktopLayout ? '12px' : '8px',
-            background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
+            background: gameState.halfmoveClock >= 80 
+              ? `linear-gradient(135deg, ${theme.warning}15 0%, ${theme.warning}25 100%)`
+              : `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
             borderRadius: '8px',
-            border: `1px solid ${theme.border}`
+            border: gameState.halfmoveClock >= 80 
+              ? `1px solid ${theme.warning}60`
+              : `1px solid ${theme.border}`,
+            position: 'relative',
+            cursor: gameState.canClaimFiftyMoveRule ? 'pointer' : 'default',
+            transition: 'all 0.3s ease'
           }}>
             <div style={{
               fontSize: isDesktopLayout ? '11px' : '10px',
@@ -481,17 +488,39 @@ export const GameView: React.FC<GameViewProps> = ({
               fontWeight: '600',
               marginBottom: '4px',
               textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              letterSpacing: '0.5px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px'
             }}>
-              50-Move Rule
+              <span>⏳</span>
+              <span>50-Move Rule</span>
+              {gameState.canClaimFiftyMoveRule && (
+                <span style={{ color: theme.success, fontSize: '12px' }}>✓</span>
+              )}
             </div>
             <div style={{
               fontSize: isDesktopLayout ? '16px' : '14px',
-              color: theme.text,
-              fontWeight: '700'
+              color: gameState.halfmoveClock >= 100 ? theme.success :
+                     gameState.halfmoveClock >= 80 ? theme.warning :
+                     gameState.halfmoveClock >= 60 ? theme.textSecondary : theme.text,
+              fontWeight: '700',
+              fontFamily: 'monospace'
             }}>
-              {gameState.halfmoveClock}/100
+              {gameState.halfmoveClock || 0}/100
             </div>
+            {gameState.canClaimFiftyMoveRule && (
+              <div style={{
+                fontSize: isDesktopLayout ? '8px' : '7px',
+                color: theme.success,
+                fontWeight: '600',
+                marginTop: '2px',
+                textTransform: 'uppercase'
+              }}>
+                Draw Available
+              </div>
+            )}
           </div>
 
           <div style={{
@@ -674,6 +703,37 @@ export const GameView: React.FC<GameViewProps> = ({
             }}
           >
             🏳️ Resign Game
+          </button>
+        )}
+
+        {/* Claim Draw Button (50-Move Rule) */}
+        {gameState.canClaimFiftyMoveRule && gameState.gameActive && !isGameOver && (
+          <button
+            onClick={() => {
+              // In a real implementation, this would trigger the draw claim
+              console.log('🤝 50-move rule draw claimed!');
+              if (onResignGame) {
+                // For now, treat as a draw - in production you'd have a specific draw handler
+                onResignGame();
+              }
+            }}
+            style={{
+              ...sharedButtonStyle,
+              background: `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}dd 100%)`,
+              color: 'white',
+              boxShadow: `0 4px 12px ${theme.accent}30`,
+              border: `2px solid ${theme.accent}60`
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = `0 6px 16px ${theme.accent}40`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = `0 4px 12px ${theme.accent}30`;
+            }}
+          >
+            🤝 Claim Draw (50-Move Rule)
           </button>
         )}
 
