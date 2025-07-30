@@ -1374,6 +1374,7 @@ io.on('connection', (socket) => {
   socket.on('depositComplete', async (data, callback) => {
     try {
       console.log('💰 Received depositComplete event:', data);
+      console.log('🔍 Socket rooms at deposit:', Array.from(socket.rooms));
       const { roomId, playerWallet, txId } = data;
       
       if (!process.env.DATABASE_URL) {
@@ -1419,6 +1420,16 @@ io.on('connection', (socket) => {
         blackPlayerDeposited,
         whiteWallet: currentPlayers?.player_white_wallet,
         blackWallet: currentPlayers?.player_black_wallet
+      });
+
+      console.log('🔍 Game start condition check:', {
+        whitePlayerDeposited,
+        blackPlayerDeposited,
+        hasCurrentPlayers: !!currentPlayers,
+        hasWhiteWallet: !!currentPlayers?.player_white_wallet,
+        hasBlackWallet: !!currentPlayers?.player_black_wallet,
+        allConditionsMet: whitePlayerDeposited && blackPlayerDeposited && currentPlayers && 
+          currentPlayers.player_white_wallet && currentPlayers.player_black_wallet
       });
 
       // Only start game when BOTH white and black players have deposited
