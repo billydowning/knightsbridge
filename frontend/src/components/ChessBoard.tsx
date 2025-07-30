@@ -74,12 +74,15 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
   const [isHovered, setIsHovered] = React.useState(false);
 
   const getBackgroundColor = useCallback((): string => {
-    if (isInCheck) return '#ff6b6b';
-    if (isSelected) return '#ffd700';
-    if (isLastMove) return '#ffeb3b';
-    if (isLegalMove) return isHovered ? '#7cb342' : '#90EE90';
-    if (isHovered) return isLight ? '#e8d5b5' : '#a67c53';
-    return isLight ? '#f0d9b5' : '#b58863';
+    // Enhanced color scheme for a more polished look
+    if (isInCheck) return '#ff4757'; // Vibrant red for check
+    if (isSelected) return '#f39c12'; // Rich golden orange for selection
+    if (isLastMove) return '#e67e22'; // Warm orange for last move
+    if (isLegalMove) return isHovered ? '#2ecc71' : '#58d68d'; // Rich greens for legal moves
+    if (isHovered) return isLight ? '#f4e4c1' : '#8b4513'; // Warm hover colors
+    
+    // Professional chess board colors - rich and sophisticated
+    return isLight ? '#f0e6d2' : '#8b4513'; // Cream white and rich saddle brown
   }, [isInCheck, isSelected, isLastMove, isLegalMove, isHovered, isLight]);
 
   const getCursor = useCallback((): string => {
@@ -100,25 +103,39 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     
     const baseStyle: React.CSSProperties = {
       fontSize: `${pieceSize}px`,
-      fontWeight: 'bold',
-      textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-      transition: 'transform 0.2s ease',
+      fontWeight: '900', // Extra bold for more presence
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth easing
       filter: disabled ? 'grayscale(50%)' : 'none',
       lineHeight: '1',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       width: '100%',
-      height: '100%'
+      height: '100%',
+      fontFamily: '"Segoe UI Symbol", "Noto Chess", "Chess Cases", serif', // Better chess fonts
+      transform: isHovered && !disabled ? 'scale(1.05)' : 'scale(1)', // Subtle hover animation
+      cursor: disabled ? 'not-allowed' : 'pointer'
     };
 
-    // Apply color based on piece type
+    // Apply refined styling based on piece type
     if (isWhitePiece) {
-      baseStyle.color = '#f8f8f8'; // Off-white for better visibility
-      baseStyle.textShadow = '2px 2px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8)'; // Strong dark shadow and outline
+      baseStyle.color = '#ffffff'; // Pure white
+      baseStyle.textShadow = `
+        3px 3px 6px rgba(0,0,0,0.8),
+        0 0 3px rgba(0,0,0,0.9),
+        1px 1px 0 rgba(0,0,0,0.6),
+        -1px -1px 0 rgba(0,0,0,0.6)
+      `; // Multi-layered shadow for depth
+      baseStyle.filter = disabled ? 'grayscale(50%)' : 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))';
     } else if (isBlackPiece) {
-      baseStyle.color = '#1a1a1a'; // Dark gray instead of pure black
-      baseStyle.textShadow = '2px 2px 4px rgba(255,255,255,0.4), 0 0 2px rgba(255,255,255,0.6)'; // Light shadow and outline
+      baseStyle.color = '#2c2c2c'; // Rich dark gray
+      baseStyle.textShadow = `
+        2px 2px 4px rgba(255,255,255,0.4),
+        0 0 3px rgba(255,255,255,0.6),
+        1px 1px 0 rgba(255,255,255,0.3),
+        -1px -1px 0 rgba(255,255,255,0.3)
+      `; // Light shadow and outline for contrast
+      baseStyle.filter = disabled ? 'grayscale(50%)' : 'drop-shadow(1px 1px 2px rgba(255,255,255,0.2))';
     }
 
     if (isHovered && !disabled) {
@@ -143,16 +160,28 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: getBackgroundColor(),
+        background: isLight 
+          ? `linear-gradient(135deg, ${getBackgroundColor()} 0%, #f8f0e3 50%, ${getBackgroundColor()} 100%)`
+          : `linear-gradient(135deg, ${getBackgroundColor()} 0%, #7a4c2e 50%, ${getBackgroundColor()} 100%)`,
         cursor: getCursor(),
-        border: '1px solid #999',
-        transition: 'all 0.2s ease',
+        border: isSelected ? '2px solid #f39c12' : '1px solid rgba(139, 69, 19, 0.3)',
+        borderRadius: '2px', // Subtle rounded corners
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
         opacity: disabled ? 0.6 : 1,
         userSelect: 'none',
-        boxShadow: isSelected ? 'inset 0 0 10px rgba(255, 215, 0, 0.5)' : 'none',
-        padding: '2px',
-        boxSizing: 'border-box'
+        boxShadow: isSelected 
+          ? 'inset 0 0 15px rgba(243, 156, 18, 0.6), 0 0 10px rgba(243, 156, 18, 0.3)' 
+          : isHovered 
+            ? 'inset 0 2px 4px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.15)'
+            : 'inset 0 1px 2px rgba(0,0,0,0.05)',
+        padding: '1px',
+        boxSizing: 'border-box',
+        // Add subtle texture overlay
+        backgroundImage: isLight 
+          ? 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)'
+          : 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 50%)',
+        transform: isSelected ? 'scale(1.02)' : 'scale(1)'
       }}
       title={`${square}${piece ? ` - ${piece}` : ''}`}
       role="button"
@@ -171,8 +200,11 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
             width: `${indicatorSize}px`,
             height: `${indicatorSize}px`,
             borderRadius: '50%',
-            backgroundColor: 'rgba(0, 255, 0, 0.5)',
-            border: `2px solid rgba(0, 255, 0, 0.8)`,
+            background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
+            border: '2px solid rgba(46, 204, 113, 0.8)',
+            boxShadow: '0 2px 8px rgba(46, 204, 113, 0.3), inset 0 1px 2px rgba(255,255,255,0.3)',
+            transition: 'all 0.2s ease',
+            transform: isHovered ? 'scale(1.1)' : 'scale(1)',
           }}
         />
       )}
@@ -278,13 +310,23 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
         gridTemplateColumns: 'repeat(8, 1fr)',
         width: `${boardSize}px`,
         height: `${boardSize}px`,
-        border: '3px solid #333',
-        borderRadius: '8px',
+        border: '4px solid #2c1810', // Rich dark brown border
+        borderRadius: '12px', // More rounded corners
         overflow: 'hidden',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-        backgroundColor: '#333',
+        boxShadow: `
+          0 8px 32px rgba(0,0,0,0.3),
+          0 4px 16px rgba(0,0,0,0.2),
+          inset 0 2px 4px rgba(255,255,255,0.1)
+        `, // Multi-layered shadow for depth
+        background: 'linear-gradient(145deg, #3d2817 0%, #2c1810 100%)', // Rich wood-like gradient
         maxWidth: '100%',
-        maxHeight: '100%'
+        maxHeight: '100%',
+        position: 'relative',
+        // Add subtle texture effect
+        backgroundImage: `
+          radial-gradient(circle at 25% 25%, rgba(255,255,255,0.05) 0%, transparent 50%),
+          radial-gradient(circle at 75% 75%, rgba(255,255,255,0.03) 0%, transparent 50%)
+        `
       }}
       role="grid"
       aria-label="Chess board"
