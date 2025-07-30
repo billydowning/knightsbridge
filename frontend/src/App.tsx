@@ -811,11 +811,14 @@ function ChessApp() {
               
               // Check room status before auto-starting
               databaseMultiplayerState.getRoomStatus(roomId).then(status => {
-                if (status && status.escrowCount >= 2) {
-                  console.log('🚀 Auto-starting game - both deposits detected');
+                const confirmedDeposits = (status as any)?.confirmedDepositsCount || 0;
+                if (status && confirmedDeposits >= 2) {
+                  console.log('🚀 Auto-starting game - both confirmed deposits detected');
                   setGameStatus('🎮 Both players confirmed! Game starting...');
                   setBothEscrowsReady(true);
+                  setGameMode('game'); // Only start game when both deposits confirmed
                 } else {
+                  console.log(`⏳ Still waiting - confirmed deposits: ${confirmedDeposits}/2`);
                   setGameStatus('⏳ Still waiting for opponent deposit confirmation...');
                 }
               });
@@ -2091,7 +2094,11 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStarted = (data: any) => {
-        setGameMode('game');
+        console.log('🎮 Received gameStarted WebSocket event:', data);
+        if (data.roomId === roomId) {
+          console.log('✅ Game starting - both players deposited!');
+          setGameMode('game');
+        }
         // Reset game state for new game
         setGameState({
           position: {
@@ -2121,36 +2128,11 @@ function ChessApp() {
       };
 
       const handleRoomUpdated = (data: any) => {
-        // Check if game state is active as a fallback for gameStarted event
-        if (data.gameState === 'active' && gameMode === 'lobby') {
-          setGameMode('game');
-          // Reset game state for new game
-          setGameState({
-            position: {
-              'a1': 'white-rook', 'b1': 'white-knight', 'c1': 'white-bishop', 'd1': 'white-queen',
-              'e1': 'white-king', 'f1': 'white-bishop', 'g1': 'white-knight', 'h1': 'white-rook',
-              'a2': 'white-pawn', 'b2': 'white-pawn', 'c2': 'white-pawn', 'd2': 'white-pawn',
-              'e2': 'white-pawn', 'f2': 'white-pawn', 'g2': 'white-pawn', 'h2': 'white-pawn',
-              'a7': 'black-pawn', 'b7': 'black-pawn', 'c7': 'black-pawn', 'd7': 'black-pawn',
-              'e7': 'black-pawn', 'f7': 'black-pawn', 'g7': 'black-pawn', 'h7': 'black-pawn',
-              'a8': 'black-rook', 'b8': 'black-knight', 'c8': 'black-bishop', 'd8': 'black-queen',
-              'e8': 'black-king', 'f8': 'black-bishop', 'g8': 'black-knight', 'h8': 'black-rook'
-            },
-            currentPlayer: 'white',
-            selectedSquare: null,
-            gameActive: true,
-            winner: null,
-            draw: false,
-            moveHistory: [],
-            lastUpdated: Date.now(),
-            castlingRights: 'KQkq',
-            enPassantTarget: null,
-            halfmoveClock: 0,
-            fullmoveNumber: 1,
-            inCheck: false,
-            inCheckmate: false
-          });
-        }
+        // DISABLED: Don't auto-start game just because database says 'active'
+        // The game should only start via proper gameStarted WebSocket event
+        // when both players have confirmed deposits
+        console.log('📊 Room updated:', data);
+        // Room updates should not trigger game start - only handle room status changes
       };
 
       // Use the databaseMultiplayerState callback system
