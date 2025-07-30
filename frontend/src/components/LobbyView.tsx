@@ -67,37 +67,96 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
   // Enhanced join game handler with auto-scroll
   const handleJoinGameWithScroll = async () => {
+    console.log('🔍 Join game button clicked - starting auto-scroll logic');
+    console.log('🔍 Player role:', playerRole);
+    console.log('🔍 Ready to deposit before:', readyToDeposit);
+    
     if (onCreateEscrow) {
-      await onCreateEscrow();
-      
-      // After successful join, scroll to game ready section
-      setTimeout(() => {
-        if (gameReadyRef.current) {
-          gameReadyRef.current.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start',
-            inline: 'nearest'
-          });
-        }
-      }, 500); // Small delay to allow the section to render
+      try {
+        await onCreateEscrow();
+        console.log('✅ onCreateEscrow completed successfully');
+        
+        // After successful join, scroll to game ready section with multiple attempts
+        const attemptScroll = (attempt = 1) => {
+          console.log(`🔍 Scroll attempt ${attempt}`);
+          console.log('🔍 gameReadyRef.current:', gameReadyRef.current);
+          console.log('🔍 Ready to deposit now:', readyToDeposit);
+          
+          if (gameReadyRef.current) {
+            console.log('✅ Found game ready section - scrolling now!');
+            gameReadyRef.current.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            });
+          } else if (attempt < 5) {
+            // Try again with longer delay
+            setTimeout(() => attemptScroll(attempt + 1), 300 * attempt);
+          } else {
+            console.log('❌ Could not find game ready section after 5 attempts');
+          }
+        };
+        
+        // First attempt after short delay
+        setTimeout(() => attemptScroll(), 200);
+        
+      } catch (error) {
+        console.error('❌ Error in onCreateEscrow:', error);
+      }
     }
   };
 
   // Auto-scroll when game ready section appears (more reliable)
   useEffect(() => {
-    if (readyToDeposit && gameReadyRef.current && playerRole === 'black') {
+    console.log('🔍 useEffect auto-scroll triggered');
+    console.log('🔍 readyToDeposit:', readyToDeposit);
+    console.log('🔍 playerRole:', playerRole);
+    console.log('🔍 gameReadyRef.current:', gameReadyRef.current);
+    
+    if (readyToDeposit && playerRole === 'black') {
+      console.log('✅ Conditions met for auto-scroll - setting up timer');
+      
       // Slight delay to ensure the section is fully rendered and visible
       const scrollTimer = setTimeout(() => {
+        console.log('🔍 useEffect scroll timer fired');
+        console.log('🔍 gameReadyRef.current at timer:', gameReadyRef.current);
+        
         if (gameReadyRef.current) {
+          console.log('✅ useEffect scrolling to game ready section!');
           gameReadyRef.current.scrollIntoView({ 
             behavior: 'smooth', 
             block: 'start',
             inline: 'nearest'
           });
+        } else {
+          console.log('❌ useEffect: gameReadyRef.current is null');
+          
+          // Alternative: scroll to element by class/id if ref fails
+          const gameReadyElement = document.getElementById('game-ready-section');
+          if (gameReadyElement) {
+            console.log('✅ Found game ready element by ID - scrolling!');
+            gameReadyElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            });
+          } else {
+            console.log('❌ Could not find game ready element by ID');
+            
+            // Final fallback: scroll to approximate position
+            console.log('🔄 Using fallback scroll to estimated position');
+            window.scrollTo({
+              top: window.innerHeight * 0.8, // Scroll down about 80% of screen height
+              behavior: 'smooth'
+            });
+          }
         }
-      }, 300);
+      }, 600); // Increased delay to 600ms
 
-      return () => clearTimeout(scrollTimer);
+      return () => {
+        console.log('🔍 Cleaning up auto-scroll timer');
+        clearTimeout(scrollTimer);
+      };
     }
   }, [readyToDeposit, playerRole]);
 
@@ -281,6 +340,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {readyToDeposit && (
         <section 
           ref={gameReadyRef}
+          data-testid="game-ready-section"
+          id="game-ready-section"
           style={{ 
             ...cardStyle,
             margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
