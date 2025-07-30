@@ -77,42 +77,21 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     };
   };
   
-  // Calculate player count based on room status
-  const playerCount = roomStatus?.playerCount || 0;
-  
-  // Calculate escrow count - backend already includes all escrows
+  // Status calculations
   const escrowCount = roomStatus?.escrowCount || 0;
-  
+  const confirmedDepositsCount = roomStatus?.confirmedDepositsCount || 0; // NEW: Track confirmed deposits
+  const playerCount = roomStatus?.playerCount || 0;
   const gameStarted = roomStatus?.gameStarted || false;
-  const bothPlayersPresent = playerCount === 2;
+  
   const bothEscrowsCreated = escrowCount === 2 || (escrowCreated && opponentEscrowCreated);
-  
-  // Extract the actual bet amount from room status escrows (shared between players)
-  const actualBetAmount = React.useMemo(() => {
-    if (roomStatus?.escrows && Object.keys(roomStatus.escrows).length > 0) {
-      // Get the first escrow amount (should be same for both players)
-      const escrowAmounts = Object.values(roomStatus.escrows);
-      const rawAmount = escrowAmounts[0];
-      
-      // Ensure proper number parsing and formatting
-      const parsedAmount = typeof rawAmount === 'string' ? parseFloat(rawAmount) : Number(rawAmount);
-      
-      // Round to avoid floating point precision issues
-      const roundedAmount = Math.round(parsedAmount * 100000000) / 100000000; // 8 decimal places
-      
-      console.log('🔍 Bet amount calculation:', {
-        rawAmount,
-        parsedAmount,
-        roundedAmount,
-        fallbackBetAmount: betAmount
-      });
-      
-      return roundedAmount || betAmount;
-    }
-    return betAmount;
-  }, [roomStatus?.escrows, betAmount]);
-  
-  // FIXED: Only show "Game Ready" section when BOTH players have actually joined the game on-chain
+
+  // Helper function to determine actual bet amount displayed
+  const actualBetAmount = betAmount;
+
+  // Check if both players are present (playerCount === 2) first, regardless of escrow status
+  const bothPlayersPresent = playerCount === 2;
+
+  // Only show the deposit section when both players are present AND both escrows exist
   // Use escrowCount >= 2 to ensure both white (initialize_game) and black (join_game) have completed
   const readyToDeposit = bothPlayersPresent && escrowCount >= 2 && !gameStarted;
   const readyToStart = bothPlayersPresent && bothEscrowsCreated;
@@ -669,28 +648,11 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               transition: 'all 0.2s ease',
               cursor: 'pointer'
             }}>
-              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: theme.primary }}>
-                {playerCount}/2
+              <div style={{ fontSize: isDesktopLayout ? '20px' : '18px', color: theme.text, fontWeight: '600', fontFamily: 'monospace' }}>
+                {playerCount}/2 Players • {confirmedDepositsCount}/2 Deposits
               </div>
               <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
                 Players
-              </div>
-            </div>
-            
-            <div style={{ 
-              textAlign: 'center', 
-              padding: isDesktopLayout ? '16px' : '12px',
-              background: `linear-gradient(135deg, ${theme.background} 0%, ${theme.surface} 100%)`,
-              borderRadius: '12px',
-              border: `1px solid ${theme.border}`,
-              transition: 'all 0.2s ease',
-              cursor: 'pointer'
-            }}>
-              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: theme.secondary }}>
-                {escrowCount}/2
-              </div>
-              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
-                Deposits
               </div>
             </div>
             

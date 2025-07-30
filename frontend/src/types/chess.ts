@@ -55,6 +55,7 @@ export interface RoomStatus {
   playerCount: number;
   players: PlayerRole[];
   escrowCount: number;
+  confirmedDepositsCount: number; // NEW: Track confirmed deposits separately
   escrows: { [wallet: string]: number };
   gameStarted: boolean;
 }

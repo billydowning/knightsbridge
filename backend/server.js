@@ -1188,8 +1188,11 @@ io.on('connection', (socket) => {
         }
 
         // Get escrows for this room
-        const escrowsResult = await poolInstance.query('SELECT player_wallet, escrow_amount FROM escrows WHERE room_id = $1', [roomId]);
+        const escrowsResult = await poolInstance.query('SELECT player_wallet, escrow_amount, status FROM escrows WHERE room_id = $1', [roomId]);
         const escrows = escrowsResult.rows;
+        
+        // Count confirmed deposits separately
+        const confirmedDeposits = escrows.filter(escrow => escrow.status === 'confirmed');
 
         // Calculate player count
         const playerCount = (room.player_white_wallet ? 1 : 0) + (room.player_black_wallet ? 1 : 0);
@@ -1213,6 +1216,7 @@ io.on('connection', (socket) => {
           playerCount: playerCount,
           players: players,
           escrowCount: escrows.length,
+          confirmedDepositsCount: confirmedDeposits.length, // NEW: Track confirmed deposits separately
           escrows: escrowsObj,
           gameStarted: room.game_state === 'active'
         };
@@ -1232,6 +1236,7 @@ io.on('connection', (socket) => {
           playerCount: room.players.length,
           players: room.players.map(p => ({ role: p.role, wallet: p.wallet })),
           escrowCount: 0, // No escrows in test mode
+          confirmedDepositsCount: 0, // NEW: Also add to test mode
           escrows: {},
           gameStarted: false
         };
@@ -1404,8 +1409,19 @@ io.on('connection', (socket) => {
         blackWallet: currentPlayers?.player_black_wallet
       });
 
-      // Check if both players have confirmed deposits
-      if (confirmedEscrows.length === 2 && currentPlayers && 
+      // FIXED: Check that BOTH specific players have confirmed deposits, not just any 2 escrows
+      const whitePlayerDeposited = confirmedEscrows.some(e => e.player_wallet === currentPlayers.player_white_wallet);
+      const blackPlayerDeposited = confirmedEscrows.some(e => e.player_wallet === currentPlayers.player_black_wallet);
+
+      console.log('🔍 Individual player deposit status:', {
+        whitePlayerDeposited,
+        blackPlayerDeposited,
+        whiteWallet: currentPlayers?.player_white_wallet,
+        blackWallet: currentPlayers?.player_black_wallet
+      });
+
+      // Only start game when BOTH white and black players have deposited
+      if (whitePlayerDeposited && blackPlayerDeposited && currentPlayers && 
           currentPlayers.player_white_wallet && currentPlayers.player_black_wallet) {
         
         console.log('🎮 Both deposits confirmed - starting game!');
