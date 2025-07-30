@@ -43,7 +43,7 @@ interface GameState {
 
 interface DatabaseMultiplayerStateHook {
   // Room management
-  createRoom: (playerWallet: string) => Promise<{ role: 'white' | null; roomId: string | null }>;
+  createRoom: (playerWallet: string, betAmount?: number) => Promise<{ role: 'white' | null; roomId: string | null }>;
   joinRoom: (roomId: string, playerWallet: string) => Promise<'white' | 'black' | null>;
   getRoomStatus: (roomId: string) => Promise<RoomStatus | null>;
   
@@ -300,7 +300,7 @@ class DatabaseMultiplayerStateManager {
     }
   }
 
-  async createRoom(playerWallet: string): Promise<{ role: 'white' | null; roomId: string | null }> {
+  async createRoom(playerWallet: string, betAmount?: number): Promise<{ role: 'white' | null; roomId: string | null }> {
     try {
       await this.ensureConnected();
       
@@ -315,7 +315,7 @@ class DatabaseMultiplayerStateManager {
           reject(new Error('Create room request timed out'));
         }, 10000); // 10 second timeout
 
-        this.socket.emit('createRoom', { playerWallet }, (response: any) => {
+        this.socket.emit('createRoom', { playerWallet, betAmount }, (response: any) => {
           clearTimeout(timeout);
           if (response.success) {
             resolve({ role: 'white', roomId: response.roomId });

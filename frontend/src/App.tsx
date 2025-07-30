@@ -1082,7 +1082,7 @@ function ChessApp() {
       // If roomId is empty, we're creating a new room
       if (!roomId.trim()) {
         // Create the room (backend will generate room ID)
-        const result = await databaseMultiplayerState.createRoom(playerWallet);
+        const result = await databaseMultiplayerState.createRoom(playerWallet, betAmount);
         if (result.role && result.roomId) {
           setPlayerRole(result.role);
           setRoomId(result.roomId);

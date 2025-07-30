@@ -977,7 +977,7 @@ io.on('connection', (socket) => {
     console.log('📨 Callback function:', typeof callback);
     
     try {
-      const { playerWallet } = data;
+      const { playerWallet, betAmount } = data;
       
       // Generate a unique room ID
       const roomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -997,8 +997,8 @@ io.on('connection', (socket) => {
 
         // Insert new room into database
         await poolInstance.query(
-          'INSERT INTO games (room_id, player_white_wallet, game_state, updated_at) VALUES ($1, $2, $3, $4)',
-          [roomId, playerWallet, 'waiting', new Date()]
+          'INSERT INTO games (room_id, player_white_wallet, game_state, stake_amount, updated_at) VALUES ($1, $2, $3, $4, $5)',
+          [roomId, playerWallet, 'waiting', betAmount || 0, new Date()]
         );
         console.log('✅ Room created in database:', roomId, 'for player:', playerWallet);
       } else {
