@@ -1,32 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <!-- Background circle with gradient -->
   <defs>
-    <radialGradient id="bg" cx="0.3" cy="0.3" r="0.8">
-      <stop offset="0%" style="stop-color:#f0e6d2;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b4513;stop-opacity:1" />
-    </radialGradient>
-    <linearGradient id="knight" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#2c1810;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#1a0f08;stop-opacity:1" />
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ffed4e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#daa520;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#228b22;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#006400;stop-opacity:1" />
     </linearGradient>
   </defs>
   
-  <!-- Background -->
-  <circle cx="16" cy="16" r="14" fill="url(#bg)" stroke="#2c1810" stroke-width="2"/>
+  <!-- Shield shape -->
+  <path d="M16 2 L28 6 L28 18 C28 22 24 28 16 30 C8 28 4 22 4 18 L4 6 Z" 
+        fill="#2c3e50" stroke="#1a252f" stroke-width="1"/>
   
-  <!-- Knight piece - stylized and simplified for small size -->
-  <path d="M8 24 L24 24 L23 22 L21 20 L20 18 L22 16 L23 14 L22 12 L20 11 L18 12 L16 11 L14 10 L12 11 L10 13 L9 15 L10 17 L12 18 L11 20 L9 22 Z" 
-        fill="url(#knight)" 
-        stroke="#f0e6d2" 
-        stroke-width="0.5"/>
+  <!-- Green and white stripes -->
+  <defs>
+    <clipPath id="shield">
+      <path d="M16 2.5 L27.5 6.2 L27.5 18 C27.5 21.8 23.8 27.5 16 29.5 C8.2 27.5 4.5 21.8 4.5 18 L4.5 6.2 Z"/>
+    </clipPath>
+  </defs>
   
-  <!-- Knight's eye -->
-  <circle cx="17" cy="14" r="1" fill="#f0e6d2"/>
-  
-  <!-- Knight's mane detail -->
-  <path d="M14 10 L16 11 L18 12 L20 11 L19 13 L17 14 L15 13 Z" 
-        fill="none" 
-        stroke="#f0e6d2" 
-        stroke-width="0.5" 
-        opacity="0.7"/>
+  <g clip-path="url(#shield)">
+    <!-- White stripes -->
+    <rect x="4" y="6" width="24" height="3" fill="#ffffff"/>
+    <rect x="4" y="12" width="24" height="3" fill="#ffffff"/>
+    <rect x="4" y="18" width="24" height="3" fill="#ffffff"/>
+    <rect x="4" y="24" width="24" height="3" fill="#ffffff"/>
+    
+    <!-- Green stripes -->
+    <rect x="4" y="9" width="24" height="3" fill="url(#green)"/>
+    <rect x="4" y="15" width="24" height="3" fill="url(#green)"/>
+    <rect x="4" y="21" width="24" height="3" fill="url(#green)"/>
+    <rect x="4" y="27" width="24" height="3" fill="url(#green)"/>
+    
+    <!-- Griffin/Lion rampant (simplified for small size) -->
+    <g fill="url(#gold)" stroke="#b8860b" stroke-width="0.3">
+      <!-- Body -->
+      <ellipse cx="16" cy="20" rx="3.5" ry="6"/>
+      <!-- Head -->
+      <circle cx="16" cy="12" r="2.5"/>
+      <!-- Wings -->
+      <path d="M19 12 Q22 10 23 14 Q22 16 19 15 Z"/>
+      <path d="M19 15 Q21 17 20 20 Q18 19 19 17 Z"/>
+      <!-- Front paws -->
+      <ellipse cx="14" cy="16" rx="1" ry="2"/>
+      <ellipse cx="18" cy="16" rx="1" ry="2"/>
+      <!-- Rear paws -->
+      <ellipse cx="14" cy="24" rx="1" ry="2"/>
+      <ellipse cx="18" cy="24" rx="1" ry="2"/>
+      <!-- Tail -->
+      <path d="M12 22 Q8 20 9 24 Q11 25 12 22"/>
+    </g>
+  </g>
 </svg>

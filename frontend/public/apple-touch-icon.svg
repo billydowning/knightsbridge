@@ -1,47 +1,83 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
   <defs>
-    <radialGradient id="bg180" cx="0.3" cy="0.3" r="0.8">
-      <stop offset="0%" style="stop-color:#f0e6d2;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b4513;stop-opacity:1" />
-    </radialGradient>
-    <linearGradient id="knight180" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#2c1810;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#3d2817;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#1a0f08;stop-opacity:1" />
+    <linearGradient id="gold180" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#ffed4e;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#f4d03f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#daa520;stop-opacity:1" />
     </linearGradient>
-    <filter id="shadow">
-      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    <linearGradient id="green180" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#27ae60;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#228b22;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#006400;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow180">
+      <feDropShadow dx="3" dy="3" stdDeviation="4" flood-opacity="0.3"/>
     </filter>
   </defs>
   
   <!-- Background with rounded corners for iOS -->
-  <rect width="180" height="180" rx="20" ry="20" fill="url(#bg180)"/>
+  <rect width="180" height="180" rx="20" ry="20" fill="#f8f9fa"/>
   
-  <!-- Knight piece - detailed version for large size -->
-  <g filter="url(#shadow)">
-    <path d="M45 135 L135 135 L130 125 L125 115 L120 105 L125 95 L130 85 L125 75 L115 70 L105 75 L95 70 L85 65 L75 70 L65 80 L60 90 L65 100 L75 105 L70 115 L60 125 Z" 
-          fill="url(#knight180)" 
-          stroke="#f0e6d2" 
-          stroke-width="3"/>
+  <!-- Shield shape -->
+  <path d="M90 20 L150 35 L150 100 C150 125 125 150 90 160 C55 150 30 125 30 100 L30 35 Z" 
+        fill="#2c3e50" stroke="#1a252f" stroke-width="3" filter="url(#shadow180)"/>
+  
+  <!-- Clipping path for stripes -->
+  <defs>
+    <clipPath id="shield180">
+      <path d="M90 22 L148 36 L148 100 C148 123 125 148 90 158 C55 148 32 123 32 100 L32 36 Z"/>
+    </clipPath>
+  </defs>
+  
+  <g clip-path="url(#shield180)">
+    <!-- White stripes -->
+    <rect x="30" y="35" width="120" height="12" fill="#ffffff"/>
+    <rect x="30" y="59" width="120" height="12" fill="#ffffff"/>
+    <rect x="30" y="83" width="120" height="12" fill="#ffffff"/>
+    <rect x="30" y="107" width="120" height="12" fill="#ffffff"/>
+    <rect x="30" y="131" width="120" height="12" fill="#ffffff"/>
     
-    <!-- Knight's eye -->
-    <circle cx="95" cy="85" r="4" fill="#f0e6d2"/>
+    <!-- Green stripes -->
+    <rect x="30" y="47" width="120" height="12" fill="url(#green180)"/>
+    <rect x="30" y="71" width="120" height="12" fill="url(#green180)"/>
+    <rect x="30" y="95" width="120" height="12" fill="url(#green180)"/>
+    <rect x="30" y="119" width="120" height="12" fill="url(#green180)"/>
+    <rect x="30" y="143" width="120" height="12" fill="url(#green180)"/>
     
-    <!-- Knight's mane details -->
-    <path d="M85 65 L95 70 L105 75 L115 70 L110 80 L100 85 L90 80 Z" 
-          fill="none" 
-          stroke="#f0e6d2" 
-          stroke-width="2" 
-          opacity="0.8"/>
-    
-    <!-- Additional detail lines -->
-    <path d="M75 70 L85 75 L95 80" 
-          fill="none" 
-          stroke="#f0e6d2" 
-          stroke-width="1.5" 
-          opacity="0.6"/>
+    <!-- Detailed Griffin/Lion rampant -->
+    <g fill="url(#gold180)" stroke="#b8860b" stroke-width="2" filter="url(#shadow180)">
+      <!-- Main body -->
+      <ellipse cx="90" cy="110" rx="18" ry="30"/>
+      
+      <!-- Head -->
+      <circle cx="90" cy="70" r="12"/>
+      
+      <!-- Mane details -->
+      <path d="M78 65 Q75 60 80 62 Q82 58 85 62 Q88 58 90 62 Q92 58 95 62 Q98 58 100 62 Q105 60 102 65"/>
+      
+      <!-- Wings -->
+      <path d="M108 70 Q125 65 130 80 Q125 90 115 88 Q110 85 108 75 Z"/>
+      <path d="M115 88 Q120 95 118 105 Q110 100 112 90 Z"/>
+      <path d="M112 90 Q115 98 112 108 Q108 105 110 95 Z"/>
+      
+      <!-- Front paws raised -->
+      <ellipse cx="78" cy="85" rx="6" ry="12" transform="rotate(-20 78 85)"/>
+      <ellipse cx="102" cy="85" rx="6" ry="12" transform="rotate(20 102 85)"/>
+      
+      <!-- Rear paws -->
+      <ellipse cx="78" cy="130" rx="6" ry="12"/>
+      <ellipse cx="102" cy="130" rx="6" ry="12"/>
+      
+      <!-- Tail with tuft -->
+      <path d="M72 115 Q55 110 58 125 Q60 135 68 130 Q70 125 72 120"/>
+      <circle cx="58" cy="125" r="4"/>
+      
+      <!-- Eye -->
+      <circle cx="88" cy="68" r="2" fill="#1a252f"/>
+    </g>
   </g>
   
   <!-- Subtle border -->
-  <rect width="180" height="180" rx="20" ry="20" fill="none" stroke="#2c1810" stroke-width="2" opacity="0.3"/>
+  <rect width="180" height="180" rx="20" ry="20" fill="none" stroke="#2c3e50" stroke-width="2" opacity="0.3"/>
 </svg>

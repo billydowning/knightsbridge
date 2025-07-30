@@ -94,16 +94,20 @@ export const Header: React.FC<HeaderProps> = ({
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
-          gap: '8px',
+          gap: '12px',
           flexShrink: 0, // Don't let logo shrink
           minWidth: 0
         }}>
-          <div style={{
-            fontSize: isDesktopLayout ? '24px' : '20px',
-            lineHeight: 1
-          }}>
-            ♔
-          </div>
+          <img 
+            src="/knightsbridge-logo.svg" 
+            alt="Knightsbridge Coat of Arms"
+            style={{
+              width: isDesktopLayout ? '32px' : '28px',
+              height: isDesktopLayout ? '32px' : '28px',
+              borderRadius: '4px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          />
           <div>
             <h1 style={{
               margin: 0,
