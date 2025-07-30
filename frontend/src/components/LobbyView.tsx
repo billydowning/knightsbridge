@@ -381,7 +381,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 boxShadow: copied ? `0 4px 12px ${theme.success}40` : `0 4px 12px ${theme.primary}40`
               }}
             >
-              {copied ? '✅ Copied!' : '📋 Room Created - Share Your Room ID'}
+              {copied ? '✅ Copied!' : '📋 Copy Room ID'}
             </button>
           </div>
         </div>
