@@ -81,8 +81,8 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     if (isLegalMove) return isHovered ? '#27ae60' : '#52c41a'; // Rich greens for legal moves
     if (isHovered) return isLight ? '#ecf0f1' : '#2c3e50'; // Light hover colors
     
-    // Imperial blue chess board colors - sophisticated and royal
-    return isLight ? '#f8f9fa' : '#34495e'; // Pure white and imperial blue-gray
+    // Imperial blue chess board colors - sophisticated and royal (always visible)
+    return isLight ? '#ffffff' : '#2c3e50'; // Pure white and imperial blue
   }, [isInCheck, isSelected, isLastMove, isLegalMove, isHovered, isLight]);
 
   const getCursor = useCallback((): string => {
@@ -128,14 +128,14 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
       `; // Multi-layered shadow for depth
       baseStyle.filter = disabled ? 'grayscale(50%)' : 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))';
     } else if (isBlackPiece) {
-      baseStyle.color = '#2c2c2c'; // Rich dark gray
+      baseStyle.color = '#2c3e50'; // Imperial blue to match board theme
       baseStyle.textShadow = `
-        2px 2px 4px rgba(255,255,255,0.4),
-        0 0 3px rgba(255,255,255,0.6),
-        1px 1px 0 rgba(255,255,255,0.3),
-        -1px -1px 0 rgba(255,255,255,0.3)
-      `; // Light shadow and outline for contrast
-      baseStyle.filter = disabled ? 'grayscale(50%)' : 'drop-shadow(1px 1px 2px rgba(255,255,255,0.2))';
+        2px 2px 4px rgba(255,255,255,0.6),
+        0 0 3px rgba(255,255,255,0.8),
+        1px 1px 0 rgba(255,255,255,0.4),
+        -1px -1px 0 rgba(255,255,255,0.4)
+      `; // Strong white outline for visibility
+      baseStyle.filter = disabled ? 'grayscale(50%)' : 'drop-shadow(2px 2px 4px rgba(255,255,255,0.3))';
     }
 
     if (isHovered && !disabled) {
@@ -160,9 +160,7 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: isLight 
-          ? `linear-gradient(135deg, ${getBackgroundColor()} 0%, #ffffff 50%, ${getBackgroundColor()} 100%)`
-          : `linear-gradient(135deg, ${getBackgroundColor()} 0%, #2c3e50 50%, ${getBackgroundColor()} 100%)`,
+        background: getBackgroundColor(), // Use solid color for better visibility
         cursor: getCursor(),
         border: isSelected ? '2px solid #f1c40f' : '1px solid rgba(52, 73, 94, 0.3)',
         borderRadius: '2px', // Subtle rounded corners
@@ -177,10 +175,10 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
             : 'inset 0 1px 2px rgba(52, 73, 94, 0.05)',
         padding: '1px',
         boxSizing: 'border-box',
-        // Add subtle texture overlay
+        // Add very subtle texture overlay (minimal interference with base colors)
         backgroundImage: isLight 
-          ? 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, transparent 50%)'
-          : 'radial-gradient(circle at 50% 50%, rgba(52, 73, 94, 0.1) 0%, transparent 50%)',
+          ? 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 70%)'
+          : 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, transparent 70%)',
         transform: isSelected ? 'scale(1.02)' : 'scale(1)'
       }}
       title={`${square}${piece ? ` - ${piece}` : ''}`}

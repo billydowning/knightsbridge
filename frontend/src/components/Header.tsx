@@ -99,8 +99,8 @@ export const Header: React.FC<HeaderProps> = ({
           minWidth: 0
         }}>
           <img 
-            src="/knightsbridge-logo.svg" 
-            alt="Knightsbridge Coat of Arms"
+            src="/knight-logo.svg" 
+            alt="Knight Chess Piece"
             style={{
               width: isDesktopLayout ? '32px' : '28px',
               height: isDesktopLayout ? '32px' : '28px',

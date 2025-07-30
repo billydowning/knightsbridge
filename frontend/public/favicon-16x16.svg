@@ -1,33 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
   <defs>
-    <linearGradient id="gold16" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ffd700"/>
-      <stop offset="100%" style="stop-color:#daa520"/>
+    <linearGradient id="knightGradient16" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34495e;stop-opacity:1" />
     </linearGradient>
   </defs>
   
-  <path d="M8 1 L14 3 L14 9 C14 11 12 14 8 15 C4 14 2 11 2 9 L2 3 Z" fill="#2c3e50"/>
+  <!-- Base -->
+  <ellipse cx="8" cy="14" rx="6" ry="1.5" fill="#1a252f" />
   
-  <defs>
-    <clipPath id="shield16">
-      <path d="M8 1.2 L13.8 3 L13.8 9 C13.8 10.8 12 13.8 8 14.8 C4 13.8 2.2 10.8 2.2 9 L2.2 3 Z"/>
-    </clipPath>
-  </defs>
+  <!-- Knight head simplified -->
+  <path d="M4 13 L4 9 Q4 7 5 6 Q6 5 7 5.5 L7.5 5 Q8 4 9 4.5 Q10 4 11 5 L11.5 6 Q12 7 11.5 8 L12 9 Q12 10 11 11 L10 12 Q9 13 8 13 L6 13 Q5 13 4 13 Z" 
+        fill="url(#knightGradient16)" 
+        stroke="#1a252f" 
+        stroke-width="0.5"/>
   
-  <g clip-path="url(#shield16)">
-    <rect x="2" y="3" width="12" height="1.5" fill="#ffffff"/>
-    <rect x="2" y="6" width="12" height="1.5" fill="#ffffff"/>
-    <rect x="2" y="9" width="12" height="1.5" fill="#ffffff"/>
-    <rect x="2" y="12" width="12" height="1.5" fill="#ffffff"/>
-    
-    <rect x="2" y="4.5" width="12" height="1.5" fill="#228b22"/>
-    <rect x="2" y="7.5" width="12" height="1.5" fill="#228b22"/>
-    <rect x="2" y="10.5" width="12" height="1.5" fill="#228b22"/>
-    
-    <g fill="url(#gold16)">
-      <ellipse cx="8" cy="10" rx="1.5" ry="3"/>
-      <circle cx="8" cy="6" r="1.2"/>
-      <path d="M9.5 6 Q11 5 11.5 7 Q11 8 9.5 7.5 Z"/>
-    </g>
-  </g>
+  <!-- Eye -->
+  <circle cx="9.5" cy="6.5" r="0.8" fill="#ffffff" opacity="0.9"/>
+  <circle cx="9.7" cy="6.3" r="0.4" fill="#1a252f"/>
+  
+  <!-- Ear -->
+  <path d="M9 4.5 Q9.5 4 10 4.5 Q9.5 5 9 5 Z" 
+        fill="#2c3e50"/>
+  
 </svg>
