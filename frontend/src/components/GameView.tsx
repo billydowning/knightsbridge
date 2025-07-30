@@ -18,6 +18,7 @@ export interface GameViewProps {
   onSendChatMessage?: (message: string) => void;
   chatMessages: ChatMessage[];
   onResignGame?: () => void;
+  onTimeoutGame?: (timedOutPlayer: 'white' | 'black') => void;
   onClaimWinnings?: () => void;
   onBackToMenu?: () => void;
   winningsClaimed: boolean;
@@ -34,6 +35,7 @@ export const GameView: React.FC<GameViewProps> = ({
   onSendChatMessage,
   chatMessages,
   onResignGame,
+  onTimeoutGame,
   onClaimWinnings,
   onBackToMenu,
   winningsClaimed,
@@ -94,17 +96,17 @@ export const GameView: React.FC<GameViewProps> = ({
   const handleTimeout = React.useCallback((timedOutPlayer: 'white' | 'black') => {
     if (timeoutTriggered || isGameOver) return; // Prevent multiple calls
     
-    console.log(`⏰ ${timedOutPlayer} player timed out - triggering automatic resignation`);
+    console.log(`⏰ ${timedOutPlayer} player timed out - triggering automatic timeout handler`);
     setTimeoutTriggered(true);
     
-    // Trigger resignation which will declare the opponent as winner
-    if (onResignGame) {
+    // Trigger timeout handler which will declare the correct winner (opposite of timed-out player)
+    if (onTimeoutGame) {
       // Small delay to ensure the timer shows 0:00 first
       setTimeout(() => {
-        onResignGame();
+        onTimeoutGame(timedOutPlayer);
       }, 100);
     }
-  }, [timeoutTriggered, isGameOver, onResignGame]);
+  }, [timeoutTriggered, isGameOver, onTimeoutGame]);
 
   // Countdown timer for current player only
   React.useEffect(() => {

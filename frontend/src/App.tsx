@@ -1212,6 +1212,46 @@ function ChessApp() {
     }
   };
 
+  const handleTimeoutGame = async (timedOutPlayer: 'white' | 'black') => {
+    console.log(`⏰ ${timedOutPlayer} player timed out - declaring opponent as winner`);
+    
+    if (!roomId) {
+      console.error('Cannot handle timeout: missing room ID');
+      return;
+    }
+    
+    try {
+      // The timed-out player loses, opponent wins
+      const winner = timedOutPlayer === 'white' ? 'black' : 'white';
+      setGameState((prev: any) => ({
+        ...prev,
+        winner,
+        gameActive: false,
+        lastUpdated: Date.now()
+      }));
+      
+      // Save timeout result to database
+      const updatedState = {
+        ...gameState,
+        winner,
+        gameActive: false,
+        lastUpdated: Date.now()
+      };
+      
+      await databaseMultiplayerState.saveGameState(roomId, updatedState);
+      
+      // Send chat message about timeout
+      const timeoutMessage = `${timedOutPlayer} ran out of time. ${winner} wins!`;
+      await databaseMultiplayerState.sendChatMessage(roomId, timeoutMessage, publicKey?.toString() || '', playerRole);
+      
+      setGameStatus(`${winner} wins - ${timedOutPlayer} timed out!`);
+      
+    } catch (error) {
+      console.error('Error handling timeout:', error);
+      setGameStatus(`Error handling timeout: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleBackToMenu = () => {
     setGameMode('menu');
     setRoomId('');
@@ -2278,6 +2318,7 @@ function ChessApp() {
             onSendChatMessage={handleSendChatMessage}
             chatMessages={chatMessages}
             onResignGame={handleResignGame}
+          onTimeoutGame={handleTimeoutGame}
             onClaimWinnings={handleClaimWinnings}
             onBackToMenu={handleBackToMenu}
             winningsClaimed={winningsClaimed}
