@@ -1179,7 +1179,7 @@ io.on('connection', (socket) => {
         const poolInstance = getPool();
         
         // Get room details from database
-        const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet, game_state FROM games WHERE room_id = $1', [roomId]);
+        const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet, game_state, stake_amount FROM games WHERE room_id = $1', [roomId]);
         const room = result.rows[0];
 
         if (!room) {
@@ -1218,7 +1218,8 @@ io.on('connection', (socket) => {
           escrowCount: escrows.length,
           confirmedDepositsCount: confirmedDeposits.length, // NEW: Track confirmed deposits separately
           escrows: escrowsObj,
-          gameStarted: room.game_state === 'active'
+          gameStarted: room.game_state === 'active',
+          stakeAmount: parseFloat(room.stake_amount) || 0 // NEW: Include bet amount for joining players
         };
 
         console.log('📊 Room status for', roomId, ':', roomStatus);

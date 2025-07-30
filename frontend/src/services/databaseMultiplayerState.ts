@@ -29,6 +29,7 @@ interface RoomStatus {
   gameState?: any;
   escrowCount?: number;
   playerCount?: number;
+  stakeAmount?: number; // NEW: Bet amount set by room creator
 }
 
 interface GameState {

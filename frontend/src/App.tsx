@@ -1107,6 +1107,12 @@ function ChessApp() {
           // Get room status using the current room ID
           const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
           
+          // Sync bet amount from room (when joining existing room)
+          if (roomStatus && roomStatus.stakeAmount && roomStatus.stakeAmount > 0) {
+            console.log('🔄 Syncing bet amount from room:', roomStatus.stakeAmount, 'SOL');
+            setBetAmount(roomStatus.stakeAmount);
+          }
+          
           // Check if current player already has an escrow
           if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
             setEscrowCreated(true);

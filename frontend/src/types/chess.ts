@@ -58,6 +58,7 @@ export interface RoomStatus {
   confirmedDepositsCount: number; // NEW: Track confirmed deposits separately
   escrows: { [wallet: string]: number };
   gameStarted: boolean;
+  stakeAmount?: number; // NEW: Bet amount set by room creator
 }
 
 export interface RoomsData {
