@@ -12,6 +12,8 @@ export interface MenuViewProps {
   setRoomId: (roomId: string) => void;
   betAmount: number;
   setBetAmount: (amount: number) => void;
+  timeLimit: number;
+  setTimeLimit: (timeLimit: number) => void;
   balance: number;
   connected: boolean;
   isLoading: boolean;
@@ -23,6 +25,8 @@ export const MenuView: React.FC<MenuViewProps> = ({
   setRoomId,
   betAmount,
   setBetAmount,
+  timeLimit,
+  setTimeLimit,
   balance,
   connected,
   isLoading,
@@ -37,6 +41,52 @@ export const MenuView: React.FC<MenuViewProps> = ({
 
   const smallBetAmounts = [0.01, 0.02, 0.05, 0.1, 0.25, 0.5];
   const largeBetAmounts = [1, 2, 5, 10, 25, 50];
+
+  // Time presets with icons and descriptions
+  const timePresets = [
+    { 
+      name: 'Lightning', 
+      icon: '⚡', 
+      seconds: 2 * 60, 
+      description: '2 min/move',
+      color: '#FFD700'
+    },
+    { 
+      name: 'Blitz', 
+      icon: '🏃', 
+      seconds: 5 * 60, 
+      description: '5 min/move',
+      color: '#FF6B35'
+    },
+    { 
+      name: 'Rapid', 
+      icon: '🚀', 
+      seconds: 10 * 60, 
+      description: '10 min/move',
+      color: '#4ECDC4'
+    },
+    { 
+      name: 'Casual', 
+      icon: '☕', 
+      seconds: 15 * 60, 
+      description: '15 min/move',
+      color: '#A8E6CF'
+    },
+    { 
+      name: 'Relaxed', 
+      icon: '🌙', 
+      seconds: 30 * 60, 
+      description: '30 min/move',
+      color: '#C7CEEA'
+    },
+    { 
+      name: 'Daily', 
+      icon: '📧', 
+      seconds: 24 * 60 * 60, 
+      description: '24 hr/move',
+      color: '#FFB5A7'
+    }
+  ];
 
   // Responsive utilities
   const containerWidth = useContainerWidth();
@@ -333,6 +383,87 @@ export const MenuView: React.FC<MenuViewProps> = ({
             <span>{showLargerAmounts ? '▼' : '▶'}</span>
             {showLargerAmounts ? 'Hide larger amounts' : 'Show larger amounts'}
           </button>
+        </div>
+
+        {/* Time Control Selection */}
+        <div style={{ 
+          marginBottom: '2rem',
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden'
+        }}>
+          <h3 style={{ 
+            margin: '0 0 1.5rem 0', 
+            color: theme.text,
+            fontSize: isDesktopLayout ? '1.1rem' : '1rem',
+            fontWeight: '600'
+          }}>
+            Choose Time Control
+          </h3>
+          
+          <div style={{ 
+            display: 'grid',
+            gridTemplateColumns: isDesktopLayout ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+            gap: isDesktopLayout ? '1rem' : '0.75rem',
+            width: '100%',
+            maxWidth: '100%'
+          }}>
+            {timePresets.slice(0, isDesktopLayout ? 6 : 4).map((preset) => (
+              <button
+                key={preset.seconds}
+                onClick={() => setTimeLimit(preset.seconds)}
+                style={{
+                  ...sharedButtonStyle,
+                  backgroundColor: timeLimit === preset.seconds ? preset.color : theme.background,
+                  color: timeLimit === preset.seconds ? 'white' : theme.text,
+                  border: `2px solid ${timeLimit === preset.seconds ? preset.color : theme.border}`,
+                  transform: timeLimit === preset.seconds ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: timeLimit === preset.seconds ? `0 4px 12px ${preset.color}40` : 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  minWidth: 0,
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem',
+                  padding: isDesktopLayout ? '1rem' : '0.75rem'
+                }}
+              >
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  position: 'relative', 
+                  zIndex: 1 
+                }}>
+                  <span style={{ fontSize: '1.2rem' }}>{preset.icon}</span>
+                  <span style={{ fontWeight: 'bold', fontSize: isDesktopLayout ? '0.9rem' : '0.8rem' }}>
+                    {preset.name}
+                  </span>
+                </div>
+                <div style={{ 
+                  fontSize: isDesktopLayout ? '0.75rem' : '0.7rem',
+                  opacity: 0.8,
+                  position: 'relative', 
+                  zIndex: 1 
+                }}>
+                  {preset.description}
+                </div>
+                {timeLimit === preset.seconds && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: `linear-gradient(45deg, ${preset.color}, ${preset.color}E0)`,
+                    opacity: 0.9,
+                    zIndex: 0
+                  }} />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Create Room Button */}

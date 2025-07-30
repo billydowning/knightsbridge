@@ -13,6 +13,7 @@ export interface LobbyViewProps {
   playerRole: string;
   playerWallet: string;
   betAmount: number;
+  timeLimit: number;
   roomStatus: any;
   escrowCreated: boolean;
   opponentEscrowCreated?: boolean;
@@ -31,6 +32,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   playerRole,
   playerWallet,
   betAmount,
+  timeLimit,
   roomStatus,
   escrowCreated,
   opponentEscrowCreated = false,
@@ -51,6 +53,14 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
   const isDesktopLayout = useIsDesktopLayout();
+
+  // Helper function to format time limit
+  const formatTimeLimit = (seconds: number) => {
+    if (seconds >= 24 * 60 * 60) return `${Math.floor(seconds / (24 * 60 * 60))}d/move`;
+    if (seconds >= 60 * 60) return `${Math.floor(seconds / (60 * 60))}h/move`;
+    if (seconds >= 60) return `${Math.floor(seconds / 60)}m/move`;
+    return `${seconds}s/move`;
+  };
 
   // Helper function to get room player wallet by role
   const getRoomPlayerWallet = (roomStatus: any, role: 'white' | 'black'): string | null => {
@@ -680,13 +690,37 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               borderRadius: '12px',
               border: `1px solid ${theme.border}`,
               transition: 'all 0.2s ease',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px'
             }}>
-              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: theme.accent }}>
-                {actualBetAmount}
+              <div style={{ 
+                fontSize: isDesktopLayout ? '16px' : '14px', 
+                fontWeight: 'bold', 
+                color: theme.accent,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px'
+              }}>
+                <span>💰</span>
+                <span>{actualBetAmount} SOL</span>
               </div>
-              <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
-                SOL Bet
+              <div style={{ 
+                fontSize: isDesktopLayout ? '14px' : '12px', 
+                fontWeight: '600',
+                color: theme.primary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px'
+              }}>
+                <span>⏱️</span>
+                <span>{formatTimeLimit(timeLimit)}</span>
+              </div>
+              <div style={{ fontSize: isDesktopLayout ? '12px' : '10px', color: theme.textSecondary, marginTop: '2px' }}>
+                Game Settings
               </div>
             </div>
             

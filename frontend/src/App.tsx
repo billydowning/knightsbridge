@@ -246,6 +246,7 @@ function ChessApp() {
   const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
   const [roomId, setRoomId] = useState<string>('');
   const [betAmount, setBetAmount] = useState<number>(0.1);
+  const [timeLimit, setTimeLimit] = useState<number>(10 * 60); // Default to 10 minutes (Rapid)
   const [playerRole, setPlayerRole] = useState<'white' | 'black' | null>(null);
   const [escrowCreated, setEscrowCreated] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
@@ -1077,7 +1078,7 @@ function ChessApp() {
       // If roomId is empty, we're creating a new room
       if (!roomId.trim()) {
         // Create the room (backend will generate room ID)
-        const result = await databaseMultiplayerState.createRoom(playerWallet, betAmount);
+        const result = await databaseMultiplayerState.createRoom(playerWallet, betAmount, timeLimit);
         if (result.role && result.roomId) {
           setPlayerRole(result.role);
           setRoomId(result.roomId);
@@ -1109,6 +1110,12 @@ function ChessApp() {
           if (roomStatus && roomStatus.stakeAmount && roomStatus.stakeAmount > 0) {
             console.log('🔄 Syncing bet amount from room:', roomStatus.stakeAmount, 'SOL');
             setBetAmount(roomStatus.stakeAmount);
+          }
+          
+          // Sync time limit from room (when joining existing room)
+          if (roomStatus && roomStatus.timeLimit && roomStatus.timeLimit > 0) {
+            console.log('🔄 Syncing time limit from room:', roomStatus.timeLimit, 'seconds');
+            setTimeLimit(roomStatus.timeLimit);
           }
           
           // Check if current player already has an escrow
@@ -2196,6 +2203,8 @@ function ChessApp() {
             setRoomId={setRoomId}
             betAmount={betAmount}
             setBetAmount={setBetAmount}
+            timeLimit={timeLimit}
+            setTimeLimit={setTimeLimit}
             balance={balance}
             connected={connected}
             isLoading={appLoading}
@@ -2209,6 +2218,7 @@ function ChessApp() {
             playerRole={playerRole}
             playerWallet={publicKey?.toString() || ''}
             betAmount={betAmount}
+            timeLimit={timeLimit}
             roomStatus={roomStatus}
             escrowCreated={escrowCreated}
             connected={connected}

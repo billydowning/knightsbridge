@@ -980,7 +980,7 @@ io.on('connection', (socket) => {
     console.log('📨 Callback function:', typeof callback);
     
     try {
-      const { playerWallet, betAmount } = data;
+      const { playerWallet, betAmount, timeLimit } = data;
       
       // Generate a unique room ID
       const roomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -1000,8 +1000,8 @@ io.on('connection', (socket) => {
 
         // Insert new room into database
         await poolInstance.query(
-          'INSERT INTO games (room_id, player_white_wallet, game_state, stake_amount, updated_at) VALUES ($1, $2, $3, $4, $5)',
-          [roomId, playerWallet, 'waiting', betAmount || 0, new Date()]
+          'INSERT INTO games (room_id, player_white_wallet, game_state, stake_amount, time_limit, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
+          [roomId, playerWallet, 'waiting', betAmount || 0, timeLimit || 600, new Date()]
         );
         console.log('✅ Room created in database:', roomId, 'for player:', playerWallet);
       } else {
@@ -1182,7 +1182,7 @@ io.on('connection', (socket) => {
         const poolInstance = getPool();
         
         // Get room details from database
-        const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet, game_state, stake_amount FROM games WHERE room_id = $1', [roomId]);
+        const result = await poolInstance.query('SELECT player_white_wallet, player_black_wallet, game_state, stake_amount, time_limit FROM games WHERE room_id = $1', [roomId]);
         const room = result.rows[0];
 
         if (!room) {
@@ -1219,10 +1219,11 @@ io.on('connection', (socket) => {
           playerCount: playerCount,
           players: players,
           escrowCount: escrows.length,
-          confirmedDepositsCount: confirmedDeposits.length, // NEW: Track confirmed deposits separately
+          confirmedDepositsCount: confirmedDeposits.length, // Track confirmed deposits separately
           escrows: escrowsObj,
           gameStarted: room.game_state === 'active',
-          stakeAmount: parseFloat(room.stake_amount) || 0 // NEW: Include bet amount for joining players
+          stakeAmount: parseFloat(room.stake_amount) || 0, // Include bet amount for joining players
+          timeLimit: parseInt(room.time_limit) || 600 // Include time limit for joining players
         };
 
         console.log('📊 Room status for', roomId, ':', roomStatus);
