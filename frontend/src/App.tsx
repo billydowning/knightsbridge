@@ -788,14 +788,19 @@ function ChessApp() {
         setGameStatus('💎 Deposit confirmed! Waiting for opponent to confirm their deposit...');
         
         const handleGameStarted = (data: any) => {
-          console.log('🎮 Game started via WebSocket!', data);
+          console.log('🎮 Received gameStarted WebSocket event:', data);
+          console.log('🔍 Current roomId:', roomId, 'Event roomId:', data.roomId);
           if (data.roomId === roomId) {
+            console.log('✅ RoomId matches - starting game for player role:', playerRole);
             setGameStatus('🎮 Both players confirmed! Game starting now...');
             setBothEscrowsReady(true);
+            setGameMode('game'); // Ensure game mode is set via WebSocket event
             const socket = (websocketService as any).socket;
             if (socket) {
               socket.off('gameStarted', handleGameStarted); // Remove listener
             }
+          } else {
+            console.log('❌ RoomId mismatch - ignoring gameStarted event');
           }
         };
         
@@ -804,25 +809,15 @@ function ChessApp() {
           if (socket) {
             socket.on('gameStarted', handleGameStarted);
             
-            // Shorter timeout for faster feedback
+            // Extended timeout for WebSocket events - only cleanup, no auto-start
             setTimeout(() => {
               socket.off('gameStarted', handleGameStarted);
-              console.log('⏰ WebSocket listener timeout - checking manually...');
+              console.log('⏰ WebSocket listener timeout - cleaning up listener (no auto-start)');
               
-              // Check room status before auto-starting
-              databaseMultiplayerState.getRoomStatus(roomId).then(status => {
-                const confirmedDeposits = (status as any)?.confirmedDepositsCount || 0;
-                if (status && confirmedDeposits >= 2) {
-                  console.log('🚀 Auto-starting game - both confirmed deposits detected');
-                  setGameStatus('🎮 Both players confirmed! Game starting...');
-                  setBothEscrowsReady(true);
-                  setGameMode('game'); // Only start game when both deposits confirmed
-                } else {
-                  console.log(`⏳ Still waiting - confirmed deposits: ${confirmedDeposits}/2`);
-                  setGameStatus('⏳ Still waiting for opponent deposit confirmation...');
-                }
-              });
-            }, 5000); // Reduced to 5 seconds for faster response
+              // DISABLED: Timeout auto-start fallback to prevent asymmetric experience
+              // The game should ONLY start via proper WebSocket gameStarted events
+              console.log('🔒 Timeout fallback disabled - waiting for proper gameStarted WebSocket event');
+            }, 15000); // Increased to 15 seconds to give WebSocket events more time
           }
         }
         

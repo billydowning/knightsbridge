@@ -1432,7 +1432,13 @@ io.on('connection', (socket) => {
         
         // Broadcast game started event to ALL players in the room
         console.log('📢 Broadcasting gameStarted event to room:', roomId);
-        io.to(roomId).emit('gameStarted', {
+        
+        // Debug: Check room occupancy before broadcast
+        const roomSockets = io.sockets.adapter.rooms.get(roomId);
+        const socketCount = roomSockets ? roomSockets.size : 0;
+        console.log('🔗 Room occupancy before broadcast:', roomId, '=', socketCount, 'sockets');
+        
+        const gameStartedData = {
           roomId: roomId,
           gameState: {
             position: STARTING_POSITION,
@@ -1443,8 +1449,10 @@ io.on('connection', (socket) => {
               black: currentPlayers.player_black_wallet
             }
           }
-        });
-        console.log('✅ Game started event broadcasted to room:', roomId);
+        };
+        
+        io.to(roomId).emit('gameStarted', gameStartedData);
+        console.log('✅ Game started event broadcasted to room:', roomId, 'with data:', gameStartedData);
         
         if (typeof callback === 'function') callback({ 
           success: true, 
