@@ -10,6 +10,6 @@
   <rect width="16" height="16" fill="#f8f9fa" rx="2"/>
   
   <!-- Knight symbol -->
-  <text x="8" y="12" font-family="serif" font-size="15" text-anchor="middle" fill="url(#knightGradient16)" font-weight="bold">♘</text>
+  <text x="8" y="13" font-family="serif" font-size="17" text-anchor="middle" fill="url(#knightGradient16)" font-weight="bold">♘</text>
   
 </svg>
