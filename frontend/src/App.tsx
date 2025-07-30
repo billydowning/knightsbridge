@@ -250,6 +250,7 @@ function ChessApp() {
   const [escrowCreated, setEscrowCreated] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
   const [winningsClaimed, setWinningsClaimed] = useState<boolean>(false);
+  const [claimingInProgress, setClaimingInProgress] = useState<boolean>(false);
   const [appLoading, setAppLoading] = useState<boolean>(false);
   const [roomStatus, setRoomStatus] = useState<any>(null);
   
@@ -521,7 +522,7 @@ function ChessApp() {
 
   // Auto-claim winnings when game ends (checkmate, stalemate, draw, etc.)
   useEffect(() => {
-    if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading) {
+    if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading && !claimingInProgress) {
       const winner = gameState.winner || (gameState.draw ? 'draw' : null);
       if (winner) {
         // Only auto-claim if this player should claim
@@ -529,6 +530,8 @@ function ChessApp() {
         
         if (shouldClaim) {
           console.log('🎉 Game ended! Auto-claiming winnings. Winner/Result:', winner, 'Player Role:', playerRole);
+          // Set flag immediately to prevent multiple attempts
+          setClaimingInProgress(true);
           // Small delay to ensure game state is fully updated
           setTimeout(() => {
             handleClaimWinnings();
@@ -538,7 +541,7 @@ function ChessApp() {
         }
       }
     }
-  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading, playerRole]);
+  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading, claimingInProgress, playerRole]);
 
   // Reset game state when game starts
   useEffect(() => {
@@ -1057,6 +1060,7 @@ function ChessApp() {
       }
     } finally {
       setAppLoading(false);
+      setClaimingInProgress(false);
     }
   };
 
@@ -1172,6 +1176,7 @@ function ChessApp() {
     setPlayerRole(null);
     setEscrowCreated(false);
     setWinningsClaimed(false);
+    setClaimingInProgress(false);
     setOpponentEscrowCreated(false);
     setBothEscrowsReady(false);
     setHasDeposited(false);
@@ -1703,6 +1708,7 @@ function ChessApp() {
     
     // Reset game state flags
     setWinningsClaimed(false);
+    setClaimingInProgress(false);
     setEscrowCreated(false);
     setOpponentEscrowCreated(false);
     setBothEscrowsReady(false);
