@@ -648,7 +648,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               transition: 'all 0.2s ease',
               cursor: 'pointer'
             }}>
-              <div style={{ fontSize: isDesktopLayout ? '20px' : '18px', color: theme.text, fontWeight: '600', fontFamily: 'monospace' }}>
+              <div style={{ fontSize: isDesktopLayout ? '18px' : '16px', fontWeight: 'bold', color: theme.primary }}>
                 {playerCount}/2 Players • {confirmedDepositsCount}/2 Deposits
               </div>
               <div style={{ fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary, marginTop: '4px' }}>
