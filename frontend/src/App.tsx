@@ -890,6 +890,13 @@ function ChessApp() {
         position: newPosition,
         currentPlayer: nextPlayer,
         selectedSquare: null,
+        moveHistory: [...gameState.moveHistory, { 
+          from: fromSquare, 
+          to: toSquare, 
+          piece: gameState.position[fromSquare],
+          capturedPiece: gameState.position[toSquare] || null,
+          timestamp: Date.now()
+        }],
         lastMove: { from: fromSquare, to: toSquare },
         inCheck: nextPlayerInCheck,
         inCheckmate: nextPlayerInCheckmate,
