@@ -476,7 +476,7 @@ function ChessApp() {
 
   // Save game state to database when it changes (but not on every change)
   useEffect(() => {
-    if (roomId && gameMode === 'game' && gameState.gameActive && !isReceivingServerUpdate) {
+    if (roomId && gameMode === 'game' && gameState && gameState.gameActive && !isReceivingServerUpdate) {
       // Create a hash of the current game state to detect meaningful changes
       const stateHash = JSON.stringify({
         position: gameState.position,
@@ -531,7 +531,7 @@ function ChessApp() {
         setSaveTimeout(timeout);
       }
     }
-  }, [gameState.position, gameState.currentPlayer, gameState.moveHistory, gameState.winner, gameState.draw, gameState.inCheck, gameState.inCheckmate, gameState.lastMove, gameState.lastUpdated, roomId, gameMode, isReceivingServerUpdate, lastSavedState, saveTimeout, playerRole]);
+  }, [gameState, roomId, gameMode, isReceivingServerUpdate, lastSavedState, saveTimeout, playerRole]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -545,7 +545,7 @@ function ChessApp() {
   // Auto-claim winnings when game ends (checkmate, stalemate, draw, etc.)
   useEffect(() => {
     // Additional safety check: only auto-claim once per game/room
-    if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading && !claimingInProgress && !timeoutClaimingDone && roomId) {
+    if (gameMode === 'game' && gameState && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading && !claimingInProgress && !timeoutClaimingDone && roomId) {
       const winner = gameState.winner || (gameState.draw ? 'draw' : null);
       if (winner) {
         // Determine game result type
@@ -599,7 +599,7 @@ function ChessApp() {
         }
       }
     }
-  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading, claimingInProgress, timeoutClaimingDone, playerRole, roomId]);
+  }, [gameState, gameMode, winningsClaimed, appLoading, claimingInProgress, timeoutClaimingDone, playerRole, roomId]);
 
   // Reset game state when game starts
   useEffect(() => {
@@ -901,14 +901,15 @@ function ChessApp() {
     console.log('🔍 Square clicked:', square);
     console.log('🔍 Game mode:', gameMode);
     console.log('🔍 Room ID:', roomId);
+    
+    if (!roomId || gameMode !== 'game' || !gameState) {
+      console.log('❌ Not in game mode, no room, or no game state');
+      return;
+    }
+    
     console.log('🔍 Current player:', gameState.currentPlayer);
     console.log('🔍 Player role:', playerRole);
     console.log('🔍 Is player turn:', gameState.currentPlayer === playerRole);
-    
-    if (!roomId || gameMode !== 'game') {
-      console.log('❌ Not in game mode or no room');
-      return;
-    }
     
     // Check if it's the player's turn
     if (gameState.currentPlayer !== playerRole) {
@@ -1075,13 +1076,21 @@ function ChessApp() {
 
   const handleClaimWinnings = async () => {
     console.log('🔧 handleClaimWinnings called');
-    console.log('🔧 Current state - publicKey:', !!publicKey, 'roomId:', roomId, 'gameState.winner:', gameState.winner);
+    console.log('🔧 Current state - publicKey:', !!publicKey, 'roomId:', roomId, 'gameState:', !!gameState);
     
     if (!publicKey) {
       console.log('❌ No public key - aborting claim');
       setGameStatus('Please connect your wallet first');
       return;
     }
+
+    if (!gameState) {
+      console.log('❌ No game state - aborting claim');
+      setGameStatus('No active game to claim winnings from');
+      return;
+    }
+
+    console.log('🔧 Game state winner:', gameState.winner);
 
     // Validate wallet matches room role
     const connectedWallet = publicKey.toString();
