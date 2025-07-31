@@ -1084,17 +1084,43 @@ function ChessApp() {
       // Claim winnings on Solana
       const result = await claimWinnings(roomId, playerRole, gameState.winner, isDraw);
       
+      console.log('💰 Claim result received:', result);
+      
       // Check if the result indicates success (contains success emojis or positive messages)
-      if (result && (result.includes('🎉 SUCCESS') || result.includes('🤝 Draw') || result === 'success')) {
+      const isSuccess = result && (
+        result.includes('🎉 SUCCESS') || 
+        result.includes('🤝 Draw') || 
+        result.includes('✅') ||
+        result.includes('SUCCESS') ||
+        result.includes('won') ||
+        result.includes('refunded') ||
+        result.includes('transferred') ||
+        result === 'success'
+      );
+      
+      console.log('💰 Success detection result:', isSuccess);
+      
+      if (isSuccess) {
         setWinningsClaimed(true);
         setGameStatus(result);
         
         // Refresh wallet balance to show updated amount
         if (checkBalance && typeof checkBalance === 'function') {
           console.log('💰 Refreshing wallet balance after successful winnings claim...');
+          // Immediate refresh
+          checkBalance();
+          // Additional refresh after delay to ensure blockchain transaction is fully processed
           setTimeout(() => {
+            console.log('💰 Secondary balance refresh after 2 seconds...');
             checkBalance();
-          }, 2000); // Small delay to ensure blockchain transaction is fully processed
+          }, 2000);
+          // Final refresh after longer delay for any blockchain delays
+          setTimeout(() => {
+            console.log('💰 Final balance refresh after 5 seconds...');
+            checkBalance();
+          }, 5000);
+        } else {
+          console.error('❌ checkBalance function not available');
         }
         
         // Show success notification to the winner
@@ -1128,9 +1154,15 @@ function ChessApp() {
         // Refresh wallet balance since winnings were already successfully processed
         if (checkBalance && typeof checkBalance === 'function') {
           console.log('💰 Refreshing wallet balance after confirming winnings already claimed...');
+          // Immediate refresh
+          checkBalance();
+          // Additional refresh after delay
           setTimeout(() => {
+            console.log('💰 Secondary balance refresh for already claimed winnings...');
             checkBalance();
-          }, 1000); // Small delay to ensure UI state is updated
+          }, 2000);
+        } else {
+          console.error('❌ checkBalance function not available for already claimed winnings');
         }
       } else {
         setGameStatus('Failed to claim winnings. Please try again.');
