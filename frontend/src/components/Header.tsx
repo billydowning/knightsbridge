@@ -98,21 +98,17 @@ export const Header: React.FC<HeaderProps> = ({
           flexShrink: 0, // Don't let logo shrink
           minWidth: 0
         }}>
-          <span 
+          <img 
+            src="/griffin-logo.svg" 
+            alt="Griffin Heraldic Symbol"
             style={{
-              fontSize: isDesktopLayout ? '40px' : '36px',
-              color: theme.primary,
-              fontWeight: '900',
-              textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-              lineHeight: 1,
-              display: 'flex',
-              alignItems: 'center',
-              WebkitTextStroke: '0.5px currentColor'
+              width: isDesktopLayout ? '40px' : '36px',
+              height: isDesktopLayout ? '40px' : '36px',
+              borderRadius: '50%',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}
             title="Knightsbridge Chess"
-          >
-            ♘
-          </span>
+          />
           <div>
             <h1 style={{
               margin: 0,
