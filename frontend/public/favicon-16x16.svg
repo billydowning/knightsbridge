@@ -1,68 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
   <defs>
-    <linearGradient id="griffinGradient16" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#34495e;stop-opacity:1" />
+    <linearGradient id="knightGradient16" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f8f9fa;stop-opacity:1" />
     </linearGradient>
   </defs>
   
   <!-- Background -->
-  <rect width="16" height="16" fill="#f8f9fa" rx="2"/>
+  <rect width="16" height="16" fill="#2c3e50" rx="2"/>
   
-  <!-- Griffin body (upright stance) -->
-  <path d="M7 9 Q6 8 6 11 Q6 13 7 14 Q8 15 9 14 Q10 13 10 11 Q10 8 9 9 Q8 8 7 9 Z" 
-        fill="url(#griffinGradient16)" 
-        stroke="#1a252f" 
-        stroke-width="0.5"/>
-  
-  <!-- Griffin head -->
-  <path d="M7.5 7 Q8 4 8.5 7 Q9 6 9.5 7 Q10 7.5 9.5 8 Q8.5 7.5 7.5 7 Z" 
-        fill="url(#griffinGradient16)" 
-        stroke="#1a252f" 
-        stroke-width="0.5"/>
-  
-  <!-- Beak -->
-  <path d="M9.5 7 Q11 6.5 11.5 7.5 Q11 8 9.5 7.5" 
-        fill="none" 
-        stroke="#1a252f" 
-        stroke-width="0.7" 
-        stroke-linecap="round"/>
-  
-  <!-- Eye -->
-  <circle cx="8.5" cy="6.5" r="0.4" fill="#ffffff"/>
-  <circle cx="8.6" cy="6.4" r="0.25" fill="#1a252f"/>
-  
-  <!-- Left wing with feathers -->
-  <path d="M7.5 7.5 Q5 4 2.5 3 Q1.5 2.5 1 4 Q2 5 4 6 Q6 7 7.5 7.5 Z" 
-        fill="url(#griffinGradient16)" 
-        stroke="#1a252f" 
-        stroke-width="0.4"/>
-  
-  <!-- Right wing with feathers -->
-  <path d="M8.5 7.5 Q11 4 13.5 3 Q14.5 2.5 15 4 Q14 5 12 6 Q10 7 8.5 7.5 Z" 
-        fill="url(#griffinGradient16)" 
-        stroke="#1a252f" 
-        stroke-width="0.4"/>
-  
-  <!-- Front legs -->
-  <path d="M7 9 Q6.5 10 6 12 Q5.5 13 5 14" 
-        stroke="#1a252f" 
-        stroke-width="0.8" 
-        stroke-linecap="round" 
-        fill="none"/>
-  
-  <!-- Back legs -->
-  <path d="M9 11 Q8.5 12 8 13 Q7.5 13.5 7 14.5" 
-        stroke="#1a252f" 
-        stroke-width="0.8" 
-        stroke-linecap="round" 
-        fill="none"/>
-  
-  <!-- Tail -->
-  <path d="M10 12 Q11 11 12 12 Q13 13 12.5 14 Q12 15 11 14.5" 
-        fill="none" 
-        stroke="#1a252f" 
-        stroke-width="0.8" 
-        stroke-linecap="round"/>
+  <!-- Knight symbol - maximum size for 16px -->
+  <text x="8" y="13" font-family="serif" font-size="14" text-anchor="middle" fill="url(#knightGradient16)" font-weight="900">♘</text>
   
 </svg>

@@ -93,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Left: Logo and Branding */}
         <div style={{ 
           display: 'flex', 
-          alignItems: 'center', 
+          alignItems: 'flex-end', 
           gap: '12px',
           flexShrink: 0, // Don't let logo shrink
           minWidth: 0
