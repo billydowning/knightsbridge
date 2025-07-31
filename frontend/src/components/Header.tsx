@@ -93,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Left: Logo and Branding */}
         <div style={{ 
           display: 'flex', 
-          alignItems: 'flex-end', 
+          alignItems: 'baseline', 
           gap: '12px',
           flexShrink: 0, // Don't let logo shrink
           minWidth: 0
@@ -128,7 +128,10 @@ export const Header: React.FC<HeaderProps> = ({
               color: theme.textSecondary,
               fontWeight: '500',
               letterSpacing: '0.5px',
-              textTransform: 'uppercase'
+              textTransform: 'uppercase',
+              lineHeight: 1,
+              marginTop: 0,
+              marginBottom: 0
             }}>
               Blockchain Chess
             </div>
