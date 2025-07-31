@@ -2087,15 +2087,9 @@ io.on('connection', (socket) => {
       if (timeDiff > timeoutMinutes * 60 * 1000) {
         console.log(`⏰ Game ${gameId} timed out due to inactivity`);
         
-        // Determine winner based on position (if possible)
+        // For timeout due to inactivity, no winner is determined
+        // (game_state field contains status 'active'/'finished', not game position JSON)
         let winner = null;
-        if (game.game_state) {
-          const gameState = JSON.parse(game.game_state);
-          // Simple logic: if one player is in check, the other wins
-          if (gameState.inCheck) {
-            winner = gameState.currentPlayer === 'white' ? 'black' : 'white';
-          }
-        }
         
         // Update game state
         await poolInstance.query(
