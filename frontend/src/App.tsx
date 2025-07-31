@@ -1183,27 +1183,41 @@ function ChessApp() {
             const gameResult = gameState.inCheckmate ? 'checkmate' : (gameState.draw ? 'draw' : 'resignation');
             console.log('📤 Manually notifying backend of game completion:', { roomId, winner: gameState.winner, gameResult, playerRole });
             
-            // Try WebSocket first
+            // Always use HTTP fallback for reliability (WebSocket may appear connected but not work)
+            console.log('📡 Using HTTP fallback to ensure stats are updated');
+            const httpPromise = fetch(`${ENV_CONFIG.API_BASE_URL}/api/games/${roomId}/complete`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                winner: gameState.winner || 'draw',
+                gameResult,
+                playerRole
+              })
+            }).then(response => {
+              if (response.ok) {
+                console.log('✅ HTTP stats update successful');
+                return response.json();
+              } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+            }).catch(error => {
+              console.error('❌ Failed to update stats via HTTP:', error);
+              throw error;
+            });
+            
+            // Also try WebSocket as backup
             if (websocketService && websocketService.isConnected()) {
+              console.log('📡 Also trying WebSocket as secondary method');
               websocketService.gameComplete({
                 roomId,
                 winner: gameState.winner || 'draw',
                 gameResult,
                 playerRole
               });
-            } else {
-              // Fallback: Direct HTTP call to update user stats
-              console.log('📡 WebSocket not available, using HTTP fallback for stats update');
-              fetch(`${ENV_CONFIG.API_BASE_URL}/api/games/${roomId}/complete`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  winner: gameState.winner || 'draw',
-                  gameResult,
-                  playerRole
-                })
-              }).catch(error => console.error('❌ Failed to update stats via HTTP:', error));
             }
+            
+            // Wait for HTTP response before proceeding
+            await httpPromise;
           } catch (error) {
             console.error('❌ Error notifying backend of game completion:', error);
           }
