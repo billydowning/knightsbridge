@@ -107,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
               lineHeight: 1,
               display: 'block',
               WebkitTextStroke: '1px rgba(255,255,255,0.1)',
-              marginBottom: isDesktopLayout ? '-8px' : '-6px'
+              marginBottom: isDesktopLayout ? '-12px' : '-9px'
             }}
             title="Knightsbridge Chess"
           >
@@ -117,7 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            marginBottom: isDesktopLayout ? '-8px' : '-6px'
+            marginBottom: isDesktopLayout ? '-12px' : '-9px'
           }}>
             <h1 style={{
               margin: 0,
