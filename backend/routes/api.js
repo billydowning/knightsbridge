@@ -1383,4 +1383,138 @@ router.post('/test/frontend-version', async (req, res) => {
   }
 });
 
+// ========================================
+// GAME COMPLETION (HTTP fallback)
+// ========================================
+
+// Complete game and update user statistics
+router.post('/games/:roomId/complete', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { winner, gameResult, playerRole } = req.body;
+    
+    console.log('🏁 HTTP Game completion request:', { roomId, winner, gameResult, playerRole });
+    
+    if (!roomId) {
+      return res.status(400).json({ error: 'Room ID is required' });
+    }
+    
+    const pool = getPool();
+    
+    // Get game details
+    const gameQuery = await pool.query(
+      'SELECT player_white_wallet, player_black_wallet, stake_amount FROM games WHERE room_id = $1',
+      [roomId]
+    );
+    
+    if (gameQuery.rows.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    const game = gameQuery.rows[0];
+    const whiteWallet = game.player_white_wallet;
+    const blackWallet = game.player_black_wallet;
+    const gameStake = parseFloat(game.stake_amount || 0);
+    
+    console.log('🎮 Game details from HTTP:', { whiteWallet, blackWallet, gameStake, winner });
+    
+    // Ensure both players exist in users table
+    for (const wallet of [whiteWallet, blackWallet]) {
+      if (wallet) {
+        await pool.query(`
+          INSERT INTO users (wallet_address, games_played, games_won, games_drawn, total_winnings, total_losses, current_win_streak, best_win_streak, created_at, updated_at)
+          VALUES ($1, 0, 0, 0, 0, 0, 0, 0, NOW(), NOW())
+          ON CONFLICT (wallet_address) DO NOTHING
+        `, [wallet]);
+      }
+    }
+    
+    // Calculate winnings/losses based on game result and 2% platform fee
+    const platformFeeRate = 0.02; // 2% platform fee
+    const totalPot = gameStake * 2;
+    const netPot = totalPot * (1 - platformFeeRate);
+    
+    let whiteWinnings = 0, blackWinnings = 0;
+    let whiteWins = 0, blackWins = 0;
+    let whiteDraws = 0, blackDraws = 0;
+    
+    if (winner === 'white') {
+      whiteWinnings = netPot;
+      blackWinnings = -gameStake;
+      whiteWins = 1;
+    } else if (winner === 'black') {
+      blackWinnings = netPot;
+      whiteWinnings = -gameStake;
+      blackWins = 1;
+    } else if (winner === 'draw' || winner === null) {
+      // Draw - both get their stake back minus small platform fee
+      const refund = gameStake * (1 - platformFeeRate);
+      whiteWinnings = refund - gameStake; // Small loss due to platform fee
+      blackWinnings = refund - gameStake;
+      whiteDraws = 1;
+      blackDraws = 1;
+    }
+    
+    console.log('💰 Calculated earnings (HTTP):', { whiteWinnings, blackWinnings, whiteWins, blackWins, whiteDraws, blackDraws });
+    
+    // Update white player stats if wallet exists
+    if (whiteWallet) {
+      await pool.query(`
+        UPDATE users SET
+          games_played = games_played + 1,
+          games_won = games_won + $2,
+          games_drawn = games_drawn + $3,
+          total_winnings = total_winnings + $4,
+          total_losses = total_losses + $5,
+          current_win_streak = CASE WHEN $2 > 0 THEN current_win_streak + 1 ELSE 0 END,
+          best_win_streak = CASE WHEN $2 > 0 AND current_win_streak + 1 > best_win_streak THEN current_win_streak + 1 ELSE best_win_streak END,
+          updated_at = NOW()
+        WHERE wallet_address = $1
+      `, [whiteWallet, whiteWins, whiteDraws, Math.max(0, whiteWinnings), Math.max(0, -whiteWinnings), whiteWins]);
+    }
+    
+    // Update black player stats if wallet exists
+    if (blackWallet) {
+      await pool.query(`
+        UPDATE users SET
+          games_played = games_played + 1,
+          games_won = games_won + $2,
+          games_drawn = games_drawn + $3,
+          total_winnings = total_winnings + $4,
+          total_losses = total_losses + $5,
+          current_win_streak = CASE WHEN $2 > 0 THEN current_win_streak + 1 ELSE 0 END,
+          best_win_streak = CASE WHEN $2 > 0 AND current_win_streak + 1 > best_win_streak THEN current_win_streak + 1 ELSE best_win_streak END,
+          updated_at = NOW()
+        WHERE wallet_address = $1
+      `, [blackWallet, blackWins, blackDraws, Math.max(0, blackWinnings), Math.max(0, -blackWinnings), blackWins]);
+    }
+    
+    // Update game state to finished
+    await pool.query(
+      'UPDATE games SET game_state = $1, winner = $2, game_result = $3, finished_at = NOW() WHERE room_id = $4',
+      ['finished', winner, gameResult, roomId]
+    );
+    
+    console.log('✅ User statistics updated successfully via HTTP');
+    
+    res.json({
+      success: true,
+      message: 'Game completed and user statistics updated',
+      roomId,
+      winner,
+      gameResult,
+      whiteWallet,
+      blackWallet,
+      statsUpdated: true
+    });
+    
+  } catch (error) {
+    console.error('❌ HTTP Game completion error:', error);
+    res.status(500).json({ 
+      error: 'Failed to complete game',
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router; 

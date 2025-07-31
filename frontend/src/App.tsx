@@ -1177,10 +1177,42 @@ function ChessApp() {
           );
         }
         
+        // Manually notify backend about game completion to ensure user stats are updated
+        if (roomId && playerRole) {
+          try {
+            const gameResult = gameState.inCheckmate ? 'checkmate' : (gameState.draw ? 'draw' : 'resignation');
+            console.log('📤 Manually notifying backend of game completion:', { roomId, winner: gameState.winner, gameResult, playerRole });
+            
+            // Try WebSocket first
+            if (websocketService && websocketService.isConnected()) {
+              websocketService.gameComplete({
+                roomId,
+                winner: gameState.winner || 'draw',
+                gameResult,
+                playerRole
+              });
+            } else {
+              // Fallback: Direct HTTP call to update user stats
+              console.log('📡 WebSocket not available, using HTTP fallback for stats update');
+              fetch(`${ENV_CONFIG.API_BASE_URL}/api/games/${roomId}/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  winner: gameState.winner || 'draw',
+                  gameResult,
+                  playerRole
+                })
+              }).catch(error => console.error('❌ Failed to update stats via HTTP:', error));
+            }
+          } catch (error) {
+            console.error('❌ Error notifying backend of game completion:', error);
+          }
+        }
+        
         // Refresh leaderboard after successful winnings claim (with delay to ensure backend stats are updated)
         setTimeout(() => {
           fetchLeaderboard();
-        }, 2000);
+        }, 3000);
       } else {
         setGameStatus(`Failed to claim winnings: ${result}`);
       }
