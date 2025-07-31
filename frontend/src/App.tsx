@@ -268,13 +268,12 @@ function ChessApp() {
     window.history.replaceState({}, '', `?${params.toString()}`);
   };
 
-  // App state - with safe URL initialization
-  const urlParams = getURLParams();
+  // App state - start with clean state, URL parameters handled in reconnection logic
   const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
-  const [roomId, setRoomId] = useState<string>(urlParams.room || '');
+  const [roomId, setRoomId] = useState<string>('');
   const [betAmount, setBetAmount] = useState<number>(0.1);
   const [timeLimit, setTimeLimit] = useState<number>(10 * 60); // Default to 10 minutes (Rapid)
-  const [playerRole, setPlayerRole] = useState<'white' | 'black' | null>(urlParams.role || null);
+  const [playerRole, setPlayerRole] = useState<'white' | 'black' | null>(null);
   const [escrowCreated, setEscrowCreated] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
   const [winningsClaimed, setWinningsClaimed] = useState<boolean>(false);
@@ -465,6 +464,8 @@ function ChessApp() {
               
               if (bothPlayersPresent && gameNotFinished) {
                 // Safe to reconnect - restore game state
+                setRoomId(urlRoomId);
+                setPlayerRole(urlRole as 'white' | 'black');
                 setGameState(gameState);
                 setGameMode('game');
                 setGameStatus(`🔄 Reconnected to game! You are ${urlRole}.`);
@@ -472,26 +473,31 @@ function ChessApp() {
                 return;
               } else {
                 // Game exists but not active - go to lobby
+                setRoomId(urlRoomId);
+                setPlayerRole(urlRole as 'white' | 'black');
                 setGameMode('lobby');
                 setGameStatus(`Rejoined room ${urlRoomId}. Waiting for opponent...`);
                 return;
               }
             } else {
-              // Wallet mismatch - show warning
+              // Wallet mismatch - show warning and clear URL
               const mismatchMsg = getWalletMismatchMessage(roomStatus, urlRole as 'white' | 'black', publicKey.toString());
               if (mismatchMsg) {
                 setGameStatus(mismatchMsg);
+                updateURL(''); // Clear URL parameters for fresh start
                 return;
               }
             }
           }
           
-          // No active game found - stay in menu but with room ID populated for easy joining
+          // No active game found - clear URL and stay in menu for fresh start
           setGameStatus('Welcome to Knightsbridge Chess!');
+          updateURL(''); // Clear URL parameters for fresh start
           
         } catch (error) {
           console.error('Error during initial reconnection check:', error);
           setGameStatus('Welcome to Knightsbridge Chess!');
+          updateURL(''); // Clear URL parameters for fresh start
         }
       }, 1000); // 1 second delay for initial load
       
