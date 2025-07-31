@@ -536,20 +536,27 @@ function ChessApp() {
 
   // Auto-claim winnings when game ends (checkmate, stalemate, draw, etc.)
   useEffect(() => {
-    if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading && !claimingInProgress && !timeoutClaimingDone) {
+    // Additional safety check: only auto-claim once per game/room
+    if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading && !claimingInProgress && !timeoutClaimingDone && roomId) {
       const winner = gameState.winner || (gameState.draw ? 'draw' : null);
       if (winner) {
         // Only auto-claim if this player should claim
         const shouldClaim = winner === 'draw' || winner === playerRole;
         
         if (shouldClaim) {
-          console.log('🎉 Game ended! Auto-claiming winnings. Winner/Result:', winner, 'Player Role:', playerRole);
+          console.log('🎉 Game ended! Auto-claiming winnings. Winner/Result:', winner, 'Player Role:', playerRole, 'Room:', roomId);
           // Set flags immediately to prevent multiple attempts
           setClaimingInProgress(true);
           setTimeoutClaimingDone(true);
           // Small delay to ensure game state is fully updated
           setTimeout(() => {
-            handleClaimWinnings();
+            // Double-check flags before calling (safety net)
+            if (!winningsClaimed) {
+              handleClaimWinnings();
+            } else {
+              console.log('⚠️ Winnings already claimed - skipping auto-claim');
+              setClaimingInProgress(false);
+            }
           }, 1500);
         } else {
           console.log('💡 Game ended but not claiming - Winner:', winner, 'Player Role:', playerRole, '(loser should not claim)');
@@ -557,7 +564,7 @@ function ChessApp() {
         }
       }
     }
-  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading, claimingInProgress, timeoutClaimingDone, playerRole]);
+  }, [gameState.winner, gameState.draw, gameMode, winningsClaimed, appLoading, claimingInProgress, timeoutClaimingDone, playerRole, roomId]);
 
   // Reset game state when game starts
   useEffect(() => {
