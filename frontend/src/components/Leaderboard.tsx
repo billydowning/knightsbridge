@@ -324,7 +324,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
-          width: isMobile ? '180px' : '280px'
+          width: isMobile ? '180px' : '360px'
         }}>
           <div style={{ 
             width: isMobile ? '50px' : '70px',
@@ -362,6 +362,26 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               Rate
             </div>
           </div>
+          {!isMobile && (
+            <div style={{ 
+              width: '80px',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '2rem'
+            }}>
+              <div style={{
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                color: theme.textSecondary,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Games
+              </div>
+            </div>
+          )}
           <div style={{ 
             width: isMobile ? '80px' : '140px',
             textAlign: 'center',
@@ -438,7 +458,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
-              width: isMobile ? '180px' : '280px'
+              width: isMobile ? '180px' : '360px'
             }}>
               {/* Games Won */}
               <div style={{ 
@@ -475,6 +495,26 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   {formatWinRate(player.winPercentage)}
                 </div>
               </div>
+
+              {/* Games Played (Desktop only) */}
+              {!isMobile && (
+                <div style={{ 
+                  width: '80px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '2rem'
+                }}>
+                  <div style={{
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    color: theme.text
+                  }}>
+                    {player.gamesPlayed}
+                  </div>
+                </div>
+              )}
 
               {/* Net Earnings */}
               <div style={{ 
