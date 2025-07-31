@@ -571,8 +571,14 @@ function ChessApp() {
           setTimeoutClaimingDone(true);
           // Small delay to ensure game state is fully updated
           setTimeout(() => {
+            console.log('⏰ Auto-claim timeout triggered. Checking conditions...');
+            console.log('⏰ winningsClaimed:', winningsClaimed);
+            console.log('⏰ claimingInProgress:', claimingInProgress);
+            console.log('⏰ appLoading:', appLoading);
+            
             // Double-check flags before calling (safety net)
             if (!winningsClaimed) {
+              console.log('✅ Calling handleClaimWinnings...');
               handleClaimWinnings();
             } else {
               console.log('⚠️ Winnings already claimed - skipping auto-claim');
@@ -1040,7 +1046,11 @@ function ChessApp() {
   };
 
   const handleClaimWinnings = async () => {
+    console.log('🔧 handleClaimWinnings called');
+    console.log('🔧 Current state - publicKey:', !!publicKey, 'roomId:', roomId, 'gameState.winner:', gameState.winner);
+    
     if (!publicKey) {
+      console.log('❌ No public key - aborting claim');
       setGameStatus('Please connect your wallet first');
       return;
     }
@@ -1073,6 +1083,7 @@ function ChessApp() {
     }
     
     try {
+      console.log('🔧 Starting winnings claim process...');
       setGameStatus('Claiming winnings on Solana...');
       setAppLoading(true);
       
@@ -1080,8 +1091,10 @@ function ChessApp() {
       
       // Determine if it's a draw
       const isDraw = gameState.winner === 'draw';
+      console.log('🔧 Claim parameters - roomId:', roomId, 'playerRole:', playerRole, 'winner:', gameState.winner, 'isDraw:', isDraw);
       
       // Claim winnings on Solana
+      console.log('🔧 Calling claimWinnings function...');
       const result = await claimWinnings(roomId, playerRole, gameState.winner, isDraw);
       
       console.log('💰 Claim result received:', result);
@@ -1141,6 +1154,9 @@ function ChessApp() {
       
     } catch (err) {
       console.error('❌ Claiming winnings failed:', err);
+      console.error('❌ Error type:', typeof err);
+      console.error('❌ Error message:', err?.message);
+      console.error('❌ Full error object:', err);
       
       // Check if the error indicates the transaction was already processed or game completed
       const errorMessage = err.message || err.toString();
@@ -1168,6 +1184,7 @@ function ChessApp() {
         setGameStatus('Failed to claim winnings. Please try again.');
       }
     } finally {
+      console.log('🔧 handleClaimWinnings completed');
       setAppLoading(false);
       setClaimingInProgress(false);
       // Don't reset timeoutClaimingDone here - let it stay true to prevent re-attempts
