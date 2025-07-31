@@ -1387,7 +1387,34 @@ function ChessApp() {
             setEscrowCreated(true);
           }
           
-          // Set game mode to lobby AFTER all syncing is complete
+          // SMART MANUAL RECONNECTION: Check if we should go straight to active game
+          try {
+            const gameState = await databaseMultiplayerState.getGameState(roomId);
+            
+            // If there's an active game and this player belongs to it, restore directly to game
+            if (gameState && gameState.gameActive && roomStatus) {
+              const isValidPlayer = validateWalletForRole(roomStatus, role, playerWallet);
+              
+              if (isValidPlayer) {
+                const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
+                const gameNotFinished = !gameState.winner && !gameState.draw;
+                
+                if (bothPlayersPresent && gameNotFinished) {
+                  // Skip lobby - restore directly to active game!
+                  setGameState(gameState);
+                  setGameMode('game');
+                  setGameStatus(`🔄 Rejoined active game! You are ${role}.`);
+                  console.log('✅ Smart manual reconnection - restored to active game:', roomId);
+                  return; // Skip the lobby entirely
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error during smart manual reconnection check:', error);
+            // Graceful fallback - continue to lobby if smart reconnection fails
+          }
+          
+          // Normal flow: Set game mode to lobby AFTER all syncing is complete
           console.log('✅ All room data synced - switching to lobby view');
           setGameMode('lobby');
         } else {
