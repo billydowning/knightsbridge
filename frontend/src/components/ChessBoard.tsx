@@ -316,15 +316,18 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
           0 4px 16px rgba(44, 62, 80, 0.2),
           inset 0 2px 4px rgba(255,255,255,0.1)
         `, // Multi-layered shadow for depth
-        background: 'linear-gradient(145deg, #34495e 0%, #2c3e50 100%)', // Imperial blue gradient
+        background: `
+          linear-gradient(145deg, #34495e 0%, #2c3e50 100%),
+          radial-gradient(circle at 25% 25%, rgba(255,255,255,0.08) 0%, transparent 50%),
+          radial-gradient(circle at 75% 75%, rgba(52, 73, 94, 0.1) 0%, transparent 50%),
+          url('/griffin-watermark.svg?v=1')
+        `, // Imperial blue gradient with texture and subtle griffin watermark
+        backgroundSize: 'cover, 100% 100%, 100% 100%, 40% 40%', // Gradient covers all, textures full size, watermark smaller and subtle
+        backgroundPosition: 'center, center, center, center', // All centered
+        backgroundRepeat: 'no-repeat, no-repeat, no-repeat, no-repeat', // No repeating
         maxWidth: '100%',
         maxHeight: '100%',
-        position: 'relative',
-        // Add subtle texture effect
-        backgroundImage: `
-          radial-gradient(circle at 25% 25%, rgba(255,255,255,0.08) 0%, transparent 50%),
-          radial-gradient(circle at 75% 75%, rgba(52, 73, 94, 0.1) 0%, transparent 50%)
-        `
+        position: 'relative'
       }}
       role="grid"
       aria-label="Chess board"
