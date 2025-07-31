@@ -99,7 +99,17 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     const isBlackPiece = ['♚', '♛', '♜', '♝', '♞', '♟'].includes(unicodePiece);
     
     // Calculate piece size as 70% of square size for larger, more visible pieces
-    const pieceSize = Math.floor(squareSize * 0.7);
+    let pieceSize = Math.floor(squareSize * 0.7);
+    
+    // iOS Safari fix: Black pawn renders larger than other pieces
+    // Detect iOS and adjust pawn size specifically
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isPawn = unicodePiece === '♟' || unicodePiece === '♙';
+    
+    if (isIOS && isPawn) {
+      // Reduce pawn size by 15% on iOS to match other pieces
+      pieceSize = Math.floor(pieceSize * 0.85);
+    }
     
     const baseStyle: React.CSSProperties = {
       fontSize: `${pieceSize}px`,
