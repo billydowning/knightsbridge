@@ -281,6 +281,92 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         }} />
       </div>
 
+      {/* Column Headers */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: isMobile ? '0.75rem' : '1rem 1.5rem',
+        marginBottom: '0.5rem',
+        borderBottom: `1px solid ${theme.border}`,
+        gap: isMobile ? '0.75rem' : '1rem'
+      }}>
+        {/* Rank Header */}
+        <div style={{
+          minWidth: isMobile ? '40px' : '50px',
+          textAlign: 'center',
+          fontSize: isMobile ? '0.7rem' : '0.75rem',
+          fontWeight: '600',
+          color: theme.textSecondary,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Rank
+        </div>
+
+        {/* Player Header */}
+        <div style={{
+          flex: 1,
+          fontSize: isMobile ? '0.7rem' : '0.75rem',
+          fontWeight: '600',
+          color: theme.textSecondary,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Player
+        </div>
+
+        {/* Stats Headers */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+          gap: isMobile ? '0.5rem' : '1rem',
+          minWidth: isMobile ? '120px' : '200px'
+        }}>
+          <div style={{
+            textAlign: 'center',
+            fontSize: isMobile ? '0.7rem' : '0.75rem',
+            fontWeight: '600',
+            color: theme.textSecondary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Wins
+          </div>
+          <div style={{
+            textAlign: 'center',
+            fontSize: isMobile ? '0.7rem' : '0.75rem',
+            fontWeight: '600',
+            color: theme.textSecondary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Rate
+          </div>
+          {!isMobile && (
+            <div style={{
+              textAlign: 'center',
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              color: theme.textSecondary,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Games
+            </div>
+          )}
+          <div style={{
+            textAlign: 'center',
+            fontSize: isMobile ? '0.7rem' : '0.75rem',
+            fontWeight: '600',
+            color: theme.textSecondary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Earned
+          </div>
+        </div>
+      </div>
+
       {/* Players List */}
       <div style={{
         display: 'flex',
@@ -352,16 +438,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               minWidth: isMobile ? '120px' : '200px'
             }}>
               {/* Games Won */}
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  fontSize: isMobile ? '0.7rem' : '0.75rem',
-                  color: theme.textSecondary,
-                  marginBottom: '0.125rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.3px'
-                }}>
-                  Wins
-                </div>
+              <div style={{ 
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '2rem'
+              }}>
                 <div style={{
                   fontSize: isMobile ? '0.9rem' : '1rem',
                   fontWeight: '700',
@@ -372,16 +455,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               </div>
 
               {/* Win Rate */}
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  fontSize: isMobile ? '0.7rem' : '0.75rem',
-                  color: theme.textSecondary,
-                  marginBottom: '0.125rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.3px'
-                }}>
-                  Rate
-                </div>
+              <div style={{ 
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '2rem'
+              }}>
                 <div style={{
                   fontSize: isMobile ? '0.9rem' : '1rem',
                   fontWeight: '700',
@@ -393,16 +473,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
               {/* Games Played (Desktop only) */}
               {!isMobile && (
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{
-                    fontSize: '0.75rem',
-                    color: theme.textSecondary,
-                    marginBottom: '0.125rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.3px'
-                  }}>
-                    Games
-                  </div>
+                <div style={{ 
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '2rem'
+                }}>
                   <div style={{
                     fontSize: '1rem',
                     fontWeight: '700',
@@ -414,16 +491,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               )}
 
               {/* Net Earnings */}
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  fontSize: isMobile ? '0.7rem' : '0.75rem',
-                  color: theme.textSecondary,
-                  marginBottom: '0.125rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.3px'
-                }}>
-                  Earned
-                </div>
+              <div style={{ 
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '2rem'
+              }}>
                 <div style={{
                   fontSize: isMobile ? '0.8rem' : '0.9rem',
                   fontWeight: '700',
