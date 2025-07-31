@@ -1089,6 +1089,14 @@ function ChessApp() {
         setWinningsClaimed(true);
         setGameStatus(result);
         
+        // Refresh wallet balance to show updated amount
+        if (checkBalance && typeof checkBalance === 'function') {
+          console.log('💰 Refreshing wallet balance after successful winnings claim...');
+          setTimeout(() => {
+            checkBalance();
+          }, 2000); // Small delay to ensure blockchain transaction is fully processed
+        }
+        
         // Show success notification to the winner
         if (result.includes('🎉 SUCCESS')) {
           showSuccess(
@@ -1116,6 +1124,14 @@ function ChessApp() {
           errorMessage.includes('Game is not in progress')) {
         setWinningsClaimed(true);
         setGameStatus('✅ Winnings already claimed successfully!');
+        
+        // Refresh wallet balance since winnings were already successfully processed
+        if (checkBalance && typeof checkBalance === 'function') {
+          console.log('💰 Refreshing wallet balance after confirming winnings already claimed...');
+          setTimeout(() => {
+            checkBalance();
+          }, 1000); // Small delay to ensure UI state is updated
+        }
       } else {
         setGameStatus('Failed to claim winnings. Please try again.');
       }
