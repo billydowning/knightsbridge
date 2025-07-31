@@ -408,28 +408,17 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             {/* Player Info */}
             <div style={{
               flex: 1,
-              minWidth: 0 // Allow text to truncate
+              minWidth: 0, // Allow text to truncate
+              display: 'flex',
+              alignItems: 'center', // Center align single line with other columns
+              fontSize: isMobile ? '0.9rem' : '1rem',
+              fontWeight: '600',
+              color: theme.text,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
             }}>
-              <div style={{
-                fontSize: isMobile ? '0.9rem' : '1rem',
-                fontWeight: '600',
-                color: theme.text,
-                marginBottom: '0.25rem',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}>
-                {player.username}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.75rem' : '0.8rem',
-                color: theme.textSecondary,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}>
-                Player {player.wallet.slice(0, 7)}...{player.wallet.slice(-4)}
-              </div>
+              Player {player.wallet.slice(0, 7)}...{player.wallet.slice(-4)}
             </div>
 
             {/* Stats Grid */}
