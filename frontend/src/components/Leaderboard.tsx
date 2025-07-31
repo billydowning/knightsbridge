@@ -332,7 +332,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            height: '2rem'
+            height: isMobile ? '3rem' : '2rem'
           }}>
             <div style={{
               fontSize: isMobile ? '0.7rem' : '0.75rem',
@@ -350,7 +350,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            height: '2rem'
+            height: isMobile ? '3rem' : '2rem'
           }}>
             <div style={{
               fontSize: isMobile ? '0.7rem' : '0.75rem',
@@ -388,7 +388,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            height: '2rem'
+            height: isMobile ? '3rem' : '2rem'
           }}>
             <div style={{
               fontSize: isMobile ? '0.7rem' : '0.75rem',
@@ -443,15 +443,31 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               flex: 1,
               minWidth: 0, // Allow text to truncate
               display: 'flex',
-              alignItems: 'center', // Center align single line with other columns
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              justifyContent: isMobile ? 'center' : 'flex-start',
               fontSize: isMobile ? '0.9rem' : '1rem',
               fontWeight: '600',
               color: theme.text,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
+              whiteSpace: isMobile ? 'normal' : 'nowrap'
             }}>
-              Player {player.wallet.slice(0, 7)}...{player.wallet.slice(-4)}
+              {isMobile ? (
+                <>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '600' }}>Player</div>
+                  <div style={{ 
+                    fontSize: '0.7rem', 
+                    color: theme.textSecondary,
+                    fontWeight: '400',
+                    marginTop: '2px'
+                  }}>
+                    {player.wallet.slice(0, 6)}...{player.wallet.slice(-4)}
+                  </div>
+                </>
+              ) : (
+                `Player ${player.wallet.slice(0, 7)}...${player.wallet.slice(-4)}`
+              )}
             </div>
 
             {/* Stats Grid */}
@@ -467,7 +483,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: '2rem'
+                height: isMobile ? '3rem' : '2rem'
               }}>
                 <div style={{
                   fontSize: isMobile ? '0.9rem' : '1rem',
@@ -485,7 +501,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: '2rem'
+                height: isMobile ? '3rem' : '2rem'
               }}>
                 <div style={{
                   fontSize: isMobile ? '0.9rem' : '1rem',
@@ -523,7 +539,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: '2rem'
+                height: isMobile ? '3rem' : '2rem'
               }}>
                 <div style={{
                   fontSize: isMobile ? '0.8rem' : '0.9rem',
