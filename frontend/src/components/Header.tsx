@@ -13,6 +13,7 @@ export interface HeaderProps {
   roomId?: string;
   balance?: number;
   connected?: boolean;
+  onLogoClick?: () => void;
 }
 
 const DarkModeToggle: React.FC = () => {
@@ -48,7 +49,8 @@ export const Header: React.FC<HeaderProps> = ({
   currentView,
   roomId,
   balance,
-  connected
+  connected,
+  onLogoClick
 }) => {
   const { theme } = useTheme();
   const textSizes = useTextSizes();
@@ -91,13 +93,29 @@ export const Header: React.FC<HeaderProps> = ({
       }}>
         
         {/* Left: Logo and Branding */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px',
-          flexShrink: 0, // Don't let logo shrink
-          minWidth: 0
-        }}>
+        <div 
+          onClick={onLogoClick}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px',
+            flexShrink: 0, // Don't let logo shrink
+            minWidth: 0,
+            cursor: onLogoClick ? 'pointer' : 'default',
+            transition: 'opacity 0.2s ease',
+            opacity: 1
+          }}
+          onMouseEnter={(e) => {
+            if (onLogoClick) {
+              e.currentTarget.style.opacity = '0.8';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (onLogoClick) {
+              e.currentTarget.style.opacity = '1';
+            }
+          }}
+        >
           <span 
             style={{
               fontSize: isDesktopLayout ? '48px' : '42px',

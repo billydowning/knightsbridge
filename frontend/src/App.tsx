@@ -2646,6 +2646,11 @@ function ChessApp() {
           roomId={roomId}
           balance={balance}
           connected={connected}
+          onLogoClick={() => {
+            setGameMode('menu');
+            setRoomId('');
+            setGameState(null);
+          }}
         />
 
         {/* Main Content */}
