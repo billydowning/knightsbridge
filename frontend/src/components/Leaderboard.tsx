@@ -285,7 +285,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        padding: isMobile ? '0.75rem' : '1rem 1.5rem',
+        padding: isMobile ? '1rem 0.75rem' : '1.25rem 1.5rem',
         marginBottom: '0.5rem',
         borderBottom: `1px solid ${theme.border}`,
         gap: isMobile ? '0.75rem' : '1rem'
