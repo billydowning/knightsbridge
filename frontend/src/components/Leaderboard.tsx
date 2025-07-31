@@ -323,9 +323,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         {/* Stats Headers */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-          gap: isMobile ? '0.5rem' : '1rem',
-          minWidth: isMobile ? '120px' : '200px'
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: isMobile ? '0.5rem' : '1.5rem',
+          minWidth: isMobile ? '150px' : '240px'
         }}>
           <div style={{ 
             textAlign: 'center',
@@ -361,25 +361,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               Rate
             </div>
           </div>
-          {!isMobile && (
-            <div style={{ 
-              textAlign: 'center',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '2rem'
-            }}>
-              <div style={{
-                fontSize: '0.75rem',
-                fontWeight: '600',
-                color: theme.textSecondary,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                Games
-              </div>
-            </div>
-          )}
           <div style={{ 
             textAlign: 'center',
             display: 'flex',
@@ -454,9 +435,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             {/* Stats Grid */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-              gap: isMobile ? '0.5rem' : '1rem',
-              minWidth: isMobile ? '120px' : '200px'
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: isMobile ? '0.5rem' : '1.5rem',
+              minWidth: isMobile ? '150px' : '240px'
             }}>
               {/* Games Won */}
               <div style={{ 
@@ -491,25 +472,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   {formatWinRate(player.winPercentage)}
                 </div>
               </div>
-
-              {/* Games Played (Desktop only) */}
-              {!isMobile && (
-                <div style={{ 
-                  textAlign: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '2rem'
-                }}>
-                  <div style={{
-                    fontSize: '1rem',
-                    fontWeight: '700',
-                    color: theme.text
-                  }}>
-                    {player.gamesPlayed}
-                  </div>
-                </div>
-              )}
 
               {/* Net Earnings */}
               <div style={{ 
