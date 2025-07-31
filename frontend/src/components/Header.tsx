@@ -182,8 +182,8 @@ export const Header: React.FC<HeaderProps> = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: isMobile ? '6px' : '12px',
-          flexShrink: 0, // Prevent shrinking
+          gap: isMobile ? '4px' : '12px',
+          flexShrink: 1, // Allow shrinking on mobile
           minWidth: 0 // Allow content to shrink
         }}>
           
@@ -227,19 +227,19 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Wallet Button */}
           <div style={{
             fontSize: isDesktopLayout ? '14px' : '11px',
-            flexShrink: 0,
-            maxWidth: isMobile ? '120px' : 'none' // Limit width on mobile
+            flexShrink: 1,
+            maxWidth: isMobile ? '90px' : 'none' // Limit width on mobile
           }}>
             <WalletMultiButton style={{
               backgroundColor: connected ? theme.success : theme.primary,
               borderRadius: '8px',
               height: isDesktopLayout ? '40px' : '32px',
-              fontSize: isDesktopLayout ? '14px' : '11px',
+              fontSize: isDesktopLayout ? '14px' : '10px',
               fontWeight: 'bold',
               border: 'none',
               transition: 'all 0.2s ease',
-              padding: isMobile ? '6px 8px' : '8px 12px',
-              maxWidth: isMobile ? '120px' : 'none',
+              padding: isMobile ? '4px 6px' : '8px 12px',
+              maxWidth: isMobile ? '90px' : 'none',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
