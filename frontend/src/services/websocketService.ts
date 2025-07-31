@@ -292,6 +292,15 @@ class WebSocketService {
     this.socket.emit('ping');
   }
 
+  public gameComplete(data: { roomId: string; winner: string; gameResult: string; playerRole: string }) {
+    if (!this.socket?.connected) {
+      console.error('Socket not connected');
+      return;
+    }
+    
+    this.socket.emit('gameComplete', data);
+  }
+
   public disconnect() {
     if (this.socket) {
       this.socket.disconnect();

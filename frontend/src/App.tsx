@@ -553,7 +553,7 @@ function ChessApp() {
         // Notify backend about game completion (only do this once per game)
         if (websocketService && websocketService.isConnected()) {
           console.log('📤 Notifying backend of game completion:', { roomId, winner, gameResult, playerRole });
-          websocketService.emit('gameComplete', {
+          websocketService.gameComplete({
             roomId,
             winner,
             gameResult,
@@ -1310,7 +1310,7 @@ function ChessApp() {
       // Notify backend about game completion
       if (websocketService && websocketService.isConnected()) {
         console.log('📤 Notifying backend of resignation:', { roomId, winner, gameResult: 'resignation', playerRole });
-        websocketService.emit('gameComplete', {
+        websocketService.gameComplete({
           roomId,
           winner,
           gameResult: 'resignation',
@@ -1361,7 +1361,7 @@ function ChessApp() {
       // Notify backend about game completion
       if (websocketService && websocketService.isConnected()) {
         console.log('📤 Notifying backend of timeout:', { roomId, winner, gameResult: 'timeout', playerRole });
-        websocketService.emit('gameComplete', {
+        websocketService.gameComplete({
           roomId,
           winner,
           gameResult: 'timeout',
