@@ -10,103 +10,156 @@
   <!-- Background -->
   <rect width="32" height="32" fill="#f8f9fa" rx="4"/>
   
-  <!-- Griffin main body (lion-like, standing upright) -->
-  <path d="M14 18 Q12 16 12 22 Q12 26 14 28 Q16 30 18 28 Q20 26 20 22 Q20 16 18 18 Q16 16 14 18 Z" 
+  <!-- Griffin main body (detailed, upright rampant stance) -->
+  <path d="M13 16 Q11 14 11 20 Q11 24 13 27 Q15 29 17 27 Q19 24 19 20 Q19 14 17 16 Q15 13 13 16 Z" 
         fill="url(#griffinGradient)" 
         stroke="#1a252f" 
-        stroke-width="0.8"/>
+        stroke-width="0.6"/>
   
-  <!-- Griffin chest/torso -->
-  <path d="M13 14 Q15 12 16 12 Q17 12 19 14 Q19 16 17 18 Q15 18 13 16 Q13 14 13 14 Z" 
+  <!-- Body fur texture lines -->
+  <path d="M13 18 Q14 17 15 18 M12 20 Q13 19 14 20 M13 22 Q14 21 15 22 M14 24 Q15 23 16 24" 
+        stroke="#1a252f" 
+        stroke-width="0.3" 
+        opacity="0.6"/>
+  
+  <!-- Griffin chest with muscle definition -->
+  <path d="M12 12 Q14 10 15 10 Q16 10 18 12 Q18 14 16 16 Q14 16 12 14 Q12 12 12 12 Z" 
         fill="url(#griffinGradient)" 
         stroke="#1a252f" 
-        stroke-width="0.8"/>
+        stroke-width="0.6"/>
   
-  <!-- Griffin head (eagle-like with curved beak) -->
-  <path d="M15 12 Q16 8 17 12 Q18 10 19 12 Q20 13 19 14 Q17 13 15 12 Z" 
+  <!-- Chest fur detail -->
+  <path d="M13 13 Q14 12 15 13 M14 14 Q15 13 16 14" 
+        stroke="#1a252f" 
+        stroke-width="0.3" 
+        opacity="0.5"/>
+  
+  <!-- Griffin eagle head with detailed features -->
+  <path d="M14 10 Q15 6 16 10 Q17 8 18 10 Q19 11 18 12 Q16 11 14 10 Z" 
         fill="url(#griffinGradient)" 
         stroke="#1a252f" 
-        stroke-width="0.8"/>
+        stroke-width="0.6"/>
   
-  <!-- Curved beak -->
-  <path d="M19 12 Q21 11 22 13 Q21 14 19 13" 
+  <!-- Detailed curved beak with nostril -->
+  <path d="M18 10 Q20 9 21 11 Q20 12 18 11" 
+        fill="none" 
+        stroke="#1a252f" 
+        stroke-width="0.8" 
+        stroke-linecap="round"/>
+  
+  <!-- Beak nostril -->
+  <circle cx="19.5" cy="10.5" r="0.3" fill="#1a252f" opacity="0.7"/>
+  
+  <!-- Eye with detailed pupil and highlight -->
+  <circle cx="16.5" cy="9" r="0.7" fill="#ffffff"/>
+  <circle cx="16.7" cy="8.8" r="0.4" fill="#1a252f"/>
+  <circle cx="16.8" cy="8.6" r="0.15" fill="#ffffff" opacity="0.9"/>
+  
+  <!-- Head crest/mane feathers -->
+  <path d="M14.5 8 Q13 5 12 7 Q13 8 14 9 M15.5 7 Q14 4 13 6 Q14 7 15 8" 
+        stroke="#1a252f" 
+        stroke-width="0.4" 
+        stroke-linecap="round"/>
+  
+  <!-- Detailed left wing with individual feathers -->
+  <path d="M14 11 Q9 6 5 4 Q3 3 2 6 Q4 8 7 10 Q11 12 14 11 Z" 
+        fill="url(#griffinGradient)" 
+        stroke="#1a252f" 
+        stroke-width="0.5"/>
+  
+  <!-- Left wing primary feathers -->
+  <path d="M13 10 Q10 7 7 6 M12 11 Q9 8 6 7 M11 12 Q8 9 5 8 M10 13 Q7 10 4 9" 
+        stroke="#1a252f" 
+        stroke-width="0.4" 
+        opacity="0.8"/>
+  
+  <!-- Left wing secondary feathers -->
+  <path d="M12.5 10.5 Q10.5 8 8 7.5 M11.5 11.5 Q9.5 9 7 8.5 M10.5 12.5 Q8.5 10 6 9.5" 
+        stroke="#1a252f" 
+        stroke-width="0.3" 
+        opacity="0.6"/>
+  
+  <!-- Detailed right wing with individual feathers -->
+  <path d="M16 11 Q21 6 25 4 Q27 3 28 6 Q26 8 23 10 Q19 12 16 11 Z" 
+        fill="url(#griffinGradient)" 
+        stroke="#1a252f" 
+        stroke-width="0.5"/>
+  
+  <!-- Right wing primary feathers -->
+  <path d="M17 10 Q20 7 23 6 M18 11 Q21 8 24 7 M19 12 Q22 9 25 8 M20 13 Q23 10 26 9" 
+        stroke="#1a252f" 
+        stroke-width="0.4" 
+        opacity="0.8"/>
+  
+  <!-- Right wing secondary feathers -->
+  <path d="M17.5 10.5 Q19.5 8 22 7.5 M18.5 11.5 Q20.5 9 23 8.5 M19.5 12.5 Q21.5 10 24 9.5" 
+        stroke="#1a252f" 
+        stroke-width="0.3" 
+        opacity="0.6"/>
+  
+  <!-- Front legs with detailed eagle talons -->
+  <path d="M13 16 Q12 18 11 22 Q10 24 9 26" 
+        stroke="#1a252f" 
+        stroke-width="1" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <path d="M15 16 Q14 18 13 22 Q12 24 11 26" 
+        stroke="#1a252f" 
+        stroke-width="1" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <!-- Detailed front talons with individual claws -->
+  <path d="M9 26 Q8 27 7 26 M9 26 Q8 28 9 28 M9 26 Q8.5 29 9.5 29 M11 26 Q10 27 9 26 M11 26 Q10 28 11 28 M11 26 Q10.5 29 11.5 29" 
+        stroke="#1a252f" 
+        stroke-width="0.7" 
+        stroke-linecap="round"/>
+  
+  <!-- Back legs with lion-like paws -->
+  <path d="M17 20 Q16 22 15 24 Q14 25 13 27" 
+        stroke="#1a252f" 
+        stroke-width="1" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <path d="M19 20 Q18 22 17 24 Q16 25 15 27" 
+        stroke="#1a252f" 
+        stroke-width="1" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <!-- Back paw details -->
+  <path d="M13 27 Q12 28 11 27 M13 27 Q12 29 13 29 M15 27 Q14 28 13 27 M15 27 Q14 29 15 29" 
+        stroke="#1a252f" 
+        stroke-width="0.7" 
+        stroke-linecap="round"/>
+  
+  <!-- Flowing curved tail with detailed texture -->
+  <path d="M19 22 Q21 20 23 22 Q25 24 24 26 Q23 28 21 27 Q20 25 19 23" 
         fill="none" 
         stroke="#1a252f" 
         stroke-width="1" 
         stroke-linecap="round"/>
   
-  <!-- Eye -->
-  <circle cx="17.5" cy="11" r="0.8" fill="#ffffff"/>
-  <circle cx="17.7" cy="10.8" r="0.5" fill="#1a252f"/>
-  
-  <!-- Detailed wing feathers (left wing) -->
-  <path d="M15 13 Q10 8 6 6 Q4 5 3 8 Q5 10 8 12 Q12 14 15 13 Z" 
-        fill="url(#griffinGradient)" 
-        stroke="#1a252f" 
-        stroke-width="0.6"/>
-  
-  <!-- Wing feather details (left) -->
-  <path d="M14 12 Q11 9 8 8 M13 13 Q10 10 7 9 M12 14 Q9 11 6 10" 
-        stroke="#1a252f" 
-        stroke-width="0.4" 
-        opacity="0.8"/>
-  
-  <!-- Detailed wing feathers (right wing) -->
-  <path d="M17 13 Q22 8 26 6 Q28 5 29 8 Q27 10 24 12 Q20 14 17 13 Z" 
-        fill="url(#griffinGradient)" 
-        stroke="#1a252f" 
-        stroke-width="0.6"/>
-  
-  <!-- Wing feather details (right) -->
-  <path d="M18 12 Q21 9 24 8 M19 13 Q22 10 25 9 M20 14 Q23 11 26 10" 
-        stroke="#1a252f" 
-        stroke-width="0.4" 
-        opacity="0.8"/>
-  
-  <!-- Front legs with detailed claws -->
-  <path d="M14 18 Q13 20 12 24 Q11 26 10 28" 
-        stroke="#1a252f" 
-        stroke-width="1.2" 
-        stroke-linecap="round" 
-        fill="none"/>
-  
-  <path d="M16 18 Q15 20 14 24 Q13 26 12 28" 
-        stroke="#1a252f" 
-        stroke-width="1.2" 
-        stroke-linecap="round" 
-        fill="none"/>
-  
-  <!-- Detailed claws -->
-  <path d="M10 28 Q9 29 8 28 M10 28 Q9 30 10 30 M12 28 Q11 29 10 28 M12 28 Q11 30 12 30" 
+  <!-- Tail continuation with curve -->
+  <path d="M23 26 Q25 27 26 28 Q27 29 26 30 Q25 31 24 30 Q23 29 22 28" 
+        fill="none" 
         stroke="#1a252f" 
         stroke-width="0.8" 
         stroke-linecap="round"/>
   
-  <!-- Back legs -->
-  <path d="M18 22 Q17 24 16 26 Q15 27 14 29" 
+  <!-- Tail fur texture -->
+  <path d="M21 24 Q22 23 23 24 M22 26 Q23 25 24 26 M23 28 Q24 27 25 28" 
         stroke="#1a252f" 
-        stroke-width="1.2" 
-        stroke-linecap="round" 
-        fill="none"/>
+        stroke-width="0.3" 
+        opacity="0.5"/>
   
-  <path d="M20 22 Q19 24 18 26 Q17 27 16 29" 
-        stroke="#1a252f" 
-        stroke-width="1.2" 
-        stroke-linecap="round" 
-        fill="none"/>
-  
-  <!-- Curved flowing tail -->
-  <path d="M20 24 Q22 22 24 24 Q26 26 25 28 Q24 30 22 29 Q21 27 20 25" 
+  <!-- Tail tuft detail -->
+  <path d="M26 29 Q27 30 28 29 Q29 28 28 27 Q27 26 26 27" 
         fill="none" 
         stroke="#1a252f" 
-        stroke-width="1.2" 
-        stroke-linecap="round"/>
-  
-  <!-- Tail tuft -->
-  <path d="M24 28 Q25 30 26 29 Q27 28 25 27" 
-        fill="none" 
-        stroke="#1a252f" 
-        stroke-width="0.8" 
+        stroke-width="0.6" 
         stroke-linecap="round"/>
   
 </svg>
