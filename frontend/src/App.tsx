@@ -540,6 +540,27 @@ function ChessApp() {
     if (gameMode === 'game' && (gameState.winner || gameState.draw) && !winningsClaimed && !appLoading && !claimingInProgress && !timeoutClaimingDone && roomId) {
       const winner = gameState.winner || (gameState.draw ? 'draw' : null);
       if (winner) {
+        // Determine game result type
+        let gameResult = 'unknown';
+        if (gameState.inCheckmate) {
+          gameResult = 'checkmate';
+        } else if (gameState.draw) {
+          gameResult = 'stalemate';
+        } else if (winner === 'draw') {
+          gameResult = 'agreement';  // Could be 50-move rule, etc.
+        }
+        
+        // Notify backend about game completion (only do this once per game)
+        if (websocketService && websocketService.isConnected()) {
+          console.log('📤 Notifying backend of game completion:', { roomId, winner, gameResult, playerRole });
+          websocketService.emit('gameComplete', {
+            roomId,
+            winner,
+            gameResult,
+            playerRole
+          });
+        }
+        
         // Only auto-claim if this player should claim
         const shouldClaim = winner === 'draw' || winner === playerRole;
         
@@ -1219,6 +1240,17 @@ function ChessApp() {
       
       await databaseMultiplayerState.saveGameState(roomId, updatedState);
       
+      // Notify backend about game completion
+      if (websocketService && websocketService.isConnected()) {
+        console.log('📤 Notifying backend of resignation:', { roomId, winner, gameResult: 'resignation', playerRole });
+        websocketService.emit('gameComplete', {
+          roomId,
+          winner,
+          gameResult: 'resignation',
+          playerRole
+        });
+      }
+      
       // Send chat message about resignation
       const resignationMessage = `${playerRole} resigned the game. ${winner} wins!`;
       await databaseMultiplayerState.sendChatMessage(roomId, resignationMessage, publicKey?.toString() || '', playerRole);
@@ -1258,6 +1290,17 @@ function ChessApp() {
       };
       
       await databaseMultiplayerState.saveGameState(roomId, updatedState);
+      
+      // Notify backend about game completion
+      if (websocketService && websocketService.isConnected()) {
+        console.log('📤 Notifying backend of timeout:', { roomId, winner, gameResult: 'timeout', playerRole });
+        websocketService.emit('gameComplete', {
+          roomId,
+          winner,
+          gameResult: 'timeout',
+          playerRole
+        });
+      }
       
       // Send chat message about timeout
       const timeoutMessage = `${timedOutPlayer} ran out of time. ${winner} wins!`;
