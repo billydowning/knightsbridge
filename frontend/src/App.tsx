@@ -242,12 +242,39 @@ function ChessApp() {
     return null;
   };
 
-  // App state
+  // URL persistence helpers (safe, additive only)
+  const getURLParams = () => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      room: params.get('room') || '',
+      role: params.get('role') as 'white' | 'black' | null
+    };
+  };
+
+  const updateURL = (roomId: string, role: 'white' | 'black' | null = null) => {
+    if (!roomId) {
+      // Clear URL params when no active room
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+    
+    const params = new URLSearchParams();
+    params.set('room', roomId);
+    if (role) {
+      params.set('role', role);
+    }
+    
+    // Use replaceState to avoid browser history pollution
+    window.history.replaceState({}, '', `?${params.toString()}`);
+  };
+
+  // App state - with safe URL initialization
+  const urlParams = getURLParams();
   const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
-  const [roomId, setRoomId] = useState<string>('');
+  const [roomId, setRoomId] = useState<string>(urlParams.room || '');
   const [betAmount, setBetAmount] = useState<number>(0.1);
   const [timeLimit, setTimeLimit] = useState<number>(10 * 60); // Default to 10 minutes (Rapid)
-  const [playerRole, setPlayerRole] = useState<'white' | 'black' | null>(null);
+  const [playerRole, setPlayerRole] = useState<'white' | 'black' | null>(urlParams.role || null);
   const [escrowCreated, setEscrowCreated] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<string>('Welcome to Knightsbridge Chess!');
   const [winningsClaimed, setWinningsClaimed] = useState<boolean>(false);
@@ -1244,6 +1271,9 @@ function ChessApp() {
           setGameMode('lobby');
           setGameStatus(`Room created! Share Room ID: ${result.roomId} with your opponent`);
           
+          // Update URL for persistence (safe, non-breaking)
+          updateURL(result.roomId, result.role);
+          
           // Get room status using the new room ID
           const roomStatus = await databaseMultiplayerState.getRoomStatus(result.roomId);
           
@@ -1260,6 +1290,9 @@ function ChessApp() {
         if (role) {
           setPlayerRole(role);
           setGameStatus(`Joined room as ${role}`);
+          
+          // Update URL for persistence (safe, non-breaking)
+          updateURL(roomId, role);
           
           // Get room status using the current room ID
           const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
@@ -1414,6 +1447,9 @@ function ChessApp() {
     setGameMode('menu');
     setRoomId('');
     setPlayerRole(null);
+    
+    // Clear URL params when returning to menu (safe, non-breaking)
+    updateURL('');
     setEscrowCreated(false);
     setWinningsClaimed(false);
     setClaimingInProgress(false);
@@ -2597,6 +2633,9 @@ function ChessApp() {
             setGameMode('menu');
             setRoomId('');
             setGameState(null);
+            
+            // Clear URL params when returning to menu (safe, non-breaking)
+            updateURL('');
           }}
         />
 
