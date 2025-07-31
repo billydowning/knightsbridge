@@ -101,12 +101,12 @@ export const Header: React.FC<HeaderProps> = ({
           <span 
             style={{
               fontSize: isDesktopLayout ? '48px' : '42px',
-              color: '#ffffff',
+              color: theme.text,
               fontWeight: '900',
-              textShadow: '0 2px 6px rgba(0,0,0,0.3), 0 0 10px rgba(255,255,255,0.2)',
+              textShadow: `0 2px 6px rgba(0,0,0,0.3), 0 0 10px ${theme.text}40`,
               lineHeight: 1,
               display: 'block',
-              WebkitTextStroke: '1px rgba(255,255,255,0.1)',
+              WebkitTextStroke: `1px ${theme.text}20`,
               marginBottom: isDesktopLayout ? '-12px' : '-9px'
             }}
             title="Knightsbridge Chess"
