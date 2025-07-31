@@ -955,8 +955,25 @@ function ChessApp() {
       
       // Create new position by making the move
       const newPosition = { ...gameState.position };
-      newPosition[toSquare] = newPosition[fromSquare];
+      const movingPiece = newPosition[fromSquare];
+      newPosition[toSquare] = movingPiece;
       newPosition[fromSquare] = '';
+      
+      // Handle castling - move the rook as well
+      if (getPieceTypeFromAnyFormat(movingPiece) === 'king') {
+        const fileDiff = Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0));
+        if (fileDiff === 2) { // This is a castling move
+          const isKingside = toSquare[0] > fromSquare[0];
+          const rookFromSquare = (isKingside ? 'h' : 'a') + fromSquare[1];
+          const rookToSquare = String.fromCharCode(toSquare[0].charCodeAt(0) + (isKingside ? -1 : 1)) + fromSquare[1];
+          
+          // Move the rook
+          newPosition[rookToSquare] = newPosition[rookFromSquare];
+          newPosition[rookFromSquare] = '';
+          
+          console.log(`🏰 Castling executed: King ${fromSquare}→${toSquare}, Rook ${rookFromSquare}→${rookToSquare}`);
+        }
+      }
       
       const nextPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
       const nextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
@@ -988,6 +1005,8 @@ function ChessApp() {
           to: toSquare, 
           piece: gameState.position[fromSquare],
           capturedPiece: gameState.position[toSquare] || null,
+          isCastling: getPieceTypeFromAnyFormat(gameState.position[fromSquare]) === 'king' && 
+                     Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0)) === 2,
           timestamp: Date.now()
         }],
         lastMove: { from: fromSquare, to: toSquare },
@@ -1593,7 +1612,51 @@ function ChessApp() {
     
     // King moves
     if (pieceType === 'king') {
-      return fileDiff <= 1 && rankDiff <= 1;
+      // Normal king moves (one square in any direction)
+      if (fileDiff <= 1 && rankDiff <= 1) {
+        return true;
+      }
+      
+      // Castling moves (king moves 2 squares horizontally)
+      if (rankDiff === 0 && fileDiff === 2) {
+        const isKingside = toFile > fromFile;
+        const rookFile = isKingside ? 'h' : 'a';
+        const rookSquare = rookFile + fromRank;
+        const rookPiece = position[rookSquare];
+        
+        // Check basic castling conditions
+        if (!rookPiece || getPieceTypeFromAnyFormat(rookPiece) !== 'rook') return false;
+        if (getPieceColorFromAnyFormat(rookPiece) !== currentPlayer) return false;
+        
+        // Check if path is clear between king and rook
+        const startFile = isKingside ? fromFile.charCodeAt(0) + 1 : rookSquare.charCodeAt(0) + 1;
+        const endFile = isKingside ? rookSquare.charCodeAt(0) - 1 : fromFile.charCodeAt(0) - 1;
+        
+        for (let fileCode = startFile; fileCode <= endFile; fileCode++) {
+          const checkSquare = String.fromCharCode(fileCode) + fromRank;
+          if (position[checkSquare]) return false;
+        }
+        
+        // Check if king is currently in check (can't castle out of check)
+        if (isKingInCheck(position, currentPlayer)) return false;
+        
+        // Check if king would pass through check during castling
+        const middleSquare = String.fromCharCode(fromFile.charCodeAt(0) + (isKingside ? 1 : -1)) + fromRank;
+        const tempPosition = { ...position };
+        tempPosition[middleSquare] = tempPosition[fromSquare];
+        delete tempPosition[fromSquare];
+        if (isKingInCheck(tempPosition, currentPlayer)) return false;
+        
+        // Check if king would be in check after castling
+        const finalPosition = { ...position };
+        finalPosition[toSquare] = finalPosition[fromSquare];
+        delete finalPosition[fromSquare];
+        if (isKingInCheck(finalPosition, currentPlayer)) return false;
+        
+        return true;
+      }
+      
+      return false;
     }
     
     // Queen moves
