@@ -58,24 +58,11 @@ export const GameView: React.FC<GameViewProps> = ({
   const [timeoutTriggered, setTimeoutTriggered] = React.useState(false);
   
   // Debug: Log when timeLimit prop changes
-  React.useEffect(() => {
-    console.log('🕐 GameView: timeLimit prop changed to:', timeLimit, 'seconds');
-    console.log('🕐 GameView: playerRole:', playerRole);
-    console.log('🕐 GameView: gameState.gameActive:', gameState.gameActive);
-  }, [timeLimit]);
+
 
   // Initialize timers when game starts or timeLimit changes
   React.useEffect(() => {
-    console.log('🔍 Timer initialization useEffect triggered');
-    console.log('🔍 gameState.gameActive:', gameState.gameActive);
-    console.log('🔍 isGameOver:', isGameOver);
-    console.log('🔍 timeLimit:', timeLimit);
-    console.log('🔍 playerRole:', playerRole);
-    console.log('🔍 Current whiteTimeRemaining:', whiteTimeRemaining);
-    console.log('🔍 Current blackTimeRemaining:', blackTimeRemaining);
-    
     if (gameState.gameActive && !isGameOver) {
-      console.log('✅ Initializing timers with timeLimit:', timeLimit, 'seconds');
       setWhiteTimeRemaining(timeLimit);
       setBlackTimeRemaining(timeLimit);
       setTimeoutTriggered(false); // Reset timeout flag when game starts
@@ -84,9 +71,6 @@ export const GameView: React.FC<GameViewProps> = ({
   
   // Also update timers when timeLimit changes (even during active game)
   React.useEffect(() => {
-    console.log('🔄 TimeLimit changed - updating timer states');
-    console.log('🔄 New timeLimit:', timeLimit);
-    console.log('🔄 Updating both timer states to:', timeLimit);
     setWhiteTimeRemaining(timeLimit);
     setBlackTimeRemaining(timeLimit);
     setTimeoutTriggered(false); // Reset timeout flag when timers reset
@@ -96,7 +80,6 @@ export const GameView: React.FC<GameViewProps> = ({
   const handleTimeout = React.useCallback((timedOutPlayer: 'white' | 'black') => {
     if (timeoutTriggered || isGameOver) return; // Prevent multiple calls
     
-    console.log(`⏰ ${timedOutPlayer} player timed out - triggering automatic timeout handler`);
     setTimeoutTriggered(true);
     
     // Trigger timeout handler which will declare the correct winner (opposite of timed-out player)
@@ -119,7 +102,6 @@ export const GameView: React.FC<GameViewProps> = ({
           
           // Auto-timeout if time runs out
           if (newTime === 0 && !timeoutTriggered) {
-            console.log('⏰ White player timed out');
             handleTimeout('white');
           }
           
@@ -131,7 +113,6 @@ export const GameView: React.FC<GameViewProps> = ({
           
           // Auto-timeout if time runs out  
           if (newTime === 0 && !timeoutTriggered) {
-            console.log('⏰ Black player timed out');
             handleTimeout('black');
           }
           
@@ -751,7 +732,7 @@ export const GameView: React.FC<GameViewProps> = ({
           <button
             onClick={() => {
               // In a real implementation, this would trigger the draw claim
-              console.log('🤝 50-move rule draw claimed!');
+      
               if (onResignGame) {
                 // For now, treat as a draw - in production you'd have a specific draw handler
                 onResignGame();

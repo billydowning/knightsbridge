@@ -573,28 +573,19 @@ function ChessApp() {
         const shouldClaim = winner === 'draw' || winner === playerRole;
         
         if (shouldClaim) {
-          console.log('🎉 Game ended! Auto-claiming winnings. Winner/Result:', winner, 'Player Role:', playerRole, 'Room:', roomId);
           // Set flags immediately to prevent multiple attempts
           setClaimingInProgress(true);
           setTimeoutClaimingDone(true);
           // Small delay to ensure game state is fully updated
           setTimeout(() => {
-            console.log('⏰ Auto-claim timeout triggered. Checking conditions...');
-            console.log('⏰ winningsClaimed:', winningsClaimed);
-            console.log('⏰ claimingInProgress:', claimingInProgress);
-            console.log('⏰ appLoading:', appLoading);
-            
             // Double-check flags before calling (safety net)
             if (!winningsClaimed) {
-              console.log('✅ Calling handleClaimWinnings...');
               handleClaimWinnings();
             } else {
-              console.log('⚠️ Winnings already claimed - skipping auto-claim');
               setClaimingInProgress(false);
             }
           }, 1500);
         } else {
-          console.log('💡 Game ended but not claiming - Winner:', winner, 'Player Role:', playerRole, '(loser should not claim)');
           setTimeoutClaimingDone(true); // Mark as done even if not claiming
         }
       }
@@ -710,12 +701,7 @@ function ChessApp() {
       const hasPlayerEscrow = roomStatus?.escrows && roomStatus.escrows[playerWallet];
       const isFirstPlayer = !roomStatus || roomStatus.playerCount === 0 || !hasPlayerEscrow;
       
-      console.log('🔍 Debug - Room Status:', roomStatus);
-      console.log('🔍 Debug - Player Count:', roomStatus?.playerCount);
-      console.log('🔍 Debug - Player Wallet:', playerWallet);
-      console.log('🔍 Debug - Has Player Escrow:', hasPlayerEscrow);
-      console.log('🔍 Debug - Is First Player:', isFirstPlayer);
-      console.log('🔍 Debug - Player Role:', playerRole);
+      
       
       let success = false;
       
@@ -726,16 +712,14 @@ function ChessApp() {
         const escrowAmounts = Object.values(roomStatus.escrows);
         const rawAmount = escrowAmounts[0];
         correctBetAmount = typeof rawAmount === 'string' ? parseFloat(rawAmount) : Number(rawAmount);
-        console.log('🔧 Black player using white player\'s bet amount:', correctBetAmount, 'instead of local:', betAmount);
+
       }
       
       if (playerRole === 'white') {
         // White player - initialize the game escrow
-        console.log('🔍 Debug - White player: Calling createEscrow (initialize_game)');
         success = await createEscrow(roomId, correctBetAmount, playerRole);
       } else if (playerRole === 'black') {
         // Black player - join the existing escrow
-        console.log('🔍 Debug - Black player: Calling createEscrow (join_game)');
         success = await createEscrow(roomId, correctBetAmount, playerRole);
       } else {
         setGameStatus('Error: Player role not determined');
@@ -799,18 +783,12 @@ function ChessApp() {
     
     // Prevent multiple rapid calls
     if (appLoading) {
-      console.log('🔍 Debug - DepositStake already in progress, ignoring duplicate call');
       return;
     }
     
     try {
       setGameStatus('Depositing stake to escrow...');
       setAppLoading(true);
-      
-      console.log('🔍 Debug - DepositStake - Starting deposit');
-      console.log('🔍 Debug - DepositStake - Room ID:', roomId);
-      console.log('🔍 Debug - DepositStake - Bet Amount:', betAmount);
-      console.log('🔍 Debug - DepositStake - Player Role:', playerRole);
       
       // Call the depositStake function from the hook
       const transactionId = await depositStake(roomId, betAmount);
@@ -898,50 +876,31 @@ function ChessApp() {
   };
 
   const handleSquareClick = (square: string) => {
-    console.log('🔍 Square clicked:', square);
-    console.log('🔍 Game mode:', gameMode);
-    console.log('🔍 Room ID:', roomId);
-    
     if (!roomId || gameMode !== 'game' || !gameState) {
-      console.log('❌ Not in game mode, no room, or no game state');
       return;
     }
     
-    console.log('🔍 Current player:', gameState.currentPlayer);
-    console.log('🔍 Player role:', playerRole);
-    console.log('🔍 Is player turn:', gameState.currentPlayer === playerRole);
-    
     // Check if it's the player's turn
     if (gameState.currentPlayer !== playerRole) {
-      console.log('❌ Not player turn');
       setGameStatus(`It's ${gameState.currentPlayer}'s turn. You are ${playerRole}.`);
       return;
     }
     
-    console.log('✅ Player turn confirmed');
-    
     // If no square is selected, select this square if it has a piece
     if (!gameState.selectedSquare) {
       const piece = gameState.position[square];
-      console.log('🔍 Piece on square:', piece);
       
       if (piece) {
         const pieceColor = getPieceColorFromAnyFormat(piece);
-        console.log('🔍 Piece color:', pieceColor);
-        console.log('🔍 Current player:', gameState.currentPlayer);
-        console.log('🔍 Colors match:', pieceColor === gameState.currentPlayer);
         
         if (pieceColor === gameState.currentPlayer) {
-          console.log('✅ Selecting piece at', square);
           setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
           setGameStatus(`Selected ${piece} at ${square}`);
           return;
         } else {
-          console.log('❌ Wrong piece color');
           setGameStatus(`Cannot select ${pieceColor} piece - it's ${gameState.currentPlayer}'s turn`);
         }
       } else {
-        console.log('❌ No piece on square');
         setGameStatus('No piece on this square');
       }
       return;
@@ -951,16 +910,10 @@ function ChessApp() {
     const fromSquare = gameState.selectedSquare;
     const toSquare = square;
     
-    console.log('🔍 Attempting move from', fromSquare, 'to', toSquare);
-    console.log('🔍 Game state position:', gameState.position);
-    console.log('🔍 Current player:', gameState.currentPlayer);
-    
     // Validate move using existing function
     const isValidMove = validateLocalMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer);
-    console.log('🔍 Move validation result:', isValidMove);
     
     if (isValidMove) {
-      console.log('✅ Valid move - executing move');
       
       // Create new position by making the move
       const newPosition = { ...gameState.position };
@@ -979,8 +932,6 @@ function ChessApp() {
           // Move the rook
           newPosition[rookToSquare] = newPosition[rookFromSquare];
           newPosition[rookFromSquare] = '';
-          
-          console.log(`🏰 Castling executed: King ${fromSquare}→${toSquare}, Rook ${rookFromSquare}→${rookToSquare}`);
         }
       }
       
@@ -1050,24 +1001,18 @@ function ChessApp() {
           setIsReceivingServerUpdate(false);
         });
     } else {
-      console.log('❌ Invalid move - updating selection instead');
-      
       // Invalid move - just update selection
       const piece = gameState.position[square];
       if (piece) {
         const pieceColor = getPieceColorFromAnyFormat(piece);
-        console.log('🔍 Destination square has piece:', piece, 'color:', pieceColor);
         if (pieceColor === gameState.currentPlayer) {
-          console.log('🔍 Selecting new piece at', square);
           setGameState((prev: any) => ({ ...prev, selectedSquare: square }));
           setGameStatus(`Selected ${piece} at ${square}`);
         } else {
-          console.log('🔍 Clearing selection - wrong color piece');
           setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
           setGameStatus('Invalid move - cleared selection');
         }
       } else {
-        console.log('🔍 Clearing selection - empty destination square');
         setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
         setGameStatus('Invalid move to empty square - cleared selection');
       }
@@ -1075,22 +1020,15 @@ function ChessApp() {
   };
 
   const handleClaimWinnings = async () => {
-    console.log('🔧 handleClaimWinnings called');
-    console.log('🔧 Current state - publicKey:', !!publicKey, 'roomId:', roomId, 'gameState:', !!gameState);
-    
     if (!publicKey) {
-      console.log('❌ No public key - aborting claim');
       setGameStatus('Please connect your wallet first');
       return;
     }
 
     if (!gameState) {
-      console.log('❌ No game state - aborting claim');
       setGameStatus('No active game to claim winnings from');
       return;
     }
-
-    console.log('🔧 Game state winner:', gameState.winner);
 
     // Validate wallet matches room role
     const connectedWallet = publicKey.toString();

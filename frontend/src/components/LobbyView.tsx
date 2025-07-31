@@ -68,23 +68,13 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
   // Enhanced join game handler with auto-scroll
   const handleJoinGameWithScroll = async () => {
-    console.log('🔍 Join game button clicked - starting auto-scroll logic');
-    console.log('🔍 Player role:', playerRole);
-    console.log('🔍 Ready to deposit before:', readyToDeposit);
-    
     if (onCreateEscrow) {
       try {
         await onCreateEscrow();
-        console.log('✅ onCreateEscrow completed successfully');
         
         // After successful join, scroll to game ready section with multiple attempts
         const attemptScroll = (attempt = 1) => {
-          console.log(`🔍 Scroll attempt ${attempt}`);
-          console.log('🔍 gameReadyRef.current:', gameReadyRef.current);
-          console.log('🔍 Ready to deposit now:', readyToDeposit);
-          
           if (gameReadyRef.current) {
-            console.log('✅ Found game ready section - scrolling now!');
             gameReadyRef.current.scrollIntoView({ 
               behavior: 'smooth', 
               block: 'start',
@@ -93,8 +83,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           } else if (attempt < 5) {
             // Try again with longer delay
             setTimeout(() => attemptScroll(attempt + 1), 300 * attempt);
-          } else {
-            console.log('❌ Could not find game ready section after 5 attempts');
           }
         };
         
@@ -186,43 +174,27 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
   // Auto-scroll when game ready section appears (more reliable)
   useEffect(() => {
-    console.log('🔍 useEffect auto-scroll triggered');
-    console.log('🔍 readyToDeposit:', readyToDeposit);
-    console.log('🔍 playerRole:', playerRole);
-    console.log('🔍 gameReadyRef.current:', gameReadyRef.current);
-    
     if (readyToDeposit && playerRole === 'black') {
-      console.log('✅ Conditions met for auto-scroll - setting up timer');
       
       // Slight delay to ensure the section is fully rendered and visible
       const scrollTimer = setTimeout(() => {
-        console.log('🔍 useEffect scroll timer fired');
-        console.log('🔍 gameReadyRef.current at timer:', gameReadyRef.current);
-        
         if (gameReadyRef.current) {
-          console.log('✅ useEffect scrolling to game ready section!');
           gameReadyRef.current.scrollIntoView({ 
             behavior: 'smooth', 
             block: 'start',
             inline: 'nearest'
           });
         } else {
-          console.log('❌ useEffect: gameReadyRef.current is null');
-          
           // Alternative: scroll to element by class/id if ref fails
           const gameReadyElement = document.getElementById('game-ready-section');
           if (gameReadyElement) {
-            console.log('✅ Found game ready element by ID - scrolling!');
             gameReadyElement.scrollIntoView({ 
               behavior: 'smooth', 
               block: 'start',
               inline: 'nearest'
             });
           } else {
-            console.log('❌ Could not find game ready element by ID');
-            
             // Final fallback: scroll to approximate position
-            console.log('🔄 Using fallback scroll to estimated position');
             window.scrollTo({
               top: window.innerHeight * 0.8, // Scroll down about 80% of screen height
               behavior: 'smooth'
@@ -232,7 +204,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       }, 600); // Increased delay to 600ms
 
       return () => {
-        console.log('🔍 Cleaning up auto-scroll timer');
         clearTimeout(scrollTimer);
       };
     }
@@ -240,47 +211,31 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
   // Auto-scroll to Share Room section when white player creates room
   useEffect(() => {
-    console.log('🔍 Share Room auto-scroll useEffect triggered');
-    console.log('🔍 playerRole:', playerRole);
-    console.log('🔍 roomId:', roomId);
-    console.log('🔍 shareRoomRef.current:', shareRoomRef.current);
-    
     // Scroll when white player has created the room (roomId exists and they are white)
     if (playerRole === 'white' && roomId && shareRoomRef.current) {
-      console.log('✅ Conditions met for Share Room auto-scroll - setting up timer');
       
       // Delay to ensure the section is fully rendered
       const scrollTimer = setTimeout(() => {
-        console.log('🔍 Share Room scroll timer fired');
-        console.log('🔍 shareRoomRef.current at timer:', shareRoomRef.current);
-        
         if (shareRoomRef.current) {
-          console.log('✅ Scrolling to Share Room section!');
           shareRoomRef.current.scrollIntoView({ 
             behavior: 'smooth', 
             block: 'start',
             inline: 'nearest'
           });
         } else {
-          console.log('❌ shareRoomRef.current is null at scroll time');
-          
           // Fallback: scroll to element by ID
           const shareRoomElement = document.getElementById('share-room-section');
           if (shareRoomElement) {
-            console.log('✅ Found Share Room element by ID - scrolling!');
             shareRoomElement.scrollIntoView({ 
               behavior: 'smooth', 
               block: 'start',
               inline: 'nearest'
             });
-          } else {
-            console.log('❌ Could not find Share Room element by ID');
           }
         }
       }, 300); // 300ms delay
 
       return () => {
-        console.log('🔍 Cleaning up Share Room auto-scroll timer');
         clearTimeout(scrollTimer);
       };
     }
