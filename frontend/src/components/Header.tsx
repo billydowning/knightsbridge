@@ -93,10 +93,11 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Left: Logo and Branding */}
         <div style={{ 
           display: 'flex', 
-          alignItems: 'center', 
+          alignItems: 'baseline',
           gap: '12px',
           flexShrink: 0, // Don't let logo shrink
-          minWidth: 0
+          minWidth: 0,
+          lineHeight: 1
         }}>
           <span 
             style={{
@@ -105,19 +106,18 @@ export const Header: React.FC<HeaderProps> = ({
               fontWeight: '900',
               textShadow: '0 2px 6px rgba(0,0,0,0.3), 0 0 10px rgba(255,255,255,0.2)',
               lineHeight: 1,
-              display: 'block',
-              WebkitTextStroke: '1px rgba(255,255,255,0.1)',
-              marginBottom: isDesktopLayout ? '-8px' : '-6px'
+              display: 'inline-block',
+              verticalAlign: 'bottom',
+              WebkitTextStroke: '1px rgba(255,255,255,0.1)'
             }}
             title="Knightsbridge Chess"
           >
             ♘
           </span>
           <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            marginBottom: isDesktopLayout ? '-8px' : '-6px'
+            display: 'inline-block',
+            verticalAlign: 'bottom',
+            lineHeight: 1
           }}>
             <h1 style={{
               margin: 0,
