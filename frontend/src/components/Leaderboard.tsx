@@ -424,12 +424,11 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               <div style={{
                 fontSize: isMobile ? '0.75rem' : '0.8rem',
                 color: theme.textSecondary,
-                fontFamily: 'monospace',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
               }}>
-                {player.wallet.slice(0, 8)}...{player.wallet.slice(-4)}
+                Player {player.wallet.slice(0, 7)}...{player.wallet.slice(-4)}
               </div>
             </div>
 
