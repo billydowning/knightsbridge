@@ -7,7 +7,7 @@
       <stop offset="100%" style="stop-color:#1a252f;stop-opacity:1" />
     </linearGradient>
     <radialGradient id="highlight" cx="50%" cy="30%" r="60%">
-      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3" />
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.2" />
       <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
     </radialGradient>
   </defs>
@@ -15,94 +15,139 @@
   <!-- Background -->
   <rect width="180" height="180" fill="#f8f9fa" rx="20"/>
   
-  <!-- Griffin main body -->
-  <path d="M45 150 Q45 135 55 125 L75 115 Q90 105 105 115 L125 125 Q135 135 135 150 L120 160 Q90 165 75 160 Z" 
+  <!-- Griffin main body (upright, rampant stance) -->
+  <path d="M70 100 Q60 90 60 120 Q60 140 70 150 Q80 160 90 150 Q100 140 100 120 Q100 90 90 100 Q80 90 70 100 Z" 
         fill="url(#griffinGradientLarge)" 
         stroke="#1a252f" 
         stroke-width="3"/>
   
-  <!-- Griffin chest -->
-  <path d="M55 115 Q70 95 90 95 Q110 95 125 115 Q115 125 90 125 Q70 125 55 115 Z" 
+  <!-- Griffin chest/torso -->
+  <path d="M65 80 Q75 70 80 70 Q85 70 95 80 Q95 90 85 100 Q75 100 65 90 Q65 80 65 80 Z" 
         fill="url(#griffinGradientLarge)" 
         stroke="#1a252f" 
         stroke-width="3"/>
   
-  <!-- Griffin head (eagle) -->
-  <path d="M75 95 Q85 75 95 95 Q105 85 115 95 Q110 105 95 100 Q85 105 75 95 Z" 
+  <!-- Griffin head (eagle-like with detailed features) -->
+  <path d="M75 70 Q80 50 85 70 Q90 60 95 70 Q100 75 95 80 Q85 75 75 70 Z" 
         fill="url(#griffinGradientLarge)" 
         stroke="#1a252f" 
         stroke-width="3"/>
   
-  <!-- Beak -->
-  <path d="M115 95 Q125 90 130 95 Q125 100 115 100 Z" 
-        fill="#2c3e50" 
-        stroke="#1a252f" 
-        stroke-width="2"/>
-  
-  <!-- Eye -->
-  <circle cx="105" cy="88" r="4" fill="#ffffff"/>
-  <circle cx="106" cy="86" r="2.5" fill="#1a252f"/>
-  <circle cx="107" cy="85" r="1" fill="#ffffff" opacity="0.8"/>
-  
-  <!-- Left wing (detailed) -->
-  <path d="M95 95 Q75 55 45 45 Q25 35 15 55 Q25 65 45 75 Q70 85 95 95 Z" 
-        fill="url(#griffinGradientLarge)" 
-        stroke="#1a252f" 
-        stroke-width="2.5" 
-        opacity="0.95"/>
-  
-  <!-- Wing feathers (left) -->
-  <path d="M85 85 Q65 50 40 45 M80 90 Q60 60 35 55 M75 95 Q55 70 30 65" 
-        stroke="#1a252f" 
-        stroke-width="1.5" 
-        opacity="0.7"/>
-  
-  <!-- Right wing -->
-  <path d="M95 100 Q115 60 145 50 Q165 40 175 60 Q165 70 145 80 Q120 90 95 100 Z" 
-        fill="url(#griffinGradientLarge)" 
-        stroke="#1a252f" 
-        stroke-width="2.5" 
-        opacity="0.95"/>
-  
-  <!-- Wing feathers (right) -->
-  <path d="M105 90 Q125 55 150 50 M110 95 Q130 65 155 60 M115 100 Q135 75 160 70" 
-        stroke="#1a252f" 
-        stroke-width="1.5" 
-        opacity="0.7"/>
-  
-  <!-- Front legs with claws -->
-  <path d="M70 115 L60 140 L55 145 M75 115 L65 140 L60 145" 
-        stroke="#2c3e50" 
-        stroke-width="4" 
-        stroke-linecap="round"/>
-  
-  <!-- Claws (front) -->
-  <path d="M55 145 L50 148 M55 145 L53 150 M60 145 L55 148 M60 145 L58 150" 
-        stroke="#1a252f" 
-        stroke-width="2" 
-        stroke-linecap="round"/>
-  
-  <!-- Back legs -->
-  <path d="M105 125 L95 150 L90 155 M115 125 L105 150 L100 155" 
-        stroke="#2c3e50" 
-        stroke-width="4" 
-        stroke-linecap="round"/>
-  
-  <!-- Claws (back) -->
-  <path d="M90 155 L85 158 M90 155 L88 160 M100 155 L95 158 M100 155 L98 160" 
-        stroke="#1a252f" 
-        stroke-width="2" 
-        stroke-linecap="round"/>
-  
-  <!-- Tail -->
-  <path d="M135 150 Q145 140 155 150 Q145 160 135 155" 
+  <!-- Detailed curved beak -->
+  <path d="M95 70 Q105 65 110 75 Q105 80 95 75" 
         fill="none" 
-        stroke="#2c3e50" 
+        stroke="#1a252f" 
+        stroke-width="4" 
+        stroke-linecap="round"/>
+  
+  <!-- Eye with detail -->
+  <circle cx="87" cy="65" r="4" fill="#ffffff"/>
+  <circle cx="88" cy="63" r="2.5" fill="#1a252f"/>
+  <circle cx="89" cy="62" r="1" fill="#ffffff" opacity="0.8"/>
+  
+  <!-- Detailed left wing with multiple feather layers -->
+  <path d="M75 75 Q50 45 30 35 Q20 30 15 45 Q25 55 40 65 Q60 80 75 75 Z" 
+        fill="url(#griffinGradientLarge)" 
+        stroke="#1a252f" 
+        stroke-width="2.5"/>
+  
+  <!-- Left wing feather details (multiple layers) -->
+  <path d="M70 70 Q55 50 40 45 M68 75 Q53 55 38 50 M66 80 Q51 60 36 55 M64 85 Q49 65 34 60" 
+        stroke="#1a252f" 
+        stroke-width="2" 
+        opacity="0.8"/>
+  
+  <!-- Additional left wing feather texture -->
+  <path d="M72 72 Q58 53 45 48 M70 77 Q56 58 43 53 M68 82 Q54 63 41 58" 
+        stroke="#1a252f" 
+        stroke-width="1.5" 
+        opacity="0.6"/>
+  
+  <!-- Detailed right wing with multiple feather layers -->
+  <path d="M85 75 Q110 45 130 35 Q140 30 145 45 Q135 55 120 65 Q100 80 85 75 Z" 
+        fill="url(#griffinGradientLarge)" 
+        stroke="#1a252f" 
+        stroke-width="2.5"/>
+  
+  <!-- Right wing feather details (multiple layers) -->
+  <path d="M90 70 Q105 50 120 45 M92 75 Q107 55 122 50 M94 80 Q109 60 124 55 M96 85 Q111 65 126 60" 
+        stroke="#1a252f" 
+        stroke-width="2" 
+        opacity="0.8"/>
+  
+  <!-- Additional right wing feather texture -->
+  <path d="M88 72 Q102 53 115 48 M90 77 Q104 58 117 53 M92 82 Q106 63 119 58" 
+        stroke="#1a252f" 
+        stroke-width="1.5" 
+        opacity="0.6"/>
+  
+  <!-- Front legs with detailed claws (eagle-like) -->
+  <path d="M70 100 Q65 110 60 130 Q55 140 50 150" 
+        stroke="#1a252f" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <path d="M80 100 Q75 110 70 130 Q65 140 60 150" 
+        stroke="#1a252f" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <!-- Detailed front claws -->
+  <path d="M50 150 Q45 155 40 150 M50 150 Q45 160 50 160 M50 150 Q48 165 52 165 M60 150 Q55 155 50 150 M60 150 Q55 160 60 160 M60 150 Q58 165 62 165" 
+        stroke="#1a252f" 
         stroke-width="3" 
         stroke-linecap="round"/>
   
-  <!-- Highlight overlay -->
-  <path d="M75 95 Q85 75 95 95 Q105 85 115 95 Q110 105 95 100 Q85 105 75 95 Z" 
+  <!-- Back legs (lion-like) -->
+  <path d="M90 120 Q85 130 80 140 Q75 145 70 155" 
+        stroke="#1a252f" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <path d="M100 120 Q95 130 90 140 Q85 145 80 155" 
+        stroke="#1a252f" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <!-- Detailed back claws -->
+  <path d="M70 155 Q65 160 60 155 M70 155 Q65 165 70 165 M80 155 Q75 160 70 155 M80 155 Q75 165 80 165" 
+        stroke="#1a252f" 
+        stroke-width="3" 
+        stroke-linecap="round"/>
+  
+  <!-- Flowing curved tail with detail -->
+  <path d="M100 130 Q110 120 120 130 Q130 140 125 150 Q120 160 110 155 Q105 145 100 135" 
+        fill="none" 
+        stroke="#1a252f" 
+        stroke-width="5" 
+        stroke-linecap="round"/>
+  
+  <!-- Tail continuation and curve -->
+  <path d="M120 150 Q130 155 135 160 Q140 165 135 170 Q130 175 125 170 Q120 165 115 160" 
+        fill="none" 
+        stroke="#1a252f" 
+        stroke-width="4" 
+        stroke-linecap="round"/>
+  
+  <!-- Tail tuft/end detail -->
+  <path d="M135 165 Q140 170 145 165 Q150 160 145 155 Q140 150 135 155" 
+        fill="none" 
+        stroke="#1a252f" 
+        stroke-width="3" 
+        stroke-linecap="round"/>
+  
+  <!-- Body texture/fur lines -->
+  <path d="M75 95 Q80 90 85 95 M72 105 Q77 100 82 105 M76 115 Q81 110 86 115" 
+        stroke="#1a252f" 
+        stroke-width="1.5" 
+        opacity="0.4"/>
+  
+  <!-- Highlight overlay on head -->
+  <path d="M75 70 Q80 50 85 70 Q90 60 95 70 Q100 75 95 80 Q85 75 75 70 Z" 
         fill="url(#highlight)"/>
   
 </svg>
