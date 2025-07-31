@@ -955,7 +955,7 @@ function ChessApp() {
       
       // Create new position by making the move
       const newPosition = { ...gameState.position };
-      const movingPiece = newPosition[fromSquare];
+      const movingPiece = gameState.position[fromSquare];
       newPosition[toSquare] = movingPiece;
       newPosition[fromSquare] = '';
       
@@ -983,7 +983,6 @@ function ChessApp() {
       const winner = nextPlayerInCheckmate ? gameState.currentPlayer : null;
       
       // 50-move rule logic
-      const movingPiece = gameState.position[fromSquare];
       const capturedPiece = gameState.position[toSquare];
       const isPawnMove = movingPiece && (movingPiece.includes('pawn') || movingPiece === '♙' || movingPiece === '♟');
       const isCapture = capturedPiece && capturedPiece !== '';
