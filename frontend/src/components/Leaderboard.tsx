@@ -322,12 +322,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
         {/* Stats Headers */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: isMobile ? '0.5rem' : '1.5rem',
-          minWidth: isMobile ? '150px' : '240px'
+          display: 'flex',
+          justifyContent: 'space-between',
+          width: isMobile ? '180px' : '280px'
         }}>
           <div style={{ 
+            width: isMobile ? '50px' : '70px',
             textAlign: 'center',
             display: 'flex',
             alignItems: 'center',
@@ -345,6 +345,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             </div>
           </div>
           <div style={{ 
+            width: isMobile ? '50px' : '70px',
             textAlign: 'center',
             display: 'flex',
             alignItems: 'center',
@@ -362,6 +363,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             </div>
           </div>
           <div style={{ 
+            width: isMobile ? '80px' : '140px',
             textAlign: 'center',
             display: 'flex',
             alignItems: 'center',
@@ -434,13 +436,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
             {/* Stats Grid */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: isMobile ? '0.5rem' : '1.5rem',
-              minWidth: isMobile ? '150px' : '240px'
+              display: 'flex',
+              justifyContent: 'space-between',
+              width: isMobile ? '180px' : '280px'
             }}>
               {/* Games Won */}
               <div style={{ 
+                width: isMobile ? '50px' : '70px',
                 textAlign: 'center',
                 display: 'flex',
                 alignItems: 'center',
@@ -458,6 +460,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
               {/* Win Rate */}
               <div style={{ 
+                width: isMobile ? '50px' : '70px',
                 textAlign: 'center',
                 display: 'flex',
                 alignItems: 'center',
@@ -475,6 +478,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
               {/* Net Earnings */}
               <div style={{ 
+                width: isMobile ? '80px' : '140px',
                 textAlign: 'center',
                 display: 'flex',
                 alignItems: 'center',
