@@ -182,26 +182,12 @@ export const Header: React.FC<HeaderProps> = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: isMobile ? '4px' : '12px',
-          flexShrink: 1, // Allow shrinking on mobile
+          gap: isMobile ? '6px' : '12px',
+          flexShrink: 0, // Prevent shrinking
           minWidth: 0 // Allow content to shrink
         }}>
           
-          {/* Balance Display */}
-          {connected && typeof balance === 'number' && (
-            <div style={{
-              padding: isMobile ? '3px 6px' : '4px 8px',
-              backgroundColor: `${theme.success}20`,
-              color: theme.success,
-              borderRadius: '12px',
-              fontSize: isDesktopLayout ? '12px' : '10px',
-              fontWeight: '600',
-              border: `1px solid ${theme.success}40`,
-              whiteSpace: 'nowrap'
-            }}>
-              {balance.toFixed(3)} SOL
-            </div>
-          )}
+
 
           {/* Room ID Display */}
           {roomId && currentView !== 'menu' && !isMobile && (
@@ -227,19 +213,19 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Wallet Button */}
           <div style={{
             fontSize: isDesktopLayout ? '14px' : '11px',
-            flexShrink: 1,
-            maxWidth: isMobile ? '90px' : 'none' // Limit width on mobile
+            flexShrink: 0,
+            maxWidth: isMobile ? '120px' : 'none' // Limit width on mobile
           }}>
             <WalletMultiButton style={{
               backgroundColor: connected ? theme.success : theme.primary,
               borderRadius: '8px',
               height: isDesktopLayout ? '40px' : '32px',
-              fontSize: isDesktopLayout ? '14px' : '10px',
+              fontSize: isDesktopLayout ? '14px' : '11px',
               fontWeight: 'bold',
               border: 'none',
               transition: 'all 0.2s ease',
-              padding: isMobile ? '4px 6px' : '8px 12px',
-              maxWidth: isMobile ? '90px' : 'none',
+              padding: isMobile ? '6px 8px' : '8px 12px',
+              maxWidth: isMobile ? '120px' : 'none',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
