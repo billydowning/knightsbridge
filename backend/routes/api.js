@@ -1470,7 +1470,7 @@ router.post('/games/:roomId/complete', async (req, res) => {
           best_win_streak = CASE WHEN $2 > 0 AND current_win_streak + 1 > best_win_streak THEN current_win_streak + 1 ELSE best_win_streak END,
           updated_at = NOW()
         WHERE wallet_address = $1
-      `, [whiteWallet, whiteWins, whiteDraws, Math.max(0, whiteWinnings), Math.max(0, -whiteWinnings), whiteWins]);
+      `, [whiteWallet, whiteWins, whiteDraws, Math.max(0, whiteWinnings), Math.max(0, -whiteWinnings)]);
     }
     
     // Update black player stats if wallet exists
@@ -1486,7 +1486,7 @@ router.post('/games/:roomId/complete', async (req, res) => {
           best_win_streak = CASE WHEN $2 > 0 AND current_win_streak + 1 > best_win_streak THEN current_win_streak + 1 ELSE best_win_streak END,
           updated_at = NOW()
         WHERE wallet_address = $1
-      `, [blackWallet, blackWins, blackDraws, Math.max(0, blackWinnings), Math.max(0, -blackWinnings), blackWins]);
+      `, [blackWallet, blackWins, blackDraws, Math.max(0, blackWinnings), Math.max(0, -blackWinnings)]);
     }
     
     // Update game state to finished
