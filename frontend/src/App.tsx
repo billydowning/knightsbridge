@@ -256,6 +256,11 @@ function ChessApp() {
   const [appLoading, setAppLoading] = useState<boolean>(false);
   const [roomStatus, setRoomStatus] = useState<any>(null);
   
+  // Leaderboard state
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState<boolean>(false);
+  const [leaderboardError, setLeaderboardError] = useState<string>('');
+  
   // Multiplayer state tracking
   const [opponentEscrowCreated, setOpponentEscrowCreated] = useState<boolean>(false);
   const [bothEscrowsReady, setBothEscrowsReady] = useState<boolean>(false);
@@ -389,6 +394,13 @@ function ChessApp() {
       setGameStatus(`Balance: ${balance.toFixed(3)} SOL`);
     }
   }, [balance, connected]);
+
+  // Fetch leaderboard when app loads or returns to menu
+  useEffect(() => {
+    if (gameMode === 'menu') {
+      fetchLeaderboard();
+    }
+  }, [gameMode]);
 
   // Check if both escrows are ready and start game
   useEffect(() => {
@@ -1279,6 +1291,38 @@ function ChessApp() {
     } catch (error) {
       console.error('❌ Connection test error:', error);
       setGameStatus(`❌ Connection test error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Fetch leaderboard data
+  const fetchLeaderboard = async () => {
+    try {
+      setLeaderboardLoading(true);
+      setLeaderboardError('');
+      
+      console.log('🏆 Fetching leaderboard data...');
+      
+      const response = await fetch(`${ENV_CONFIG.API_BASE_URL}/api/leaderboard`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log(`✅ Loaded ${data.leaderboard.length} leaderboard entries`);
+        setLeaderboard(data.leaderboard || []);
+      } else {
+        throw new Error(data.error || 'Failed to fetch leaderboard');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error fetching leaderboard:', error);
+      setLeaderboardError(error instanceof Error ? error.message : 'Failed to load leaderboard');
+      setLeaderboard([]);
+    } finally {
+      setLeaderboardLoading(false);
     }
   };
 
@@ -2283,6 +2327,9 @@ function ChessApp() {
             balance={balance}
             connected={connected}
             isLoading={appLoading}
+            leaderboard={leaderboard}
+            leaderboardLoading={leaderboardLoading}
+            leaderboardError={leaderboardError}
           />
         );
       

@@ -6,6 +6,7 @@
 import React from 'react';
 import { useTheme } from '../App';
 import { useContainerWidth, useTextSizes, useIsMobile, useIsLaptopOrLarger, useIsMacBookAir, useIsDesktopLayout } from '../utils/responsive';
+import { Leaderboard } from './Leaderboard';
 
 export interface MenuViewProps {
   roomId: string;
@@ -18,6 +19,9 @@ export interface MenuViewProps {
   connected: boolean;
   isLoading: boolean;
   onJoinRoom: () => void;
+  leaderboard: any[];
+  leaderboardLoading: boolean;
+  leaderboardError: string;
 }
 
 export const MenuView: React.FC<MenuViewProps> = ({
@@ -30,7 +34,10 @@ export const MenuView: React.FC<MenuViewProps> = ({
   balance,
   connected,
   isLoading,
-  onJoinRoom
+  onJoinRoom,
+  leaderboard,
+  leaderboardLoading,
+  leaderboardError
 }) => {
   const { theme } = useTheme();
   const presetBetAmounts = [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10, 50, 100];
@@ -707,6 +714,13 @@ export const MenuView: React.FC<MenuViewProps> = ({
           </div>
         )}
       </section>
+
+      {/* Leaderboard Section */}
+      <Leaderboard
+        leaderboard={leaderboard}
+        isLoading={leaderboardLoading}
+        error={leaderboardError}
+      />
 
       {/* How to Play Section */}
       <section style={{ 

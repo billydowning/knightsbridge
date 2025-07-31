@@ -12,6 +12,88 @@ router.get('/health', (req, res) => {
 });
 
 // ========================================
+// LEADERBOARD
+// ========================================
+
+// Get leaderboard data
+router.get('/leaderboard', async (req, res) => {
+  try {
+    console.log('🏆 Fetching leaderboard data...');
+    const pool = getPool();
+    
+    // Get top players with their stats
+    const result = await pool.query(`
+      SELECT 
+        wallet_address,
+        username,
+        games_played,
+        games_won,
+        games_drawn,
+        (games_played - games_won - games_drawn) as games_lost,
+        CASE 
+          WHEN games_played > 0 
+          THEN ROUND((games_won::DECIMAL / games_played::DECIMAL) * 100, 1)
+          ELSE 0 
+        END as win_percentage,
+        total_winnings,
+        total_losses,
+        (total_winnings - total_losses) as net_earnings,
+        current_win_streak,
+        best_win_streak,
+        rating_rapid,
+        rating_blitz,
+        rating_bullet,
+        last_active
+      FROM users 
+      WHERE games_played > 0 
+      ORDER BY 
+        games_won DESC, 
+        win_percentage DESC, 
+        total_winnings DESC
+      LIMIT 20
+    `);
+    
+    console.log(`✅ Found ${result.rows.length} players for leaderboard`);
+    
+    // Format the data for frontend
+    const leaderboard = result.rows.map((player, index) => ({
+      rank: index + 1,
+      wallet: player.wallet_address,
+      username: player.username || `Player ${player.wallet_address.slice(0, 6)}...`,
+      gamesPlayed: parseInt(player.games_played),
+      gamesWon: parseInt(player.games_won),
+      gamesDrawn: parseInt(player.games_drawn),
+      gamesLost: parseInt(player.games_lost),
+      winPercentage: parseFloat(player.win_percentage),
+      totalWinnings: parseFloat(player.total_winnings || 0),
+      totalLosses: parseFloat(player.total_losses || 0),
+      netEarnings: parseFloat(player.net_earnings || 0),
+      currentStreak: parseInt(player.current_win_streak || 0),
+      bestStreak: parseInt(player.best_win_streak || 0),
+      ratingRapid: parseInt(player.rating_rapid || 1200),
+      ratingBlitz: parseInt(player.rating_blitz || 1200),
+      ratingBullet: parseInt(player.rating_bullet || 1200),
+      lastActive: player.last_active
+    }));
+    
+    res.json({
+      success: true,
+      leaderboard,
+      totalPlayers: result.rows.length,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching leaderboard:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch leaderboard data',
+      details: error.message 
+    });
+  }
+});
+
+// ========================================
 // ROOM MANAGEMENT (for HTTP fallback)
 // ========================================
 

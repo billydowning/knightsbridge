@@ -1,436 +1,461 @@
 /**
  * Leaderboard Component
- * Displays player rankings, statistics, and achievements
+ * Displays top players with their statistics
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useTheme } from '../App';
+import { useIsDesktopLayout, useIsMobile } from '../utils/responsive';
 
-export interface PlayerStats {
-  id: string;
+export interface LeaderboardPlayer {
+  rank: number;
   wallet: string;
-  name: string;
-  rating: number;
+  username: string;
   gamesPlayed: number;
-  wins: number;
-  losses: number;
-  draws: number;
-  winRate: number;
-  totalEarnings: number;
-  bestWinStreak: number;
+  gamesWon: number;
+  gamesDrawn: number;
+  gamesLost: number;
+  winPercentage: number;
+  totalWinnings: number;
+  totalLosses: number;
+  netEarnings: number;
   currentStreak: number;
-  achievements: Achievement[];
-  lastActive: Date;
-}
-
-export interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  unlockedAt: Date;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  bestStreak: number;
+  ratingRapid: number;
+  ratingBlitz: number;
+  ratingBullet: number;
+  lastActive: string;
 }
 
 export interface LeaderboardProps {
-  players: PlayerStats[];
-  currentUser?: string;
-  onPlayerClick?: (playerId: string) => void;
+  leaderboard: LeaderboardPlayer[];
+  isLoading: boolean;
+  error?: string;
 }
 
 export const Leaderboard: React.FC<LeaderboardProps> = ({
-  players,
-  currentUser,
-  onPlayerClick
+  leaderboard,
+  isLoading,
+  error
 }) => {
-  const [sortBy, setSortBy] = useState<'rating' | 'wins' | 'earnings' | 'winRate'>('rating');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [filterBy, setFilterBy] = useState<'all' | 'active' | 'top10'>('all');
+  const { theme } = useTheme();
+  const isDesktopLayout = useIsDesktopLayout();
+  const isMobile = useIsMobile();
 
-  // Mock data for demonstration
-  useEffect(() => {
-    if (players.length === 0) {
-      // Generate mock data
-      const mockPlayers: PlayerStats[] = [
-        {
-          id: '1',
-          wallet: 'UFGCHLdHGYQDwCag4iUTTYmvTyayvdjo9BsbDBs56r1',
-          name: 'Grandmaster_Chess',
-          rating: 2850,
-          gamesPlayed: 156,
-          wins: 134,
-          losses: 12,
-          draws: 10,
-          winRate: 85.9,
-          totalEarnings: 125.5,
-          bestWinStreak: 23,
-          currentStreak: 8,
-          achievements: [
-            {
-              id: '1',
-              name: 'First Win',
-              description: 'Win your first game',
-              icon: '🏆',
-              unlockedAt: new Date('2024-01-15'),
-              rarity: 'common'
-            },
-            {
-              id: '2',
-              name: 'Win Streak',
-              description: 'Win 10 games in a row',
-              icon: '🔥',
-              unlockedAt: new Date('2024-02-01'),
-              rarity: 'rare'
-            }
-          ],
-          lastActive: new Date()
-        },
-        {
-          id: '2',
-          wallet: 'ABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234',
-          name: 'BlitzMaster',
-          rating: 2720,
-          gamesPlayed: 89,
-          wins: 76,
-          losses: 8,
-          draws: 5,
-          winRate: 85.4,
-          totalEarnings: 98.3,
-          bestWinStreak: 15,
-          currentStreak: 3,
-          achievements: [
-            {
-              id: '1',
-              name: 'Speed Demon',
-              description: 'Win 5 blitz games in a row',
-              icon: '⚡',
-              unlockedAt: new Date('2024-01-20'),
-              rarity: 'epic'
-            }
-          ],
-          lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
-        },
-        {
-          id: '3',
-          wallet: 'XYZ789ABC123DEF456GHI789JKL012MNO345PQR678STU901',
-          name: 'PawnPusher',
-          rating: 2450,
-          gamesPlayed: 203,
-          wins: 156,
-          losses: 32,
-          draws: 15,
-          winRate: 76.8,
-          totalEarnings: 67.2,
-          bestWinStreak: 12,
-          currentStreak: 1,
-          achievements: [],
-          lastActive: new Date(Date.now() - 24 * 60 * 60 * 1000) // 1 day ago
-        }
-      ];
-      
-      // Update the players state (in real app, this would be passed as prop)
-    }
-  }, [players]);
-
-  const sortedPlayers = [...players].sort((a, b) => {
-    let aValue: number;
-    let bValue: number;
-    
-    switch (sortBy) {
-      case 'rating':
-        aValue = a.rating;
-        bValue = b.rating;
-        break;
-      case 'wins':
-        aValue = a.wins;
-        bValue = b.wins;
-        break;
-      case 'earnings':
-        aValue = a.totalEarnings;
-        bValue = b.totalEarnings;
-        break;
-      case 'winRate':
-        aValue = a.winRate;
-        bValue = b.winRate;
-        break;
-      default:
-        aValue = a.rating;
-        bValue = b.rating;
-    }
-    
-    return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
-  });
-
-  const filteredPlayers = sortedPlayers.filter(player => {
-    switch (filterBy) {
-      case 'active':
-        return new Date().getTime() - player.lastActive.getTime() < 24 * 60 * 60 * 1000; // Active in last 24h
-      case 'top10':
-        return sortedPlayers.indexOf(player) < 10;
-      default:
-        return true;
-    }
-  });
-
-  const getRankColor = (rank: number): string => {
-    if (rank === 1) return '#FFD700'; // Gold
-    if (rank === 2) return '#C0C0C0'; // Silver
-    if (rank === 3) return '#CD7F32'; // Bronze
-    return '#666';
-  };
-
-  const getAchievementRarityColor = (rarity: Achievement['rarity']): string => {
-    switch (rarity) {
-      case 'common': return '#6c757d';
-      case 'rare': return '#007bff';
-      case 'epic': return '#6f42c1';
-      case 'legendary': return '#fd7e14';
-      default: return '#6c757d';
+  const getRankIcon = (rank: number): string => {
+    switch (rank) {
+      case 1: return '🥇';
+      case 2: return '🥈';
+      case 3: return '🥉';
+      default: return `#${rank}`;
     }
   };
 
-  const formatLastActive = (date: Date): string => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
+  const formatSOL = (amount: number): string => {
+    if (amount === 0) return '0 SOL';
+    if (amount < 0.001) return '<0.001 SOL';
+    return `${amount.toFixed(3)} SOL`;
   };
+
+  const formatWinRate = (percentage: number): string => {
+    return `${percentage.toFixed(1)}%`;
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{
+        backgroundColor: theme.surface,
+        padding: isDesktopLayout ? '3rem' : '1.5rem',
+        borderRadius: isDesktopLayout ? '16px' : '12px',
+        boxShadow: theme.shadow,
+        border: `1px solid ${theme.border}`,
+        maxWidth: isDesktopLayout ? '800px' : '100%',
+        width: '100%',
+        margin: '0 auto',
+        marginBottom: isDesktopLayout ? '2rem' : '1.5rem',
+        boxSizing: 'border-box',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+          <h2 style={{ 
+            margin: 0, 
+            color: theme.text,
+            fontSize: isDesktopLayout ? '1.5rem' : '1.25rem',
+            fontWeight: '600'
+          }}>
+            🏆 Leaderboard
+          </h2>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+        </div>
+        <div style={{
+          color: theme.textSecondary,
+          fontSize: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>⏳</span>
+          Loading leaderboard...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        backgroundColor: theme.surface,
+        padding: isDesktopLayout ? '3rem' : '1.5rem',
+        borderRadius: isDesktopLayout ? '16px' : '12px',
+        boxShadow: theme.shadow,
+        border: `1px solid ${theme.border}`,
+        maxWidth: isDesktopLayout ? '800px' : '100%',
+        width: '100%',
+        margin: '0 auto',
+        marginBottom: isDesktopLayout ? '2rem' : '1.5rem',
+        boxSizing: 'border-box',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+          <h2 style={{ 
+            margin: 0, 
+            color: theme.text,
+            fontSize: isDesktopLayout ? '1.5rem' : '1.25rem',
+            fontWeight: '600'
+          }}>
+            🏆 Leaderboard
+          </h2>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+        </div>
+        <div style={{
+          color: theme.warning,
+          padding: '1rem',
+          backgroundColor: `${theme.warning}10`,
+          borderRadius: '8px',
+          border: `1px solid ${theme.warning}40`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.75rem'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>⚠️</span>
+          <div>Failed to load leaderboard</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!leaderboard || leaderboard.length === 0) {
+    return (
+      <div style={{
+        backgroundColor: theme.surface,
+        padding: isDesktopLayout ? '3rem' : '1.5rem',
+        borderRadius: isDesktopLayout ? '16px' : '12px',
+        boxShadow: theme.shadow,
+        border: `1px solid ${theme.border}`,
+        maxWidth: isDesktopLayout ? '800px' : '100%',
+        width: '100%',
+        margin: '0 auto',
+        marginBottom: isDesktopLayout ? '2rem' : '1.5rem',
+        boxSizing: 'border-box',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+          <h2 style={{ 
+            margin: 0, 
+            color: theme.text,
+            fontSize: isDesktopLayout ? '1.5rem' : '1.25rem',
+            fontWeight: '600'
+          }}>
+            🏆 Leaderboard
+          </h2>
+          <div style={{
+            width: '3px',
+            height: '40px',
+            backgroundColor: theme.primary,
+            borderRadius: '2px'
+          }} />
+        </div>
+        <div style={{
+          color: theme.textSecondary,
+          fontSize: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>🎯</span>
+          No games played yet. Be the first to compete!
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>🏆 Leaderboard</h2>
-        
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {/* Filter Controls */}
-          <select
-            value={filterBy}
-            onChange={(e) => setFilterBy(e.target.value as any)}
-            style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-          >
-            <option value="all">All Players</option>
-            <option value="active">Active (24h)</option>
-            <option value="top10">Top 10</option>
-          </select>
-          
-          {/* Sort Controls */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-          >
-            <option value="rating">Rating</option>
-            <option value="wins">Wins</option>
-            <option value="earnings">Earnings</option>
-            <option value="winRate">Win Rate</option>
-          </select>
-          
-          <button
-            onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+    <div style={{
+      backgroundColor: theme.surface,
+      padding: isDesktopLayout ? '3rem' : '1.5rem',
+      borderRadius: isDesktopLayout ? '16px' : '12px',
+      boxShadow: theme.shadow,
+      border: `1px solid ${theme.border}`,
+      maxWidth: isDesktopLayout ? '800px' : '100%',
+      width: '100%',
+      margin: '0 auto',
+      marginBottom: isDesktopLayout ? '2rem' : '1.5rem',
+      boxSizing: 'border-box'
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '1rem',
+        marginBottom: '2rem'
+      }}>
+        <div style={{
+          width: '3px',
+          height: '40px',
+          backgroundColor: theme.primary,
+          borderRadius: '2px'
+        }} />
+        <h2 style={{ 
+          margin: 0, 
+          color: theme.text,
+          fontSize: isDesktopLayout ? '1.5rem' : '1.25rem',
+          fontWeight: '600'
+        }}>
+          🏆 Leaderboard
+        </h2>
+        <div style={{
+          width: '3px',
+          height: '40px',
+          backgroundColor: theme.primary,
+          borderRadius: '2px'
+        }} />
+      </div>
+
+      {/* Players List */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: isMobile ? '0.75rem' : '1rem'
+      }}>
+        {leaderboard.slice(0, 10).map((player) => (
+          <div
+            key={player.wallet}
             style={{
-              padding: '8px 12px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
+              display: 'flex',
+              alignItems: 'center',
+              padding: isMobile ? '1rem 0.75rem' : '1.25rem 1.5rem',
+              backgroundColor: player.rank <= 3 
+                ? `${theme.primary}08` 
+                : theme.background,
+              border: player.rank <= 3 
+                ? `1px solid ${theme.primary}20` 
+                : `1px solid ${theme.border}`,
+              borderRadius: '12px',
+              transition: 'all 0.2s ease',
+              gap: isMobile ? '0.75rem' : '1rem'
             }}
           >
-            {sortOrder === 'desc' ? '↓' : '↑'}
-          </button>
-        </div>
-      </div>
+            {/* Rank */}
+            <div style={{
+              minWidth: isMobile ? '40px' : '50px',
+              textAlign: 'center',
+              fontSize: isMobile ? '1rem' : '1.25rem',
+              fontWeight: '700',
+              color: player.rank <= 3 ? theme.primary : theme.text
+            }}>
+              {getRankIcon(player.rank)}
+            </div>
 
-      {/* Leaderboard Table */}
-      <div style={{ 
-        backgroundColor: 'white', 
-        borderRadius: '8px', 
-        overflow: 'hidden',
-        border: '1px solid #dee2e6'
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#f8f9fa' }}>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Rank</th>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Player</th>
-              <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>Rating</th>
-              <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>Games</th>
-              <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>Wins</th>
-              <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>Win Rate</th>
-              <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>Earnings</th>
-              <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>Streak</th>
-              <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>Last Active</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPlayers.map((player, index) => (
-              <tr
-                key={player.id}
-                style={{
-                  backgroundColor: player.wallet === currentUser ? '#e3f2fd' : 'white',
-                  cursor: onPlayerClick ? 'pointer' : 'default',
-                  transition: 'background-color 0.2s'
-                }}
-                onClick={() => onPlayerClick?.(player.id)}
-                onMouseEnter={(e) => {
-                  if (onPlayerClick) {
-                    e.currentTarget.style.backgroundColor = player.wallet === currentUser ? '#bbdefb' : '#f5f5f5';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (onPlayerClick) {
-                    e.currentTarget.style.backgroundColor = player.wallet === currentUser ? '#e3f2fd' : 'white';
-                  }
-                }}
-              >
-                <td style={{ padding: '12px', borderBottom: '1px solid #dee2e6' }}>
-                  <span style={{ 
-                    fontWeight: 'bold', 
-                    color: getRankColor(index + 1),
-                    fontSize: '16px'
+            {/* Player Info */}
+            <div style={{
+              flex: 1,
+              minWidth: 0 // Allow text to truncate
+            }}>
+              <div style={{
+                fontSize: isMobile ? '0.9rem' : '1rem',
+                fontWeight: '600',
+                color: theme.text,
+                marginBottom: '0.25rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {player.username}
+              </div>
+              <div style={{
+                fontSize: isMobile ? '0.75rem' : '0.8rem',
+                color: theme.textSecondary,
+                fontFamily: 'monospace',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {player.wallet.slice(0, 8)}...{player.wallet.slice(-4)}
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+              gap: isMobile ? '0.5rem' : '1rem',
+              minWidth: isMobile ? '120px' : '200px'
+            }}>
+              {/* Games Won */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontSize: isMobile ? '0.7rem' : '0.75rem',
+                  color: theme.textSecondary,
+                  marginBottom: '0.125rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.3px'
+                }}>
+                  Wins
+                </div>
+                <div style={{
+                  fontSize: isMobile ? '0.9rem' : '1rem',
+                  fontWeight: '700',
+                  color: theme.primary
+                }}>
+                  {player.gamesWon}
+                </div>
+              </div>
+
+              {/* Win Rate */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontSize: isMobile ? '0.7rem' : '0.75rem',
+                  color: theme.textSecondary,
+                  marginBottom: '0.125rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.3px'
+                }}>
+                  Rate
+                </div>
+                <div style={{
+                  fontSize: isMobile ? '0.9rem' : '1rem',
+                  fontWeight: '700',
+                  color: player.winPercentage >= 60 ? '#4ECDC4' : theme.text
+                }}>
+                  {formatWinRate(player.winPercentage)}
+                </div>
+              </div>
+
+              {/* Games Played (Desktop only) */}
+              {!isMobile && (
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: theme.textSecondary,
+                    marginBottom: '0.125rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.3px'
                   }}>
-                    #{index + 1}
-                  </span>
-                </td>
-                <td style={{ padding: '12px', borderBottom: '1px solid #dee2e6' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div>
-                      <div style={{ fontWeight: 'bold', color: '#495057' }}>
-                        {player.name}
-                        {player.wallet === currentUser && (
-                          <span style={{ marginLeft: '5px', color: '#007bff' }}>👤</span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#6c757d' }}>
-                        {player.wallet.substring(0, 8)}...{player.wallet.substring(player.wallet.length - 8)}
-                      </div>
-                    </div>
-                    {player.achievements.length > 0 && (
-                      <div style={{ display: 'flex', gap: '2px' }}>
-                        {player.achievements.slice(0, 3).map(achievement => (
-                          <span
-                            key={achievement.id}
-                            title={`${achievement.name}: ${achievement.description}`}
-                            style={{
-                              fontSize: '14px',
-                              color: getAchievementRarityColor(achievement.rarity)
-                            }}
-                          >
-                            {achievement.icon}
-                          </span>
-                        ))}
-                        {player.achievements.length > 3 && (
-                          <span style={{ fontSize: '12px', color: '#6c757d' }}>
-                            +{player.achievements.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    Games
                   </div>
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6', fontWeight: 'bold' }}>
-                  {player.rating}
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>
-                  {player.gamesPlayed}
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>
-                  {player.wins}
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>
-                  <span style={{ 
-                    color: player.winRate >= 70 ? '#28a745' : player.winRate >= 50 ? '#ffc107' : '#dc3545',
-                    fontWeight: 'bold'
+                  <div style={{
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    color: theme.text
                   }}>
-                    {player.winRate.toFixed(1)}%
-                  </span>
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6', fontWeight: 'bold' }}>
-                  {player.totalEarnings.toFixed(1)} SOL
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6' }}>
-                  <span style={{ 
-                    color: player.currentStreak > 0 ? '#28a745' : '#dc3545',
-                    fontWeight: 'bold'
-                  }}>
-                    {player.currentStreak > 0 ? '+' : ''}{player.currentStreak}
-                  </span>
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #dee2e6', fontSize: '12px', color: '#6c757d' }}>
-                  {formatLastActive(player.lastActive)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    {player.gamesPlayed}
+                  </div>
+                </div>
+              )}
+
+              {/* Net Earnings */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontSize: isMobile ? '0.7rem' : '0.75rem',
+                  color: theme.textSecondary,
+                  marginBottom: '0.125rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.3px'
+                }}>
+                  Earned
+                </div>
+                <div style={{
+                  fontSize: isMobile ? '0.8rem' : '0.9rem',
+                  fontWeight: '700',
+                  color: player.netEarnings >= 0 ? '#4ECDC4' : theme.warning
+                }}>
+                  {formatSOL(player.netEarnings)}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Statistics Summary */}
-      <div style={{ 
-        marginTop: '20px', 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-        gap: '15px' 
+      {/* Footer */}
+      <div style={{
+        textAlign: 'center',
+        marginTop: '1.5rem',
+        padding: '1rem',
+        backgroundColor: theme.background,
+        borderRadius: '8px',
+        border: `1px solid ${theme.border}`
       }}>
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          border: '1px solid #dee2e6',
-          textAlign: 'center'
+        <div style={{
+          fontSize: isMobile ? '0.8rem' : '0.9rem',
+          color: theme.textSecondary,
+          fontStyle: 'italic'
         }}>
-          <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>Total Players</h4>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#007bff' }}>
-            {players.length}
-          </div>
-        </div>
-        
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          border: '1px solid #dee2e6',
-          textAlign: 'center'
-        }}>
-          <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>Active Players</h4>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>
-            {players.filter(p => new Date().getTime() - p.lastActive.getTime() < 24 * 60 * 60 * 1000).length}
-          </div>
-        </div>
-        
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          border: '1px solid #dee2e6',
-          textAlign: 'center'
-        }}>
-          <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>Total Games</h4>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107' }}>
-            {players.reduce((sum, p) => sum + p.gamesPlayed, 0)}
-          </div>
-        </div>
-        
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          border: '1px solid #dee2e6',
-          textAlign: 'center'
-        }}>
-          <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>Total Earnings</h4>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>
-            {players.reduce((sum, p) => sum + p.totalEarnings, 0).toFixed(1)} SOL
-          </div>
+          Showing top {Math.min(leaderboard.length, 10)} players • Updated in real-time
         </div>
       </div>
     </div>
   );
 };
 
-export default Leaderboard; 
+export default Leaderboard;
