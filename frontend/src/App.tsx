@@ -437,6 +437,68 @@ function ChessApp() {
     }
   }, [gameMode]);
 
+  // Initial reconnection check when app loads with URL parameters
+  useEffect(() => {
+    // Only run on initial load if we have room parameters from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRoomId = urlParams.get('room');
+    const urlRole = urlParams.get('role');
+    
+    if (urlRoomId && urlRole && connected && publicKey && gameMode === 'menu') {
+      // Small delay to ensure all initial state is set
+      const timeoutId = setTimeout(async () => {
+        try {
+          setGameStatus('🔄 Checking for active game...');
+          
+          const gameState = await databaseMultiplayerState.getGameState(urlRoomId);
+          const roomStatus = await databaseMultiplayerState.getRoomStatus(urlRoomId);
+          
+          // SAFE RECONNECTION: Only reconnect if all conditions are met
+          if (gameState && gameState.gameActive && roomStatus) {
+            // Validate wallet matches room role (critical security check)
+            const isValidPlayer = validateWalletForRole(roomStatus, urlRole as 'white' | 'black', publicKey.toString());
+            
+            if (isValidPlayer) {
+              // Additional safety: Only reconnect to games that have started properly
+              const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
+              const gameNotFinished = !gameState.winner && !gameState.draw;
+              
+              if (bothPlayersPresent && gameNotFinished) {
+                // Safe to reconnect - restore game state
+                setGameState(gameState);
+                setGameMode('game');
+                setGameStatus(`🔄 Reconnected to game! You are ${urlRole}.`);
+                console.log('✅ Successfully reconnected to active game from URL:', urlRoomId);
+                return;
+              } else {
+                // Game exists but not active - go to lobby
+                setGameMode('lobby');
+                setGameStatus(`Rejoined room ${urlRoomId}. Waiting for opponent...`);
+                return;
+              }
+            } else {
+              // Wallet mismatch - show warning
+              const mismatchMsg = getWalletMismatchMessage(roomStatus, urlRole as 'white' | 'black', publicKey.toString());
+              if (mismatchMsg) {
+                setGameStatus(mismatchMsg);
+                return;
+              }
+            }
+          }
+          
+          // No active game found - stay in menu but with room ID populated for easy joining
+          setGameStatus('Welcome to Knightsbridge Chess!');
+          
+        } catch (error) {
+          console.error('Error during initial reconnection check:', error);
+          setGameStatus('Welcome to Knightsbridge Chess!');
+        }
+      }, 1000); // 1 second delay for initial load
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [connected, publicKey, gameMode]); // Only run when these change
+
   // Check if both escrows are ready and start game
   useEffect(() => {
     if (bothEscrowsReady && gameMode === 'lobby') {
@@ -2505,17 +2567,54 @@ function ChessApp() {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const checkGameState = async () => {
         try {
-          const gameState = await databaseMultiplayerState.getGameState(roomId);
-          // DISABLED: Auto-switch to game mode based on database state
-          // This was causing premature game start before deposits
-          /*
-          if (gameState && gameState.gameActive) {
-            setGameMode('game');
+          // Show reconnection status
+          if (gameMode === 'menu') {
+            setGameStatus('🔄 Checking for active game...');
           }
-          */
-          console.log('🔍 Reconnection game state check (disabled):', { gameState: gameState?.gameActive });
+          
+          const gameState = await databaseMultiplayerState.getGameState(roomId);
+          const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+          
+          // SAFE RECONNECTION: Only reconnect if all conditions are met
+          if (gameState && gameState.gameActive && connected && publicKey && roomStatus) {
+            // Validate wallet matches room role (critical security check)
+            const isValidPlayer = validateWalletForRole(roomStatus, playerRole, publicKey.toString());
+            
+            if (isValidPlayer) {
+              // Additional safety: Only reconnect to games that have started properly
+              const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
+              const gameHasMoves = gameState.moveHistory && gameState.moveHistory.length > 0;
+              const gameNotFinished = !gameState.winner && !gameState.draw;
+              
+              if (bothPlayersPresent && gameNotFinished) {
+                // Safe to reconnect - restore game state
+                setGameState(gameState);
+                setGameMode('game');
+                setGameStatus(`🔄 Reconnected to game! You are ${playerRole}.`);
+                console.log('✅ Successfully reconnected to active game:', roomId);
+                return;
+              }
+            } else {
+              // Wallet mismatch - show warning but don't break anything
+              const mismatchMsg = getWalletMismatchMessage(roomStatus, playerRole, publicKey.toString());
+              if (mismatchMsg) {
+                setGameStatus(mismatchMsg);
+                return;
+              }
+            }
+          }
+          
+          // No active game found or conditions not met - normal flow
+          if (gameMode === 'menu') {
+            setGameStatus('Welcome to Knightsbridge Chess!');
+          }
+          
         } catch (error) {
           console.error('Error checking game state:', error);
+          // Graceful fallback - don't break normal flow
+          if (gameMode === 'menu') {
+            setGameStatus('Welcome to Knightsbridge Chess!');
+          }
         }
       };
 
