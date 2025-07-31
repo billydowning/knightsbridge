@@ -997,6 +997,8 @@ function ChessApp() {
         gameActive: winner ? false : gameState.gameActive,
         halfmoveClock: newHalfmoveClock,
         canClaimFiftyMoveRule: canClaimFiftyMoveRule,
+        // Increment fullmoveNumber after black's move (chess standard)
+        fullmoveNumber: (gameState.fullmoveNumber || 1) + (gameState.currentPlayer === 'black' ? 1 : 0),
         lastUpdated: Date.now()
       };
       
