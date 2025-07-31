@@ -399,6 +399,14 @@ function ChessApp() {
   useEffect(() => {
     if (gameMode === 'menu') {
       fetchLeaderboard();
+      
+      // Set up periodic refresh every 30 seconds while on menu
+      const interval = setInterval(() => {
+        fetchLeaderboard();
+      }, 30000);
+      
+      // Cleanup interval when leaving menu
+      return () => clearInterval(interval);
     }
   }, [gameMode]);
 
@@ -1168,6 +1176,11 @@ function ChessApp() {
             'Your stake has been automatically refunded due to the draw! 🤝'
           );
         }
+        
+        // Refresh leaderboard after successful winnings claim (with delay to ensure backend stats are updated)
+        setTimeout(() => {
+          fetchLeaderboard();
+        }, 2000);
       } else {
         setGameStatus(`Failed to claim winnings: ${result}`);
       }
@@ -1200,6 +1213,11 @@ function ChessApp() {
         } else {
           console.error('❌ checkBalance function not available for already claimed winnings');
         }
+        
+        // Refresh leaderboard after confirming winnings already claimed (with delay to ensure backend stats are updated)
+        setTimeout(() => {
+          fetchLeaderboard();
+        }, 2000);
       } else {
         setGameStatus('Failed to claim winnings. Please try again.');
       }
@@ -1411,6 +1429,11 @@ function ChessApp() {
     setBothEscrowsReady(false);
     setHasDeposited(false);
     setGameStatus('Welcome to Knightsbridge Chess!');
+    
+    // Refresh leaderboard when returning to menu (with delay to ensure any pending backend operations complete)
+    setTimeout(() => {
+      fetchLeaderboard();
+    }, 1000);
   };
 
   // Test backend connection
