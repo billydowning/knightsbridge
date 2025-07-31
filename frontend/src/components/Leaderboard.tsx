@@ -327,47 +327,75 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           gap: isMobile ? '0.5rem' : '1rem',
           minWidth: isMobile ? '120px' : '200px'
         }}>
-          <div style={{
+          <div style={{ 
             textAlign: 'center',
-            fontSize: isMobile ? '0.7rem' : '0.75rem',
-            fontWeight: '600',
-            color: theme.textSecondary,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '2rem'
           }}>
-            Wins
-          </div>
-          <div style={{
-            textAlign: 'center',
-            fontSize: isMobile ? '0.7rem' : '0.75rem',
-            fontWeight: '600',
-            color: theme.textSecondary,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}>
-            Rate
-          </div>
-          {!isMobile && (
             <div style={{
-              textAlign: 'center',
-              fontSize: '0.75rem',
+              fontSize: isMobile ? '0.7rem' : '0.75rem',
               fontWeight: '600',
               color: theme.textSecondary,
               textTransform: 'uppercase',
               letterSpacing: '0.5px'
             }}>
-              Games
+              Wins
+            </div>
+          </div>
+          <div style={{ 
+            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '2rem'
+          }}>
+            <div style={{
+              fontSize: isMobile ? '0.7rem' : '0.75rem',
+              fontWeight: '600',
+              color: theme.textSecondary,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Rate
+            </div>
+          </div>
+          {!isMobile && (
+            <div style={{ 
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '2rem'
+            }}>
+              <div style={{
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                color: theme.textSecondary,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Games
+              </div>
             </div>
           )}
-          <div style={{
+          <div style={{ 
             textAlign: 'center',
-            fontSize: isMobile ? '0.7rem' : '0.75rem',
-            fontWeight: '600',
-            color: theme.textSecondary,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '2rem'
           }}>
-            Earned
+            <div style={{
+              fontSize: isMobile ? '0.7rem' : '0.75rem',
+              fontWeight: '600',
+              color: theme.textSecondary,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Earned
+            </div>
           </div>
         </div>
       </div>
