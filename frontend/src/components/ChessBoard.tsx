@@ -121,12 +121,12 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     if (isWhitePiece) {
       baseStyle.color = '#ffffff'; // Pure white
       baseStyle.textShadow = `
-        0 0 8px rgba(255,255,255,0.9),
-        0 0 4px rgba(255,255,255,0.7),
-        1px 1px 2px rgba(0,0,0,0.3),
-        -1px -1px 2px rgba(0,0,0,0.3)
-      `; // Solid white glow with minimal dark outline
-      baseStyle.filter = disabled ? 'grayscale(50%)' : 'drop-shadow(0 0 4px rgba(255,255,255,0.6))';
+        3px 3px 6px rgba(0,0,0,0.8),
+        0 0 3px rgba(0,0,0,0.9),
+        1px 1px 0 rgba(0,0,0,0.6),
+        -1px -1px 0 rgba(0,0,0,0.6)
+      `; // Multi-layered shadow for depth
+      baseStyle.filter = disabled ? 'grayscale(50%)' : 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))';
     } else if (isBlackPiece) {
       baseStyle.color = '#2c3e50'; // Imperial blue to match board theme
       baseStyle.textShadow = `
