@@ -287,7 +287,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         alignItems: 'center',
         padding: isMobile ? '1rem 0.75rem' : '1.25rem 1.5rem',
         marginBottom: '0.5rem',
-        borderBottom: `1px solid ${theme.border}`,
+        backgroundColor: theme.background,
+        border: `1px solid ${theme.border}`,
+        borderRadius: '12px',
         gap: isMobile ? '0.75rem' : '1rem'
       }}>
         {/* Rank Header */}
