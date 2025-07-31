@@ -306,6 +306,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         {/* Player Header */}
         <div style={{
           flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          alignItems: 'center', // Center align with the player data
           fontSize: isMobile ? '0.7rem' : '0.75rem',
           fontWeight: '600',
           color: theme.textSecondary,
