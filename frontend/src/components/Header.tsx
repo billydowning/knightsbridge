@@ -93,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Left: Logo and Branding */}
         <div style={{ 
           display: 'flex', 
-          alignItems: 'baseline', 
+          alignItems: 'flex-end', 
           gap: '12px',
           flexShrink: 0, // Don't let logo shrink
           minWidth: 0
@@ -105,15 +105,18 @@ export const Header: React.FC<HeaderProps> = ({
               fontWeight: '900',
               textShadow: '0 2px 6px rgba(0,0,0,0.3), 0 0 10px rgba(255,255,255,0.2)',
               lineHeight: 1,
-              display: 'flex',
-              alignItems: 'center',
+              display: 'block',
               WebkitTextStroke: '1px rgba(255,255,255,0.1)'
             }}
             title="Knightsbridge Chess"
           >
             ♘
           </span>
-          <div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end'
+          }}>
             <h1 style={{
               margin: 0,
               fontSize: isDesktopLayout ? '18px' : '16px',
@@ -130,8 +133,7 @@ export const Header: React.FC<HeaderProps> = ({
               letterSpacing: '0.5px',
               textTransform: 'uppercase',
               lineHeight: 1,
-              marginTop: 0,
-              marginBottom: 0
+              margin: 0
             }}>
               Blockchain Chess
             </div>
