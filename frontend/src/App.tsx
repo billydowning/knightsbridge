@@ -242,33 +242,33 @@ function ChessApp() {
     return null;
   };
 
-  // URL persistence helpers (safe, additive only)
-  const getURLParams = () => {
-    const params = new URLSearchParams(window.location.search);
-    return {
-      room: params.get('room') || '',
-      role: params.get('role') as 'white' | 'black' | null
-    };
-  };
+  // DISABLED: URL persistence helpers - focusing on manual reconnection first
+  // const getURLParams = () => {
+  //   const params = new URLSearchParams(window.location.search);
+  //   return {
+  //     room: params.get('room') || '',
+  //     role: params.get('role') as 'white' | 'black' | null
+  //   };
+  // };
 
-  const updateURL = (roomId: string, role: 'white' | 'black' | null = null) => {
-    if (!roomId) {
-      // Clear URL params when no active room
-      window.history.replaceState({}, '', window.location.pathname);
-      return;
-    }
-    
-    const params = new URLSearchParams();
-    params.set('room', roomId);
-    if (role) {
-      params.set('role', role);
-    }
-    
-    // Use replaceState to avoid browser history pollution
-    window.history.replaceState({}, '', `?${params.toString()}`);
-  };
+  // const updateURL = (roomId: string, role: 'white' | 'black' | null = null) => {
+  //   if (!roomId) {
+  //     // Clear URL params when no active room
+  //     window.history.replaceState({}, '', window.location.pathname);
+  //     return;
+  //   }
+  //   
+  //   const params = new URLSearchParams();
+  //   params.set('room', roomId);
+  //   if (role) {
+  //     params.set('role', role);
+  //   }
+  //   
+  //   // Use replaceState to avoid browser history pollution
+  //   window.history.replaceState({}, '', `?${params.toString()}`);
+  // };
 
-  // App state - start with clean state, URL parameters handled in reconnection logic
+  // App state - clean slate, focused on manual reconnection only
   const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
   const [roomId, setRoomId] = useState<string>('');
   const [betAmount, setBetAmount] = useState<number>(0.1);
@@ -436,94 +436,12 @@ function ChessApp() {
     }
   }, [gameMode]);
 
-  // Initial reconnection check when app loads with URL parameters
-  useEffect(() => {
-    // Only run on initial load if we have room parameters from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlRoomId = urlParams.get('room');
-    const urlRole = urlParams.get('role');
-    
-    console.log('🔍 Reconnection check:', { urlRoomId, urlRole, connected, publicKey: !!publicKey, gameMode });
-    
-    if (urlRoomId && urlRole && connected && publicKey && gameMode === 'menu') {
-      // Small delay to ensure all initial state is set
-      const timeoutId = setTimeout(async () => {
-        try {
-          console.log('🔄 Starting reconnection attempt for:', urlRoomId);
-          setGameStatus('🔄 Checking for active game...');
-          
-          const gameState = await databaseMultiplayerState.getGameState(urlRoomId);
-          const roomStatus = await databaseMultiplayerState.getRoomStatus(urlRoomId);
-          
-          console.log('📊 Reconnection data:', { 
-            gameState: gameState ? { gameActive: gameState.gameActive, winner: gameState.winner, draw: gameState.draw } : null,
-            roomStatus: roomStatus ? { players: roomStatus.players?.length, escrowCount: roomStatus.escrowCount } : null
-          });
-          
-          // SAFE RECONNECTION: Only reconnect if all conditions are met
-          if (gameState && gameState.gameActive && roomStatus) {
-            // Validate wallet matches room role (critical security check)
-            const isValidPlayer = validateWalletForRole(roomStatus, urlRole as 'white' | 'black', publicKey.toString());
-            console.log('🛡️ Wallet validation:', { isValidPlayer, urlRole, connectedWallet: publicKey.toString().slice(0, 6) + '...' });
-            
-            if (isValidPlayer) {
-              // Additional safety: Only reconnect to games that have started properly
-              const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
-              const gameNotFinished = !gameState.winner && !gameState.draw;
-              
-              console.log('🎮 Game state check:', { bothPlayersPresent, gameNotFinished });
-              
-              if (bothPlayersPresent && gameNotFinished) {
-                // Safe to reconnect - restore game state
-                setRoomId(urlRoomId);
-                setPlayerRole(urlRole as 'white' | 'black');
-                setGameState(gameState);
-                setGameMode('game');
-                setGameStatus(`🔄 Reconnected to game! You are ${urlRole}.`);
-                console.log('✅ Successfully reconnected to active game from URL:', urlRoomId);
-                return;
-              } else {
-                // Game exists but not active - go to lobby
-                setRoomId(urlRoomId);
-                setPlayerRole(urlRole as 'white' | 'black');
-                setGameMode('lobby');
-                setGameStatus(`Rejoined room ${urlRoomId}. Waiting for opponent...`);
-                console.log('🏠 Redirected to lobby - game not active');
-                return;
-              }
-            } else {
-              // Wallet mismatch - show warning and clear URL
-              const mismatchMsg = getWalletMismatchMessage(roomStatus, urlRole as 'white' | 'black', publicKey.toString());
-              if (mismatchMsg) {
-                setGameStatus(mismatchMsg);
-                updateURL(''); // Clear URL parameters for fresh start
-                console.log('❌ Wallet mismatch, clearing URL');
-                return;
-              }
-            }
-          } else {
-            console.log('❌ Reconnection failed:', { 
-              hasGameState: !!gameState, 
-              gameActive: gameState?.gameActive, 
-              hasRoomStatus: !!roomStatus 
-            });
-          }
-          
-          // No active game found - clear URL and stay in menu for fresh start
-          setGameStatus('Welcome to Knightsbridge Chess!');
-          updateURL(''); // Clear URL parameters for fresh start
-          console.log('🏠 No active game found, cleared URL');
-          
-        } catch (error) {
-          console.error('Error during initial reconnection check:', error);
-          setGameStatus('Welcome to Knightsbridge Chess!');
-          updateURL(''); // Clear URL parameters for fresh start
-        }
-      }, 2000); // Increased delay to 2 seconds for wallet connection
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [connected, publicKey, gameMode]); // Only run when these change
+  // DISABLED: URL reconnection logic - focusing on manual reconnection first
+  // useEffect(() => {
+  //   // URL reconnection logic temporarily disabled
+  // }, []);
+  
+  console.log('🔍 App state:', { gameMode, roomId, connected, publicKey: !!publicKey });
 
   // Check if both escrows are ready and start game
   useEffect(() => {
@@ -1359,9 +1277,6 @@ function ChessApp() {
           setGameMode('lobby');
           setGameStatus(`Room created! Share Room ID: ${result.roomId} with your opponent`);
           
-          // Update URL for persistence (safe, non-breaking)
-          updateURL(result.roomId, result.role);
-          
           // Get room status using the new room ID
           const roomStatus = await databaseMultiplayerState.getRoomStatus(result.roomId);
           
@@ -1378,9 +1293,6 @@ function ChessApp() {
         if (role) {
           setPlayerRole(role);
           setGameStatus(`Joined room as ${role}`);
-          
-          // Update URL for persistence (safe, non-breaking)
-          updateURL(roomId, role);
           
           // Get room status using the current room ID
           const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
@@ -1582,8 +1494,6 @@ function ChessApp() {
     setRoomId('');
     setPlayerRole(null);
     
-    // Clear URL params when returning to menu (safe, non-breaking)
-    updateURL('');
     setEscrowCreated(false);
     setWinningsClaimed(false);
     setClaimingInProgress(false);
@@ -2804,9 +2714,6 @@ function ChessApp() {
             setGameMode('menu');
             setRoomId('');
             setGameState(null);
-            
-            // Clear URL params when returning to menu (safe, non-breaking)
-            updateURL('');
           }}
         />
 
