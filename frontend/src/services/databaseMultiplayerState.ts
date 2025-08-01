@@ -476,7 +476,6 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('getGameState', { roomId }, (response: any) => {
           if (response.success) {
-            console.log('✅ Frontend received game state successfully:', response.gameState);
             resolve(response.gameState);
           } else {
             console.error('❌ Failed to get game state:', response.error);

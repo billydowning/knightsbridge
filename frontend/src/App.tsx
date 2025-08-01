@@ -671,10 +671,6 @@ function ChessApp() {
       if (roomId) {
         // Only the white player should save the initial state
         if (playerRole === 'white') {
-          console.log('🎮 WHITE PLAYER: Starting initial game state save process');
-          console.log('🎮 Room ID:', roomId);
-          console.log('🎮 Game state to save:', newGameState);
-          
           // Set the flag to prevent immediate re-save when server broadcasts
           setIsReceivingServerUpdate(true);
           // Set the last saved state immediately to prevent duplicate saves
@@ -689,24 +685,15 @@ function ChessApp() {
           });
           setLastSavedState(initialStateHash);
           
-          console.log('🎮 About to call saveGameState...');
-          databaseMultiplayerState.saveGameState(roomId, newGameState).then(() => {
-            console.log('✅ Initial game state saved successfully!');
-          }).catch(error => {
+          databaseMultiplayerState.saveGameState(roomId, newGameState).catch(error => {
             console.error('❌ Error saving initial game state:', error);
-            console.error('❌ Error details:', error.message, error.stack);
           }).finally(() => {
-            console.log('🎮 Initial save process completed');
             // Keep the flag set for longer to prevent the broadcast from triggering a save
             setTimeout(() => {
               setIsReceivingServerUpdate(false);
             }, 3000); // Increased to 3 seconds to ensure broadcast is handled
           });
-        } else {
-          console.log('🎮 BLACK PLAYER: Skipping initial save (white player responsible)');
         }
-      } else {
-        console.log('❌ No roomId available for initial game state save');
       }
     }
   }, [gameMode, playerRole, roomId]);
@@ -1312,19 +1299,12 @@ function ChessApp() {
           
           // Sync bet amount from room (when joining existing room)
           if (roomStatus && roomStatus.stakeAmount && roomStatus.stakeAmount > 0) {
-            console.log('🔄 Syncing bet amount from room:', roomStatus.stakeAmount, 'SOL');
             setBetAmount(roomStatus.stakeAmount);
           }
           
           // Sync time limit from room (when joining existing room)
           if (roomStatus && roomStatus.timeLimit && roomStatus.timeLimit > 0) {
-            console.log('🔄 Syncing time limit from room:', roomStatus.timeLimit, 'seconds');
-            console.log('🔄 Previous timeLimit was:', timeLimit, 'seconds');
-            console.log('🔄 Setting timeLimit to:', roomStatus.timeLimit, 'seconds');
             setTimeLimit(roomStatus.timeLimit);
-          } else {
-            console.log('❌ No timeLimit found in roomStatus or timeLimit <= 0');
-            console.log('❌ roomStatus.timeLimit:', roomStatus?.timeLimit);
           }
           
           // Check if current player already has an escrow
@@ -1334,44 +1314,24 @@ function ChessApp() {
           
           // SMART MANUAL RECONNECTION: Check if we should go straight to active game
           try {
-            console.log('🔄 Manual reconnection attempt for room:', roomId);
             const gameState = await databaseMultiplayerState.getGameState(roomId);
-            
-            console.log('📊 Manual reconnection data:', { 
-              gameState: gameState ? { gameActive: gameState.gameActive, winner: gameState.winner, draw: gameState.draw } : null,
-              roomStatus: roomStatus ? { players: roomStatus.players?.length, escrowCount: roomStatus.escrowCount } : null
-            });
             
             // If there's an active game and this player belongs to it, restore directly to game
             if (gameState && gameState.gameActive && roomStatus) {
               const isValidPlayer = validateWalletForRole(roomStatus, role, playerWallet);
-              console.log('🛡️ Manual wallet validation:', { isValidPlayer, role, playerWallet: playerWallet.slice(0, 6) + '...' });
               
               if (isValidPlayer) {
                 const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
                 const gameNotFinished = !gameState.winner && !gameState.draw;
-                
-                console.log('🎮 Manual game state check:', { bothPlayersPresent, gameNotFinished });
                 
                 if (bothPlayersPresent && gameNotFinished) {
                   // Skip lobby - restore directly to active game!
                   setGameState(gameState);
                   setGameMode('game');
                   setGameStatus(`🔄 Rejoined active game! You are ${role}.`);
-                  console.log('✅ Smart manual reconnection - restored to active game:', roomId);
                   return; // Skip the lobby entirely
-                } else {
-                  console.log('🏠 Game not fully active, going to lobby');
                 }
-              } else {
-                console.log('❌ Manual wallet validation failed');
               }
-            } else {
-              console.log('❌ Manual reconnection failed:', { 
-                hasGameState: !!gameState, 
-                gameActive: gameState?.gameActive, 
-                hasRoomStatus: !!roomStatus 
-              });
             }
           } catch (error) {
             console.error('Error during smart manual reconnection check:', error);
@@ -1379,7 +1339,6 @@ function ChessApp() {
           }
           
           // Normal flow: Set game mode to lobby AFTER all syncing is complete
-          console.log('✅ All room data synced - switching to lobby view');
           setGameMode('lobby');
         } else {
           setGameStatus('Failed to join room');
@@ -1395,14 +1354,8 @@ function ChessApp() {
   };
 
   const handleStartGame = () => {
-    console.log('🚀 HANDLE START GAME CALLED');
-    console.log('🚀 Current game mode:', gameMode);
-    console.log('🚀 Player role:', playerRole);
-    console.log('🚀 Room ID:', roomId);
-    console.log('🚀 Setting game mode to "game"...');
     setGameMode('game');
     setGameStatus('Game started!');
-    console.log('🚀 Start game process initiated');
   };
 
   const handleResignGame = async () => {
@@ -2545,7 +2498,6 @@ function ChessApp() {
         // DISABLED: Don't auto-start game just because database says 'active'
         // The game should only start via proper gameStarted WebSocket event
         // when both players have confirmed deposits
-        console.log('📊 Room updated:', data);
         // Room updates should not trigger game start - only handle room status changes
       };
 

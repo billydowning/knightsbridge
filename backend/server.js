@@ -1545,12 +1545,7 @@ io.on('connection', (socket) => {
       if (!socket.lastSaveTimes) socket.lastSaveTimes = {};
       socket.lastSaveTimes[lastSaveKey] = now;
       
-      // Add debug logging to see what state we're receiving
-      console.log('🔍 Server received saveGameState request:');
-      console.log('🔍 Room ID:', roomId);
-      console.log('🔍 Current player in received state:', gameState.currentPlayer);
-      console.log('🔍 Move history length:', gameState.moveHistory?.length || 0);
-      console.log('🔍 Last move:', gameState.lastMove);
+
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
@@ -1564,8 +1559,6 @@ io.on('connection', (socket) => {
         
         // Save full game state to game_states table (always overwrite)
         const gameStateJson = JSON.stringify(gameState);
-        console.log('🔍 Saving game state to DB:', gameStateJson);
-        console.log('🔍 Game state JSON length:', gameStateJson.length);
         
         await poolInstance.query(
           `INSERT INTO game_states (room_id, game_state, updated_at) 
@@ -1576,7 +1569,6 @@ io.on('connection', (socket) => {
         );
         
         console.log('✅ Game state saved to database:', roomId);
-        console.log('🔍 State saved with currentPlayer:', gameState.currentPlayer);
         
         // Broadcast game state update to OTHER players in the room (not the sender)
         // Only broadcast if there are other players in the room
@@ -1591,7 +1583,6 @@ io.on('connection', (socket) => {
             timestamp: Date.now()
           });
           console.log('📢 Broadcasted game state update to other players in room:', roomId);
-          console.log('🔍 Broadcasted state with currentPlayer:', gameState.currentPlayer);
         }
       } else {
         // Use in-memory storage for testing
@@ -1600,7 +1591,6 @@ io.on('connection', (socket) => {
           room.gameState = gameState;
           room.last_updated = new Date();
           console.log('✅ Game state saved to memory (test mode):', roomId);
-          console.log('🔍 State saved with currentPlayer:', gameState.currentPlayer);
           
           // Broadcast to other players in test mode
           const roomSockets = io.sockets.adapter.rooms.get(roomId);
@@ -1614,7 +1604,6 @@ io.on('connection', (socket) => {
               timestamp: Date.now()
             });
             console.log('📢 Broadcasted game state update to other players in room (test mode):', roomId);
-            console.log('🔍 Broadcasted state with currentPlayer:', gameState.currentPlayer);
           }
         }
       }
@@ -1631,54 +1620,24 @@ io.on('connection', (socket) => {
   socket.on('getGameState', async (data, callback) => {
     try {
       const { roomId } = data;
-      console.log('🔍 GET GAME STATE REQUEST for room:', roomId);
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
         const poolInstance = getPool();
-        
-        // First, check what's actually in the database for this room
-        console.log('🔍 Querying database for room:', roomId);
-        const allStatesResult = await poolInstance.query('SELECT room_id, game_state FROM game_states WHERE room_id = $1', [roomId]);
-        console.log('🔍 Query result rows count:', allStatesResult.rows.length);
-        
-        if (allStatesResult.rows.length > 0) {
-          console.log('🔍 Found game state(s) for room:', roomId);
-          allStatesResult.rows.forEach((row, index) => {
-            console.log(`🔍 Row ${index}:`, {
-              room_id: row.room_id,
-              game_state_type: typeof row.game_state,
-              game_state_length: row.game_state?.length || 'null',
-              game_state_preview: typeof row.game_state === 'string' ? row.game_state.slice(0, 100) + '...' : row.game_state
-            });
-          });
-        } else {
-          console.log('❌ NO ROWS FOUND for room:', roomId);
-          
-          // Let's see what rooms DO exist
-          const allRoomsResult = await poolInstance.query('SELECT room_id FROM game_states LIMIT 10');
-          console.log('🔍 Available rooms in game_states table:', allRoomsResult.rows.map(r => r.room_id));
-        }
         
         // Get full game state from game_states table
         const result = await poolInstance.query('SELECT game_state FROM game_states WHERE room_id = $1', [roomId]);
         const gameStateRow = result.rows[0];
 
         if (gameStateRow) {
-          console.log('🔍 Retrieved game state from DB:', gameStateRow.game_state);
-          console.log('🔍 Game state type:', typeof gameStateRow.game_state);
-          console.log('🔍 Game state length:', gameStateRow.game_state?.length);
           
           try {
             // Check if the stored data is valid JSON
             if (typeof gameStateRow.game_state === 'string' && gameStateRow.game_state.startsWith('{')) {
               const gameState = JSON.parse(gameStateRow.game_state);
-              console.log('🔍 Parsed game state currentPlayer:', gameState.currentPlayer);
               if (typeof callback === 'function') callback({ success: true, gameState });
             } else if (typeof gameStateRow.game_state === 'object' && gameStateRow.game_state !== null) {
               // Handle case where it's already an object (shouldn't happen but just in case)
-              console.log('🔍 Game state is already an object, using directly');
-              console.log('🔍 Game state currentPlayer:', gameStateRow.game_state.currentPlayer);
               if (typeof callback === 'function') callback({ success: true, gameState: gameStateRow.game_state });
             } else {
               console.error('❌ Invalid game state format in database:', gameStateRow.game_state);
@@ -1705,7 +1664,6 @@ io.on('connection', (socket) => {
                 lastMove: null,
                 lastUpdated: Date.now()
               };
-              console.log('🔍 Returning default game state due to corrupted data');
               if (typeof callback === 'function') callback({ success: true, gameState: defaultGameState });
             }
           } catch (parseError) {
@@ -1735,7 +1693,6 @@ io.on('connection', (socket) => {
               lastMove: null,
               lastUpdated: Date.now()
             };
-            console.log('🔍 Returning default game state due to JSON parsing error');
             if (typeof callback === 'function') callback({ success: true, gameState: defaultGameState });
           }
         } else {
