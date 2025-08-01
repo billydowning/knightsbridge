@@ -443,24 +443,35 @@ function ChessApp() {
     const urlRoomId = urlParams.get('room');
     const urlRole = urlParams.get('role');
     
+    console.log('🔍 Reconnection check:', { urlRoomId, urlRole, connected, publicKey: !!publicKey, gameMode });
+    
     if (urlRoomId && urlRole && connected && publicKey && gameMode === 'menu') {
       // Small delay to ensure all initial state is set
       const timeoutId = setTimeout(async () => {
         try {
+          console.log('🔄 Starting reconnection attempt for:', urlRoomId);
           setGameStatus('🔄 Checking for active game...');
           
           const gameState = await databaseMultiplayerState.getGameState(urlRoomId);
           const roomStatus = await databaseMultiplayerState.getRoomStatus(urlRoomId);
           
+          console.log('📊 Reconnection data:', { 
+            gameState: gameState ? { gameActive: gameState.gameActive, winner: gameState.winner, draw: gameState.draw } : null,
+            roomStatus: roomStatus ? { players: roomStatus.players?.length, escrowCount: roomStatus.escrowCount } : null
+          });
+          
           // SAFE RECONNECTION: Only reconnect if all conditions are met
           if (gameState && gameState.gameActive && roomStatus) {
             // Validate wallet matches room role (critical security check)
             const isValidPlayer = validateWalletForRole(roomStatus, urlRole as 'white' | 'black', publicKey.toString());
+            console.log('🛡️ Wallet validation:', { isValidPlayer, urlRole, connectedWallet: publicKey.toString().slice(0, 6) + '...' });
             
             if (isValidPlayer) {
               // Additional safety: Only reconnect to games that have started properly
               const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
               const gameNotFinished = !gameState.winner && !gameState.draw;
+              
+              console.log('🎮 Game state check:', { bothPlayersPresent, gameNotFinished });
               
               if (bothPlayersPresent && gameNotFinished) {
                 // Safe to reconnect - restore game state
@@ -477,6 +488,7 @@ function ChessApp() {
                 setPlayerRole(urlRole as 'white' | 'black');
                 setGameMode('lobby');
                 setGameStatus(`Rejoined room ${urlRoomId}. Waiting for opponent...`);
+                console.log('🏠 Redirected to lobby - game not active');
                 return;
               }
             } else {
@@ -485,21 +497,29 @@ function ChessApp() {
               if (mismatchMsg) {
                 setGameStatus(mismatchMsg);
                 updateURL(''); // Clear URL parameters for fresh start
+                console.log('❌ Wallet mismatch, clearing URL');
                 return;
               }
             }
+          } else {
+            console.log('❌ Reconnection failed:', { 
+              hasGameState: !!gameState, 
+              gameActive: gameState?.gameActive, 
+              hasRoomStatus: !!roomStatus 
+            });
           }
           
           // No active game found - clear URL and stay in menu for fresh start
           setGameStatus('Welcome to Knightsbridge Chess!');
           updateURL(''); // Clear URL parameters for fresh start
+          console.log('🏠 No active game found, cleared URL');
           
         } catch (error) {
           console.error('Error during initial reconnection check:', error);
           setGameStatus('Welcome to Knightsbridge Chess!');
           updateURL(''); // Clear URL parameters for fresh start
         }
-      }, 1000); // 1 second delay for initial load
+      }, 2000); // Increased delay to 2 seconds for wallet connection
       
       return () => clearTimeout(timeoutId);
     }
@@ -1389,15 +1409,24 @@ function ChessApp() {
           
           // SMART MANUAL RECONNECTION: Check if we should go straight to active game
           try {
+            console.log('🔄 Manual reconnection attempt for room:', roomId);
             const gameState = await databaseMultiplayerState.getGameState(roomId);
+            
+            console.log('📊 Manual reconnection data:', { 
+              gameState: gameState ? { gameActive: gameState.gameActive, winner: gameState.winner, draw: gameState.draw } : null,
+              roomStatus: roomStatus ? { players: roomStatus.players?.length, escrowCount: roomStatus.escrowCount } : null
+            });
             
             // If there's an active game and this player belongs to it, restore directly to game
             if (gameState && gameState.gameActive && roomStatus) {
               const isValidPlayer = validateWalletForRole(roomStatus, role, playerWallet);
+              console.log('🛡️ Manual wallet validation:', { isValidPlayer, role, playerWallet: playerWallet.slice(0, 6) + '...' });
               
               if (isValidPlayer) {
                 const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
                 const gameNotFinished = !gameState.winner && !gameState.draw;
+                
+                console.log('🎮 Manual game state check:', { bothPlayersPresent, gameNotFinished });
                 
                 if (bothPlayersPresent && gameNotFinished) {
                   // Skip lobby - restore directly to active game!
@@ -1406,8 +1435,18 @@ function ChessApp() {
                   setGameStatus(`🔄 Rejoined active game! You are ${role}.`);
                   console.log('✅ Smart manual reconnection - restored to active game:', roomId);
                   return; // Skip the lobby entirely
+                } else {
+                  console.log('🏠 Game not fully active, going to lobby');
                 }
+              } else {
+                console.log('❌ Manual wallet validation failed');
               }
+            } else {
+              console.log('❌ Manual reconnection failed:', { 
+                hasGameState: !!gameState, 
+                gameActive: gameState?.gameActive, 
+                hasRoomStatus: !!roomStatus 
+              });
             }
           } catch (error) {
             console.error('Error during smart manual reconnection check:', error);
