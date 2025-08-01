@@ -92,11 +92,14 @@ export const useGameState = (): GameStateHook => {
       }
 
       // Make the move using the chess engine
+      console.log('🔍 About to call ChessEngine.makeMove with gameState:', prev);
       const result = ChessEngine.makeMove(from, to, prev.position, prev);
       if (!result) {
+        console.log('❌ ChessEngine.makeMove returned null');
         statusMessage = 'Invalid move';
         return prev;
       }
+      console.log('✅ ChessEngine.makeMove result:', result);
 
       const nextPlayer: 'white' | 'black' = prev.currentPlayer === 'white' ? 'black' : 'white';
       const isCheck = ChessEngine.isInCheck(result.position, nextPlayer);
@@ -106,6 +109,18 @@ export const useGameState = (): GameStateHook => {
       const isEnPassant = ChessEngine.PIECES.PAWNS.includes(piece) && 
                          to === prev.enPassantTarget && 
                          prev.enPassantTarget !== null;
+      
+      // Debug en passant detection
+      if (ChessEngine.PIECES.PAWNS.includes(piece)) {
+        console.log('🔍 Pawn move debug:', {
+          from,
+          to,
+          piece,
+          enPassantTarget: prev.enPassantTarget,
+          isEnPassant,
+          moveIsToEnPassantTarget: to === prev.enPassantTarget
+        });
+      }
       
       // Detect castling move
       const isCastle = ChessEngine.PIECES.KINGS.includes(piece) && 
@@ -129,6 +144,7 @@ export const useGameState = (): GameStateHook => {
       };
       
       // Build new state
+      console.log('🔍 Building new game state. En passant target from result:', result.gameState.enPassantTarget);
       const newState: GameState = {
         ...prev,
         position: result.position,
@@ -151,6 +167,8 @@ export const useGameState = (): GameStateHook => {
         inCheck: isCheck,
         lastMove: { from, to }
       };
+      
+      console.log('🔍 New game state built. En passant target:', newState.enPassantTarget);
 
       // Check for game end conditions
       if (isCheckmate) {

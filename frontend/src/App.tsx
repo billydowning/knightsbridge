@@ -943,8 +943,17 @@ function ChessApp() {
     const fromSquare = gameState.selectedSquare;
     const toSquare = square;
     
+    // Debug current game state for en passant tracking
+    console.log('🔍 Validating move:', {
+      from: fromSquare,
+      to: toSquare,
+      currentPlayer: gameState.currentPlayer,
+      enPassantTarget: gameState.enPassantTarget,
+      movingPiece: gameState.position[fromSquare]
+    });
+    
     // Validate move using existing function
-    const isValidMove = validateLocalMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer);
+    const isValidMove = validateLocalMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer, gameState);
     
     if (isValidMove) {
       
@@ -954,8 +963,47 @@ function ChessApp() {
       newPosition[toSquare] = movingPiece;
       newPosition[fromSquare] = '';
       
+      // Track en passant for next move (default: no en passant target)
+      let newEnPassantTarget = null;
+      
+      // Handle special moves
+      const pieceType = getPieceTypeFromAnyFormat(movingPiece);
+      const pieceColor = getPieceColorFromAnyFormat(movingPiece);
+      const fromRank = parseInt(fromSquare[1]);
+      const toRank = parseInt(toSquare[1]);
+      const fileDiff = Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0));
+      
+      // En passant handling for pawns
+      if (pieceType === 'pawn') {
+        
+        // Check for en passant capture
+        if (fileDiff === 1 && !gameState.position[toSquare] && gameState.enPassantTarget === toSquare) {
+          // This is an en passant capture - remove the captured pawn
+          const capturedPawnRank = pieceColor === 'white' ? toRank - 1 : toRank + 1;
+          const capturedPawnSquare = toSquare[0] + capturedPawnRank;
+          newPosition[capturedPawnSquare] = '';
+          console.log('🔍 En passant capture executed:', {
+            from: fromSquare,
+            to: toSquare,
+            capturedPawnSquare,
+            piece: movingPiece
+          });
+        }
+        
+        // Check for two-square pawn move (sets en passant target)
+        if (Math.abs(toRank - fromRank) === 2) {
+          const targetRank = (fromRank + toRank) / 2;
+          newEnPassantTarget = toSquare[0] + targetRank;
+          console.log('🔍 En passant target set:', {
+            from: fromSquare,
+            to: toSquare,
+            enPassantTarget: newEnPassantTarget
+          });
+        }
+      }
+      
       // Handle castling - move the rook as well
-      if (getPieceTypeFromAnyFormat(movingPiece) === 'king') {
+      if (pieceType === 'king') {
         const fileDiff = Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0));
         if (fileDiff === 2) { // This is a castling move
           const isKingside = toSquare[0] > fromSquare[0];
@@ -992,6 +1040,7 @@ function ChessApp() {
         position: newPosition,
         currentPlayer: nextPlayer,
         selectedSquare: null,
+        enPassantTarget: newEnPassantTarget, // Add en passant target tracking
         moveHistory: [...gameState.moveHistory, { 
           from: fromSquare, 
           to: toSquare, 
@@ -999,6 +1048,7 @@ function ChessApp() {
           capturedPiece: gameState.position[toSquare] || null,
           isCastling: getPieceTypeFromAnyFormat(gameState.position[fromSquare]) === 'king' && 
                      Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0)) === 2,
+          isEnPassant: pieceType === 'pawn' && fileDiff === 1 && !gameState.position[toSquare] && gameState.enPassantTarget === toSquare,
           timestamp: Date.now()
         }],
         lastMove: { from: fromSquare, to: toSquare },
@@ -1627,7 +1677,7 @@ function ChessApp() {
   };
   
   // Helper function to validate chess moves
-  const validateLocalMove = (position: any, fromSquare: string, toSquare: string, currentPlayer: string): boolean => {
+  const validateLocalMove = (position: any, fromSquare: string, toSquare: string, currentPlayer: string, gameState?: any): boolean => {
     const piece = position[fromSquare];
     if (!piece) return false;
     
@@ -1669,9 +1719,23 @@ function ChessApp() {
         const middleSquare = fromFile + middleRank;
         return !targetPiece && !position[middleSquare];
       }
-      // Capture move
+      // Capture move (including en passant)
       if (fileDiff === 1 && rankDiff === 1) {
-        return targetPiece && getPieceTypeFromAnyFormat(targetPiece) !== 'pawn';
+        // Regular capture
+        if (targetPiece) {
+          return true; // Allow capturing any piece, including pawns
+        }
+        // En passant capture - check if target square is the en passant target
+        const isEnPassant = gameState?.enPassantTarget === toSquare;
+        if (isEnPassant) {
+          console.log('🔍 En passant move validated:', {
+            from: fromSquare,
+            to: toSquare,
+            enPassantTarget: gameState?.enPassantTarget,
+            piece
+          });
+        }
+        return isEnPassant;
       }
       return false;
     }
