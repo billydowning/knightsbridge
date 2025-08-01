@@ -74,15 +74,15 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
   const [isHovered, setIsHovered] = React.useState(false);
 
   const getBackgroundColor = useCallback((): string => {
-    // Imperial blue color scheme - elegant and sophisticated
-    if (isInCheck) return '#e74c3c'; // Rich red for check
-    if (isSelected) return '#f1c40f'; // Bright gold for selection
+    // Enhanced color scheme for better visual appeal and contrast
+    if (isInCheck) return '#e74c3c'; // Bright red for check
+    if (isSelected) return '#f39c12'; // Rich golden orange for selection
     if (isLastMove) return '#e67e22'; // Warm orange for last move
-    if (isLegalMove) return isHovered ? '#27ae60' : '#52c41a'; // Rich greens for legal moves
-    if (isHovered) return isLight ? '#ecf0f1' : '#2c3e50'; // Light hover colors
+    if (isLegalMove) return isHovered ? '#27ae60' : '#2ecc71'; // Vibrant greens for legal moves
+    if (isHovered) return isLight ? '#f8f9fa' : '#34495e'; // Subtle hover colors
     
-    // Imperial blue chess board colors - sophisticated and royal (always visible)
-    return isLight ? '#ffffff' : '#2c3e50'; // Pure white and imperial blue
+    // Elegant chess board colors with improved contrast
+    return isLight ? '#f7f7f7' : '#34495e'; // Light cream and slate blue
   }, [isInCheck, isSelected, isLastMove, isLegalMove, isHovered, isLight]);
 
   const getCursor = useCallback((): string => {
@@ -98,58 +98,75 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
     const isWhitePiece = ['♔', '♕', '♖', '♗', '♘', '♙'].includes(unicodePiece);
     const isBlackPiece = ['♚', '♛', '♜', '♝', '♞', '♟'].includes(unicodePiece);
     
-    // Calculate piece size as 70% of square size for larger, more visible pieces
-    let pieceSize = Math.floor(squareSize * 0.7);
-    
-    // iOS Safari fix: Black pawn renders larger than other pieces
-    // Detect iOS and adjust pawn size specifically
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isPawn = unicodePiece === '♟' || unicodePiece === '♙';
-    
-    if (isIOS && isPawn) {
-      // Reduce pawn size by 15% on iOS to match other pieces
-      pieceSize = Math.floor(pieceSize * 0.85);
-    }
+    // Simplified, consistent piece size calculation
+    const pieceSize = Math.floor(squareSize * 0.75); // Consistent 75% of square size
     
     const baseStyle: React.CSSProperties = {
       fontSize: `${pieceSize}px`,
-      fontWeight: '900', // Extra bold for more presence
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth easing
-      filter: disabled ? 'grayscale(50%)' : 'none',
+      fontWeight: '400', // Consistent font weight
+      fontVariant: 'normal',
+      transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)', // Smooth easing
+      filter: disabled ? 'grayscale(70%) opacity(0.6)' : 'none',
       lineHeight: '1',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       width: '100%',
       height: '100%',
-      fontFamily: '"Segoe UI Symbol", "Noto Chess", "Chess Cases", serif', // Better chess fonts
-      transform: isHovered && !disabled ? 'scale(1.05)' : 'scale(1)', // Subtle hover animation
-      cursor: disabled ? 'not-allowed' : 'pointer'
+      // Simplified font stack for consistency - prioritize system chess fonts
+      fontFamily: '"Segoe UI Symbol", "DejaVu Sans", "Apple Color Emoji", "Noto Emoji", sans-serif',
+      transform: isHovered && !disabled ? 'scale(1.08)' : 'scale(1)',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      // Optimize text rendering for crisp chess pieces
+      textRendering: 'optimizeLegibility',
+      WebkitFontSmoothing: 'antialiased',
+      MozOsxFontSmoothing: 'grayscale',
+      fontFeatureSettings: 'normal',
+      fontVariantLigatures: 'none',
+      // Prevent text selection
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
+      MozUserSelect: 'none',
+      msUserSelect: 'none'
     };
 
-    // Apply refined styling based on piece type
+    // Enhanced contrast and visual appeal for pieces
     if (isWhitePiece) {
-      baseStyle.color = '#ffffff'; // Pure white
+      baseStyle.color = '#ffffff';
+      // Stronger shadow for better definition
       baseStyle.textShadow = `
-        3px 3px 6px rgba(0,0,0,0.8),
-        0 0 3px rgba(0,0,0,0.9),
-        1px 1px 0 rgba(0,0,0,0.6),
-        -1px -1px 0 rgba(0,0,0,0.6)
-      `; // Multi-layered shadow for depth
-      baseStyle.filter = disabled ? 'grayscale(50%)' : 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))';
+        0px 0px 0px #000000,
+        1px 1px 0px #1a1a1a,
+        2px 2px 0px #1a1a1a,
+        0px 0px 8px rgba(0, 0, 0, 0.5)
+      `;
+      // Add subtle glow effect
+      baseStyle.filter = disabled 
+        ? 'grayscale(70%) opacity(0.6)' 
+        : 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.3))';
     } else if (isBlackPiece) {
-      baseStyle.color = '#2c3e50'; // Imperial blue to match board theme
+      baseStyle.color = '#1a1a1a';
+      // Stronger outline for better visibility
       baseStyle.textShadow = `
-        2px 2px 4px rgba(255,255,255,0.6),
-        0 0 3px rgba(255,255,255,0.8),
-        1px 1px 0 rgba(255,255,255,0.4),
-        -1px -1px 0 rgba(255,255,255,0.4)
-      `; // Strong white outline for visibility
-      baseStyle.filter = disabled ? 'grayscale(50%)' : 'drop-shadow(2px 2px 4px rgba(255,255,255,0.3))';
+        0px 0px 0px #ffffff,
+        1px 1px 0px #ffffff,
+        2px 2px 0px #ffffff,
+        0px 0px 8px rgba(255, 255, 255, 0.4)
+      `;
+      // Add subtle shadow effect
+      baseStyle.filter = disabled 
+        ? 'grayscale(70%) opacity(0.6)' 
+        : 'drop-shadow(0 0 3px rgba(0, 0, 0, 0.4))';
     }
 
+    // Enhanced hover effect
     if (isHovered && !disabled) {
-      baseStyle.transform = 'scale(1.1)';
+      baseStyle.transform = 'scale(1.12)';
+      if (isWhitePiece) {
+        baseStyle.filter = 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)) brightness(1.1)';
+      } else {
+        baseStyle.filter = 'drop-shadow(0 0 6px rgba(0, 0, 0, 0.6)) brightness(1.2)';
+      }
     }
 
     return baseStyle;
@@ -172,24 +189,36 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
         justifyContent: 'center',
         background: getBackgroundColor(), // Use solid color for better visibility
         cursor: getCursor(),
-        border: isSelected ? '2px solid #f1c40f' : '1px solid rgba(52, 73, 94, 0.3)',
-        borderRadius: '2px', // Subtle rounded corners
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        border: isSelected 
+          ? '2px solid #f39c12' 
+          : isLastMove 
+            ? '2px solid #e67e22' 
+            : isInCheck 
+              ? '2px solid #e74c3c'
+              : '1px solid rgba(52, 73, 148, 0.2)',
+        borderRadius: '3px', // Slightly more rounded corners
+        transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
         position: 'relative',
         opacity: disabled ? 0.6 : 1,
         userSelect: 'none',
         boxShadow: isSelected 
-          ? 'inset 0 0 15px rgba(241, 196, 15, 0.6), 0 0 10px rgba(241, 196, 15, 0.3)' 
-          : isHovered 
-            ? 'inset 0 2px 4px rgba(0,0,0,0.1), 0 2px 8px rgba(52, 73, 94, 0.15)'
-            : 'inset 0 1px 2px rgba(52, 73, 94, 0.05)',
-        padding: '1px',
+          ? 'inset 0 0 0 1px rgba(243, 156, 18, 0.3), 0 4px 12px rgba(243, 156, 18, 0.4)' 
+          : isLastMove
+            ? 'inset 0 0 0 1px rgba(230, 126, 34, 0.3), 0 2px 8px rgba(230, 126, 34, 0.3)'
+            : isInCheck
+              ? 'inset 0 0 0 1px rgba(231, 76, 60, 0.4), 0 4px 12px rgba(231, 76, 60, 0.5)'
+              : isLegalMove
+                ? 'inset 0 0 0 1px rgba(46, 204, 113, 0.4), 0 2px 6px rgba(46, 204, 113, 0.3)'
+                : isHovered 
+                  ? 'inset 0 2px 4px rgba(0,0,0,0.15), 0 4px 8px rgba(52, 73, 148, 0.2)'
+                  : 'inset 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(52, 73, 148, 0.1)',
+        padding: '2px',
         boxSizing: 'border-box',
-        // Add very subtle texture overlay (minimal interference with base colors)
+        // Enhanced texture overlay for depth
         backgroundImage: isLight 
-          ? 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 70%)'
-          : 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, transparent 70%)',
-        transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+          ? 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, transparent 100%)'
+          : 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 50%, transparent 100%)',
+        transform: isSelected ? 'scale(1.03)' : 'scale(1)'
       }}
       title={`${square}${piece ? ` - ${piece}` : ''}`}
       role="button"
@@ -209,10 +238,11 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
             height: `${indicatorSize}px`,
             borderRadius: '50%',
             background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
-            border: '2px solid rgba(46, 204, 113, 0.8)',
-            boxShadow: '0 2px 8px rgba(46, 204, 113, 0.3), inset 0 1px 2px rgba(255,255,255,0.3)',
-            transition: 'all 0.2s ease',
-            transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+            border: '2px solid rgba(46, 204, 113, 0.9)',
+            boxShadow: '0 3px 10px rgba(46, 204, 113, 0.4), inset 0 1px 3px rgba(255,255,255,0.4)',
+            transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+            opacity: isHovered ? 0.9 : 0.8,
           }}
         />
       )}

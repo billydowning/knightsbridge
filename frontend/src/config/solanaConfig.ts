@@ -5,11 +5,11 @@
 
 import { PublicKey } from '@solana/web3.js';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { clusterApiUrl } from '@solana/web3.js';
 
 // Network Configuration
 export const SOLANA_NETWORK = WalletAdapterNetwork.Mainnet;
-export const SOLANA_RPC_ENDPOINT = clusterApiUrl(SOLANA_NETWORK);
+// Use Helius RPC for reliable mainnet access
+export const SOLANA_RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=8f805e5c-897e-4670-92c6-d1eb2b09fb3b';
 
 // Program and Wallet Addresses
 export const CHESS_PROGRAM_ID = new PublicKey('F4Py3YTF1JGhbY9ACztXaseFF89ZfLS69ke5Z7EBGQGr');

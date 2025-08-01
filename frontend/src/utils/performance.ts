@@ -90,7 +90,7 @@ class PerformanceMonitor {
 
     // Log in development (disabled to reduce console spam)
     // if (process.env.NODE_ENV === 'development') {
-    //   console.log(`📊 Performance Metric: ${name} = ${value}`, metadata);
+    
     // }
   }
 

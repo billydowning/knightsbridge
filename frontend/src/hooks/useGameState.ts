@@ -195,7 +195,7 @@ export const useGameState = (): GameStateHook => {
         
         // Validate move notation length
         if (!validateMoveNotation(moveNotation)) {
-          console.warn('⚠️ Move notation too long for blockchain');
+    
           statusMessage += ' (notation too long)';
         } else {
           // Generate position hash
@@ -353,7 +353,7 @@ export const useGameState = (): GameStateHook => {
       const { declareResult } = useSolanaWallet();
       
       if (!declareResult) {
-        console.warn('⚠️ Declare result function not available');
+  
         return false;
       }
 

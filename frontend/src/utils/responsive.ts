@@ -20,14 +20,14 @@ export type ScreenSize = 'mobile' | 'tablet' | 'laptop' | 'desktop' | 'wide';
 // Chess board sizes for different screen sizes
 export const CHESS_BOARD_SIZES = {
   mobile: {
-    boardSize: 280, // 8 * 35px squares
-    squareSize: 35,
-    fontSize: '1.5rem',
+    boardSize: 320, // 8 * 40px squares - fits iPhone width better
+    squareSize: 40,  // Reduced to 40px to prevent overflow
+    fontSize: '2rem',
   },
   tablet: {
-    boardSize: 360, // 8 * 45px squares
-    squareSize: 45,
-    fontSize: '2rem',
+    boardSize: 440, // 8 * 55px squares - also increased 
+    squareSize: 55,  // Increased from 45px to 55px
+    fontSize: '2.5rem',
   },
   laptop: {
     boardSize: 400, // 8 * 50px squares

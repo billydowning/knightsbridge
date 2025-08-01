@@ -4,7 +4,6 @@ import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
 import { useDatabaseMultiplayerState } from './services/databaseMultiplayerState';
 import { useSolanaWallet } from './hooks/useSolanaWallet';
 import websocketService from './services/websocketService';
@@ -369,7 +368,7 @@ function ChessApp() {
   //   playerName: publicKey?.toString().slice(0, 6) + '...' + publicKey?.toString().slice(-4),
   //   onMoveReceived: handleOpponentMove,
   //   onChatMessageReceived: (message) => {
-  //     console.log('Chat message received via WebSocket:', message);
+  
   //     setChatMessages(prev => [...prev, {
   //       id: message.id,
   //       player: message.playerName,
@@ -379,16 +378,16 @@ function ChessApp() {
   //   },
   //   onGameStateUpdate: applyMovesToGameState,
   //   onPlayerJoined: (player) => {
-  //     console.log('Player joined via WebSocket:', player);
+  
   //     setGameStatus(`Opponent joined! Game starting...`);
   //   },
   //   onGameStarted: (gameData) => {
-  //     console.log('Game started via WebSocket:', gameData);
+  
   //     setGameMode('game');
   //     setGameStatus('Game started!');
   //   },
   //   onPlayerDisconnected: (player) => {
-  //     console.log('Player disconnected via WebSocket:', player);
+  
   //     setGameStatus('Opponent disconnected. Game paused.');
   //   }
   // });
@@ -442,7 +441,7 @@ function ChessApp() {
   //   // URL reconnection logic temporarily disabled
   // }, []);
   
-  console.log('🔍 App state:', { gameMode, roomId, connected, publicKey: !!publicKey });
+  
 
   // Check if both escrows are ready and start game
   useEffect(() => {
@@ -468,7 +467,7 @@ function ChessApp() {
         setBothEscrowsReady(true);
       }
       */
-      console.log('🔍 Room status escrow check (disabled):', { escrowCount: roomStatus.escrowCount });
+
     }
   }, [roomStatus, gameMode]);
 
@@ -594,7 +593,7 @@ function ChessApp() {
         
         // Notify backend about game completion (only do this once per game)
         if (websocketService && websocketService.isConnected()) {
-          console.log('📤 Notifying backend of game completion:', { roomId, winner, gameResult, playerRole });
+      
           websocketService.gameComplete({
             roomId,
             winner,
@@ -778,7 +777,7 @@ function ChessApp() {
           setBothEscrowsReady(true);
         }
         */
-        console.log('🔍 After escrow creation check (disabled):', { escrowCount: afterStatus?.escrowCount });
+    
         
         // Update room status for UI (critical for showing correct buttons)
         await fetchRoomStatus();
@@ -845,8 +844,7 @@ function ChessApp() {
           if (websocketService && websocketService.isConnected()) {
             const socket = (websocketService as any).socket;
             if (socket) {
-              console.log('📤 Notifying backend of completed deposit...');
-              console.log('📤 Transaction ID:', transactionId);
+              
               socket.emit('depositComplete', {
                 roomId: roomId,
                 playerWallet: publicKey.toString(),
@@ -855,18 +853,17 @@ function ChessApp() {
             }
           }
         } catch (wsError) {
-          console.warn('⚠️ WebSocket deposit notification failed:', wsError);
+  
         }
 
         // Set up WebSocket listener for game start
-        console.log('🔌 Setting up WebSocket listener for game start...');
+  
         setGameStatus('💎 Deposit confirmed! Waiting for opponent to confirm their deposit...');
         
         const handleGameStarted = (data: any) => {
-          console.log('🎮 Received gameStarted WebSocket event:', data);
-          console.log('🔍 Current roomId:', roomId, 'Event roomId:', data.roomId);
+          
           if (data.roomId === roomId) {
-            console.log('✅ RoomId matches - starting game for player role:', playerRole);
+  
             setGameStatus('🎮 Both players confirmed! Game starting now...');
             setBothEscrowsReady(true);
             setGameMode('game'); // Ensure game mode is set via WebSocket event
@@ -875,7 +872,7 @@ function ChessApp() {
               socket.off('gameStarted', handleGameStarted); // Remove listener
             }
           } else {
-            console.log('❌ RoomId mismatch - ignoring gameStarted event');
+  
           }
         };
         
@@ -887,16 +884,16 @@ function ChessApp() {
             // Extended timeout for WebSocket events - only cleanup, no auto-start
             setTimeout(() => {
               socket.off('gameStarted', handleGameStarted);
-              console.log('⏰ WebSocket listener timeout - cleaning up listener (no auto-start)');
+      
               
               // DISABLED: Timeout auto-start fallback to prevent asymmetric experience
               // The game should ONLY start via proper WebSocket gameStarted events
-              console.log('🔒 Timeout fallback disabled - waiting for proper gameStarted WebSocket event');
+        
             }, 15000); // Increased to 15 seconds to give WebSocket events more time
           }
         }
         
-        console.log('🔍 After deposit check (disabled):', { escrowCount: afterStatus?.escrowCount });
+    
       } else {
         setGameStatus('Failed to deposit stake. Please try again.');
       }
@@ -1122,7 +1119,7 @@ function ChessApp() {
     }
     
     try {
-      console.log('🔧 Starting winnings claim process...');
+  
       setGameStatus('Claiming winnings on Solana...');
       setAppLoading(true);
       
@@ -1130,13 +1127,13 @@ function ChessApp() {
       
       // Determine if it's a draw
       const isDraw = gameState.winner === 'draw';
-      console.log('🔧 Claim parameters - roomId:', roomId, 'playerRole:', playerRole, 'winner:', gameState.winner, 'isDraw:', isDraw);
+  
       
       // Claim winnings on Solana
-      console.log('🔧 Calling claimWinnings function...');
+
       const result = await claimWinnings(roomId, playerRole, gameState.winner, isDraw);
       
-      console.log('💰 Claim result received:', result);
+
       
       // Check if the result indicates success (contains success emojis or positive messages)
       const isSuccess = result && (
@@ -1150,7 +1147,7 @@ function ChessApp() {
         result === 'success'
       );
       
-      console.log('💰 Success detection result:', isSuccess);
+
       
       if (isSuccess) {
         setWinningsClaimed(true);
@@ -1158,17 +1155,17 @@ function ChessApp() {
         
         // Refresh wallet balance to show updated amount
         if (checkBalance && typeof checkBalance === 'function') {
-          console.log('💰 Refreshing wallet balance after successful winnings claim...');
+  
           // Immediate refresh
           checkBalance();
           // Additional refresh after delay to ensure blockchain transaction is fully processed
           setTimeout(() => {
-            console.log('💰 Secondary balance refresh after 2 seconds...');
+  
             checkBalance();
           }, 2000);
           // Final refresh after longer delay for any blockchain delays
           setTimeout(() => {
-            console.log('💰 Final balance refresh after 5 seconds...');
+
             checkBalance();
           }, 5000);
         } else {
@@ -1192,10 +1189,10 @@ function ChessApp() {
         if (roomId && playerRole) {
           try {
             const gameResult = gameState.inCheckmate ? 'checkmate' : (gameState.draw ? 'draw' : 'resignation');
-            console.log('📤 Manually notifying backend of game completion:', { roomId, winner: gameState.winner, gameResult, playerRole });
+    
             
             // Always use HTTP fallback for reliability (WebSocket may appear connected but not work)
-            console.log('📡 Using HTTP fallback to ensure stats are updated');
+    
             const httpPromise = fetch(`${ENV_CONFIG.API_BASE_URL}/api/games/${roomId}/complete`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1206,7 +1203,7 @@ function ChessApp() {
               })
             }).then(response => {
               if (response.ok) {
-                console.log('✅ HTTP stats update successful');
+      
                 return response.json();
               } else {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1218,7 +1215,7 @@ function ChessApp() {
             
             // Also try WebSocket as backup
             if (websocketService && websocketService.isConnected()) {
-              console.log('📡 Also trying WebSocket as secondary method');
+      
               websocketService.gameComplete({
                 roomId,
                 winner: gameState.winner || 'draw',
@@ -1259,12 +1256,12 @@ function ChessApp() {
         
         // Refresh wallet balance since winnings were already successfully processed
         if (checkBalance && typeof checkBalance === 'function') {
-          console.log('💰 Refreshing wallet balance after confirming winnings already claimed...');
+  
           // Immediate refresh
           checkBalance();
           // Additional refresh after delay
           setTimeout(() => {
-            console.log('💰 Secondary balance refresh for already claimed winnings...');
+  
             checkBalance();
           }, 2000);
         } else {
@@ -1279,7 +1276,7 @@ function ChessApp() {
         setGameStatus('Failed to claim winnings. Please try again.');
       }
     } finally {
-      console.log('🔧 handleClaimWinnings completed');
+  
       setAppLoading(false);
       setClaimingInProgress(false);
       // Don't reset timeoutClaimingDone here - let it stay true to prevent re-attempts
@@ -1390,7 +1387,7 @@ function ChessApp() {
   };
 
   const handleResignGame = async () => {
-    console.log('Resigning game...');
+
     
     if (!playerRole || !roomId) {
       console.error('Cannot resign: missing player role or room ID');
@@ -1419,7 +1416,7 @@ function ChessApp() {
       
       // Notify backend about game completion
       if (websocketService && websocketService.isConnected()) {
-        console.log('📤 Notifying backend of resignation:', { roomId, winner, gameResult: 'resignation', playerRole });
+    
         websocketService.gameComplete({
           roomId,
           winner,
@@ -1441,7 +1438,7 @@ function ChessApp() {
   };
 
   const handleTimeoutGame = async (timedOutPlayer: 'white' | 'black') => {
-    console.log(`⏰ ${timedOutPlayer} player timed out - declaring opponent as winner`);
+
     
     if (!roomId) {
       console.error('Cannot handle timeout: missing room ID');
@@ -1470,7 +1467,7 @@ function ChessApp() {
       
       // Notify backend about game completion
       if (websocketService && websocketService.isConnected()) {
-        console.log('📤 Notifying backend of timeout:', { roomId, winner, gameResult: 'timeout', playerRole });
+    
         websocketService.gameComplete({
           roomId,
           winner,
@@ -1514,7 +1511,7 @@ function ChessApp() {
   // Test backend connection
   const handleTestConnection = async () => {
     try {
-      console.log('🧪 Testing backend connection...');
+  
       const isWorking = await databaseMultiplayerState.testConnection();
       if (isWorking) {
         setGameStatus('✅ Backend connection successful!');
@@ -1533,7 +1530,7 @@ function ChessApp() {
       setLeaderboardLoading(true);
       setLeaderboardError('');
       
-      console.log('🏆 Fetching leaderboard data...');
+  
       
       const response = await fetch(`${ENV_CONFIG.API_BASE_URL}/api/leaderboard`);
       
@@ -1544,7 +1541,7 @@ function ChessApp() {
       const data = await response.json();
       
       if (data.success) {
-        console.log(`✅ Loaded ${data.leaderboard.length} leaderboard entries`);
+  
         setLeaderboard(data.leaderboard || []);
       } else {
         throw new Error(data.error || 'Failed to fetch leaderboard');
@@ -1561,14 +1558,13 @@ function ChessApp() {
 
   // Helper function to detect checkmate
   const detectCheckmate = (position: any, currentPlayer: string): boolean => {
-    console.log('�� Checking for checkmate...');
-    console.log('Position:', position);
-    console.log('Current player:', currentPlayer);
+
+
     
     // First, check if the king is in check
     const isInCheck = isKingInCheck(position, currentPlayer);
     if (!isInCheck) {
-      console.log('✅ King is not in check, no checkmate');
+
       return false;
     }
     
@@ -1585,21 +1581,20 @@ function ChessApp() {
     }
     
     if (!kingSquare) {
-      console.log('🏆 CHECKMATE DETECTED! King was captured!');
+
       return true;
     }
     
-    console.log('King square:', kingSquare);
-    console.log('⚠️ King is in check, checking if it can escape...');
+
     
     // Check if king can escape
     const canEscape = checkIfKingCanEscape(position, kingSquare, currentPlayer);
     if (!canEscape) {
-      console.log('🏆 CHECKMATE DETECTED! King is trapped!');
+
       return true;
     }
     
-    console.log('✅ King can escape, no checkmate');
+    
     return false;
   };
   
@@ -1644,16 +1639,16 @@ function ChessApp() {
           
           const wouldStillBeInCheck = isKingInCheck(simulatedPosition, currentPlayer);
           if (!wouldStillBeInCheck) {
-            console.log(`✅ King can escape to ${targetSquare}`);
+    
             return true;
           } else {
-            console.log(`❌ King cannot escape to ${targetSquare} - still in check`);
+    
           }
         }
       }
     }
     
-    console.log('❌ King cannot escape');
+    
     return false;
   };
   
@@ -2085,7 +2080,7 @@ function ChessApp() {
   };
 
   const handleStartNewGameWithEscrow = () => {
-    console.log('🎮 Starting new game...');
+
     
     // Reset all game state
     setGameState({
@@ -2130,18 +2125,18 @@ function ChessApp() {
     // Clear any existing game state from database
     if (roomId) {
       // Database cleanup is handled by the backend
-      console.log('🗑️ Clearing game state for room:', roomId);
+  
     }
     
     // Set game mode back to lobby to start fresh
     setGameMode('lobby');
     setGameStatus('New game room created! Join with the new room ID.');
     
-    console.log('🎮 New game started with room:', newRoomId);
+
   };
 
   const handleDeclareWinner = (winner: 'white' | 'black') => {
-    console.log('🧪 Testing: Declaring winner:', winner);
+
     const updatedGameState = {
       ...gameState,
       winner,
@@ -2153,13 +2148,13 @@ function ChessApp() {
     
     // Save game state to database for multiplayer sync
     if (roomId) {
-      console.log('💾 Saving winner declaration to database');
+  
       databaseMultiplayerState.saveGameState(roomId, updatedGameState);
     }
   };
   
   const handleTestCheckmate = () => {
-    console.log('🧪 Testing checkmate detection...');
+
     
     // Create a simple checkmate position
     const checkmatePosition = {
@@ -2177,25 +2172,19 @@ function ChessApp() {
     checkmatePosition.b2 = '♕'; // White queen attacking black king
     checkmatePosition.c3 = '♖'; // White rook supporting
     
-    console.log('🧪 Checkmate position created:', checkmatePosition);
+
     
     // Test check detection first
     const whiteInCheck = isKingInCheck(checkmatePosition, 'white');
     const blackInCheck = isKingInCheck(checkmatePosition, 'black');
     
-    console.log('🧪 Check detection test:', {
-      whiteInCheck,
-      blackInCheck
-    });
+
     
     // Test checkmate detection
     const whiteCheckmate = detectCheckmate(checkmatePosition, 'white');
     const blackCheckmate = detectCheckmate(checkmatePosition, 'black');
     
-    console.log('🧪 Checkmate test results:', {
-      whiteCheckmate,
-      blackCheckmate
-    });
+
     
     if (blackCheckmate) {
       setGameState((prev: any) => ({
@@ -2211,12 +2200,10 @@ function ChessApp() {
   };
   
   const handleTestCurrentBoard = () => {
-    console.log('🧪 Testing current board state...');
-    console.log('Current position:', gameState.position);
-    console.log('Current player:', gameState.currentPlayer);
+
     
     // Test basic move validation
-    console.log('🧪 Testing basic move validation...');
+
     const testMoves = [
       { from: 'e2', to: 'e4', piece: '♙', player: 'white' },
       { from: 'e7', to: 'e5', piece: '♟', player: 'black' },
@@ -2225,7 +2212,7 @@ function ChessApp() {
     
     testMoves.forEach(move => {
       const isValid = validateLocalMove(gameState.position, move.from, move.to, move.player);
-      console.log(`Move ${move.from} to ${move.to} (${move.piece}): ${isValid ? '✅ Valid' : '❌ Invalid'}`);
+
     });
     
     // Test check detection for both players
@@ -2236,13 +2223,7 @@ function ChessApp() {
     const whiteCheckmate = detectCheckmate(gameState.position, 'white');
     const blackCheckmate = detectCheckmate(gameState.position, 'black');
     
-    console.log('🧪 Current board analysis:', {
-      whiteInCheck,
-      blackInCheck,
-      whiteCheckmate,
-      blackCheckmate,
-      currentPlayer: gameState.currentPlayer
-    });
+
     
     if (whiteCheckmate) {
       setGameState((prev: any) => ({
@@ -2277,7 +2258,7 @@ function ChessApp() {
       timestamp: Date.now()
     };
     
-    console.log('💬 Sending chat message:', newMessage);
+
     
     // Add message to local state immediately for UI responsiveness
     setChatMessages(prev => [...prev, newMessage]);
@@ -2287,7 +2268,7 @@ function ChessApp() {
       databaseMultiplayerState.sendChatMessage(roomId, message, publicKey.toString(), playerRole)
         .then((response) => {
           if (response.success) {
-            console.log('✅ Chat message sent successfully');
+      
           } else {
             console.error('❌ Failed to send chat message:', response.error);
             // Remove the message from local state if it failed
@@ -2305,7 +2286,7 @@ function ChessApp() {
   // Load chat messages from database
   useEffect(() => {
     if (roomId) {
-      console.log('📥 Loading chat messages from database for room:', roomId);
+  
       databaseMultiplayerState.getChatMessages(roomId)
         .then((messages) => {
           if (messages && Array.isArray(messages)) {
@@ -2315,7 +2296,7 @@ function ChessApp() {
               timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp
             }));
             setChatMessages(messagesWithTimestamps);
-            console.log('✅ Loaded', messagesWithTimestamps.length, 'chat messages');
+      
           }
         })
         .catch(error => {
@@ -2494,12 +2475,9 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStarted = (data: any) => {
-        console.log('🎮 Received gameStarted WebSocket event:', data);
-        console.log('🎮 TimeLimit at game start:', timeLimit, 'seconds');
-        console.log('🎮 Player role at game start:', playerRole);
+
         if (data.roomId === roomId) {
-          console.log('✅ Game starting - both players deposited!');
-          console.log('✅ Current timeLimit value:', timeLimit, 'seconds');
+          
           setGameMode('game');
         }
         // Reset game state for new game
@@ -2579,7 +2557,7 @@ function ChessApp() {
                 setGameState(gameState);
                 setGameMode('game');
                 setGameStatus(`🔄 Reconnected to game! You are ${playerRole}.`);
-                console.log('✅ Successfully reconnected to active game:', roomId);
+          
                 return;
               }
             } else {
