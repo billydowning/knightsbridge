@@ -50,7 +50,16 @@ export const useGameState = (): GameStateHook => {
   const makeMove = async (from: string, to: string, roomId?: string): Promise<MoveResult> => {
     let moveSuccessful = false;
     let statusMessage = '';
-    let moveData: { piece: string; capturedPiece?: string; position: any; isCheck: boolean; isCheckmate: boolean } | null = null;
+    let moveData: { 
+      piece: string; 
+      capturedPiece?: string; 
+      position: any; 
+      isCheck: boolean; 
+      isCheckmate: boolean;
+      isEnPassant: boolean;
+      isCastle: boolean;
+      isPromotion: boolean;
+    } | null = null;
     
     setGameState((prev) => {
       const piece = prev.position[from];
@@ -93,13 +102,30 @@ export const useGameState = (): GameStateHook => {
       const isCheck = ChessEngine.isInCheck(result.position, nextPlayer);
       const isCheckmate = ChessEngine.isCheckmate(result.position, nextPlayer, result.gameState);
       
+      // Detect en passant move
+      const isEnPassant = ChessEngine.PIECES.PAWNS.includes(piece) && 
+                         to === prev.enPassantTarget && 
+                         prev.enPassantTarget !== null;
+      
+      // Detect castling move
+      const isCastle = ChessEngine.PIECES.KINGS.includes(piece) && 
+                      Math.abs(ChessEngine.squareToCoords(from)[0] - ChessEngine.squareToCoords(to)[0]) === 2;
+      
+      // Detect promotion (pawn reaching end rank)
+      const isPromotion = ChessEngine.PIECES.PAWNS.includes(piece) && 
+                         ((prev.currentPlayer === 'white' && to[1] === '8') || 
+                          (prev.currentPlayer === 'black' && to[1] === '1'));
+      
       // Store move data for blockchain recording
       moveData = {
         piece,
         capturedPiece: result.capturedPiece,
         position: result.position,
         isCheck,
-        isCheckmate
+        isCheckmate,
+        isEnPassant,
+        isCastle,
+        isPromotion
       };
       
       // Build new state
@@ -112,7 +138,10 @@ export const useGameState = (): GameStateHook => {
           from, 
           to, 
           piece, 
-          capturedPiece: result.capturedPiece 
+          capturedPiece: result.capturedPiece,
+          isEnPassant,
+          isCastle,
+          isPromotion 
         }],
         lastUpdated: Date.now(),
         castlingRights: result.gameState.castlingRights || 'KQkq',
@@ -172,8 +201,22 @@ export const useGameState = (): GameStateHook => {
           // Generate position hash
           const positionHash = generatePositionHash(moveData.position);
           
-          // Record move on blockchain
-          const blockchainSuccess = await recordMoveOnChain(roomId, moveNotation, positionHash);
+          // Record move on blockchain with full move details
+          const blockchainSuccess = await recordMoveOnChain(
+            roomId, 
+            moveNotation, 
+            positionHash,
+            from,
+            to,
+            moveData.piece,
+            moveData.capturedPiece,
+            1000, // timeSpent - default 1 second
+            moveData.isCheck,
+            moveData.isCheckmate,
+            moveData.isCastle,
+            moveData.isEnPassant,
+            moveData.isPromotion
+          );
           if (!blockchainSuccess) {
             statusMessage += ' (blockchain sync failed)';
           }

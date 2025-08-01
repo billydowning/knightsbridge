@@ -33,7 +33,22 @@ export interface SolanaWalletHook {
   depositStake: (roomId: string, betAmount: number) => Promise<string | null>;
   joinAndDepositStake: (roomId: string, betAmount: number) => Promise<boolean>;
   claimWinnings: (roomId: string, playerRole: string, gameWinner: string | null, isDraw: boolean) => Promise<string>;
-  recordMove: (roomId: string, moveNotation: string, positionHash: Uint8Array) => Promise<boolean>;
+  recordMove: (
+    roomId: string, 
+    moveNotation: string, 
+    positionHash: Uint8Array,
+    fromSquare: string,
+    toSquare: string,
+    piece: string,
+    capturedPiece?: string,
+    timeSpent?: number,
+    isCheck?: boolean,
+    isCheckmate?: boolean,
+    isCastle?: boolean,
+    isEnPassant?: boolean,
+    isPromotion?: boolean,
+    promotionPiece?: string
+  ) => Promise<boolean>;
   declareResult: (roomId: string, winner: 'white' | 'black' | null, reason: string) => Promise<string>;
   handleTimeout: (roomId: string) => Promise<string>;
   cancelGame: (roomId: string) => Promise<boolean>;
@@ -1188,7 +1203,18 @@ export const useSolanaWallet = (): SolanaWalletHook => {
     const recordMove = async (
       roomId: string, 
       moveNotation: string, 
-      positionHash: Uint8Array
+      positionHash: Uint8Array,
+      fromSquare: string,
+      toSquare: string,
+      piece: string,
+      capturedPiece?: string,
+      timeSpent: number = 1000,
+      isCheck: boolean = false,
+      isCheckmate: boolean = false,
+      isCastle: boolean = false,
+      isEnPassant: boolean = false,
+      isPromotion: boolean = false,
+      promotionPiece?: string
     ): Promise<boolean> => {
       const program = getProgram();
       if (!program || !publicKey) return false;
@@ -1200,12 +1226,38 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         );
         
         const tx = await program.methods
-          .recordMove(moveNotation, Array.from(positionHash))
+          .recordMove(
+            moveNotation, 
+            Array.from(positionHash),
+            fromSquare,
+            toSquare,
+            piece,
+            capturedPiece || null,
+            timeSpent,
+            isCheck,
+            isCheckmate,
+            isCastle,
+            isEnPassant,
+            isPromotion,
+            promotionPiece || null
+          )
           .accounts({
             gameEscrow: gameEscrowPda,
             player: publicKey,
           })
           .rpc();
+        
+        console.log('✅ Move recorded on blockchain:', { 
+          roomId, 
+          moveNotation, 
+          fromSquare, 
+          toSquare, 
+          piece,
+          isEnPassant,
+          isCastle,
+          isPromotion,
+          txSignature: tx 
+        });
         
         return true;
       } catch (err) {

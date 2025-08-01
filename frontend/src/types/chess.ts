@@ -8,6 +8,9 @@ export interface Move {
   to: string;
   piece: string;
   capturedPiece?: string;
+  isEnPassant?: boolean;
+  isCastle?: boolean;
+  isPromotion?: boolean;
 }
 
 export interface Position {
