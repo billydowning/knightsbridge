@@ -1631,10 +1631,34 @@ io.on('connection', (socket) => {
   socket.on('getGameState', async (data, callback) => {
     try {
       const { roomId } = data;
+      console.log('🔍 GET GAME STATE REQUEST for room:', roomId);
       
       // Check if we have database access
       if (process.env.DATABASE_URL) {
         const poolInstance = getPool();
+        
+        // First, check what's actually in the database for this room
+        console.log('🔍 Querying database for room:', roomId);
+        const allStatesResult = await poolInstance.query('SELECT room_id, game_state FROM game_states WHERE room_id = $1', [roomId]);
+        console.log('🔍 Query result rows count:', allStatesResult.rows.length);
+        
+        if (allStatesResult.rows.length > 0) {
+          console.log('🔍 Found game state(s) for room:', roomId);
+          allStatesResult.rows.forEach((row, index) => {
+            console.log(`🔍 Row ${index}:`, {
+              room_id: row.room_id,
+              game_state_type: typeof row.game_state,
+              game_state_length: row.game_state?.length || 'null',
+              game_state_preview: typeof row.game_state === 'string' ? row.game_state.slice(0, 100) + '...' : row.game_state
+            });
+          });
+        } else {
+          console.log('❌ NO ROWS FOUND for room:', roomId);
+          
+          // Let's see what rooms DO exist
+          const allRoomsResult = await poolInstance.query('SELECT room_id FROM game_states LIMIT 10');
+          console.log('🔍 Available rooms in game_states table:', allRoomsResult.rows.map(r => r.room_id));
+        }
         
         // Get full game state from game_states table
         const result = await poolInstance.query('SELECT game_state FROM game_states WHERE room_id = $1', [roomId]);
