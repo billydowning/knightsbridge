@@ -72,12 +72,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
      * Get Anchor program instance - FIXED VERSION
      */
     const getProgram = async (): Promise<Program<ChessEscrow> | null> => {
-      console.log('🔍 Debug - GetProgram - Starting function');
-      console.log('🔍 Debug - GetProgram - Public Key:', publicKey?.toString());
-      console.log('🔍 Debug - GetProgram - Sign Transaction:', signTransaction ? 'Available' : 'Not available');
-      
       if (!publicKey || !signTransaction) {
-        console.log('🔍 Debug - GetProgram - Missing publicKey or signTransaction');
         return null;
       }
       
@@ -90,42 +85,30 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         }
       };
       
-      console.log('🔍 Debug - GetProgram - Created wallet adapter');
-      
       const provider = new AnchorProvider(
         connection,
         wallet,
         { commitment: 'confirmed' }
       );
       
-      console.log('🔍 Debug - GetProgram - Created provider');
-      
       // Try to fetch IDL from the program itself first
       try {
-        console.log('🔍 Debug - GetProgram - Attempting to fetch IDL from chain...');
         const program = await Program.at(CHESS_PROGRAM_ID, provider);
-        console.log('🔍 Debug - GetProgram - Successfully loaded program from chain');
         return program;
       } catch (chainError) {
-        console.log('🔍 Debug - GetProgram - Chain IDL fetch failed, using local IDL');
-        console.log('🔍 Debug - GetProgram - Chain error:', chainError);
+        // Chain IDL fetch failed, fall back to local IDL
+        console.log('Chain IDL fetch failed, using local IDL:', chainError.message);
       }
       
       // Create truly minimal IDL with ONLY instructions - no account types
       try {
-        console.log('🔍 Debug - Attempting program creation with truly minimal IDL...');
         
         const initializeGame = ChessEscrowIDL.instructions?.find(i => i.name === 'initialize_game');
         const depositStake = ChessEscrowIDL.instructions?.find(i => i.name === 'deposit_stake');
         const declareResult = ChessEscrowIDL.instructions?.find(i => i.name === 'declare_result');
         const joinGame = ChessEscrowIDL.instructions?.find(i => i.name === 'join_game');
         
-        console.log('🔍 Found instructions:', {
-          initializeGame: !!initializeGame,
-          depositStake: !!depositStake,
-          declareResult: !!declareResult,
-          joinGame: !!joinGame
-        });
+
         
         // Create working IDL with instructions and basic accounts for fetching
         const minimalIDL = {
@@ -153,23 +136,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           errors: []
         };
         
-        console.log('🔍 Minimal IDL created:', {
-          instructionCount: minimalIDL.instructions.length,
-          accountCount: minimalIDL.accounts.length,
-          typeCount: minimalIDL.types.length,
-          instructions: minimalIDL.instructions.map(i => i.name)
-        });
-        
         const program = new Program(minimalIDL, new PublicKey(CHESS_PROGRAM_ID), provider);
-        console.log('✅ Debug - Created program with truly minimal IDL');
         return program;
         
       } catch (minimalError) {
-        console.log('❌ Debug - Minimal IDL approach failed:', minimalError.message);
+        console.error('Minimal IDL approach failed:', minimalError.message);
         
         // Final fallback: Create dummy program for direct RPC
         try {
-          console.log('🔍 Creating dummy program for direct RPC calls...');
           const dummyIDL = {
             address: CHESS_PROGRAM_ID,
             metadata: { name: "dummy", version: "0.1.0", spec: "0.1.0" },
@@ -181,10 +155,9 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           };
           
           const dummyProgram = new Program(dummyIDL, new PublicKey(CHESS_PROGRAM_ID), provider);
-          console.log('✅ Debug - Created dummy program for direct RPC');
           return dummyProgram;
         } catch (dummyError) {
-          console.log('❌ Debug - Even dummy program failed:', dummyError.message);
+          console.error('Dummy program creation failed:', dummyError.message);
           return null;
         }
       }
