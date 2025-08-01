@@ -242,7 +242,7 @@ function ChessApp() {
     return null;
   };
 
-  // DISABLED: URL persistence helpers - focusing on manual reconnection first
+  // DISABLED: URL persistence helpers - keeping manual reconnection only for now
   // const getURLParams = () => {
   //   const params = new URLSearchParams(window.location.search);
   //   return {
@@ -268,7 +268,7 @@ function ChessApp() {
   //   window.history.replaceState({}, '', `?${params.toString()}`);
   // };
 
-  // App state - clean slate, focused on manual reconnection only
+  // App state - manual reconnection only, no URL persistence
   const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
   const [roomId, setRoomId] = useState<string>('');
   const [betAmount, setBetAmount] = useState<number>(0.1);
