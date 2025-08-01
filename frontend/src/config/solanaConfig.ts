@@ -13,7 +13,7 @@ export const SOLANA_RPC_ENDPOINT = clusterApiUrl(SOLANA_NETWORK);
 
 // Program and Wallet Addresses
 export const CHESS_PROGRAM_ID = new PublicKey('F4Py3YTF1JGhbY9ACztXaseFF89ZfLS69ke5Z7EBGQGr');
-export const FEE_WALLET_ADDRESS = new PublicKey('UFGCHLdHGYQDwCag4iUTTYmvTyayvdjo9BsbDBs56r1');
+export const FEE_WALLET_ADDRESS = new PublicKey('8nX9YShMbTwfKCEVTHVrFrDspZCKQEfrCwPnA2AknLj4');
 
 // Transaction Configuration
 export const TRANSACTION_TIMEOUT = 30000; // 30 seconds
