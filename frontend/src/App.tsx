@@ -2736,6 +2736,80 @@ function ChessApp() {
           {renderContent()}
         </main>
 
+        {/* Footer - Documentation Link (only on homepage) */}
+        {gameMode === 'menu' && (
+          <footer style={{
+            padding: isDesktopLayout ? '2rem' : '1.5rem',
+            marginTop: isDesktopLayout ? '3rem' : '2rem',
+            borderTop: `1px solid ${theme.border}`,
+            backgroundColor: theme.surface,
+            textAlign: 'center'
+          }}>
+            <div style={{
+              maxWidth: '800px',
+              margin: '0 auto',
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: isMobile ? '1rem' : '2rem'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                color: theme.textSecondary,
+                fontSize: isDesktopLayout ? '0.9rem' : '0.8rem'
+              }}>
+                <span style={{ fontSize: '1.2rem' }}>📚</span>
+                <span>Need help getting started?</span>
+              </div>
+              
+              <a
+                href="https://docs.knightsbridge.games"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: theme.primary,
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: '8px',
+                  fontSize: isDesktopLayout ? '0.9rem' : '0.8rem',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease',
+                  boxShadow: `0 2px 8px ${theme.primary}30`,
+                  border: `1px solid ${theme.primary}`
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = `0 4px 12px ${theme.primary}40`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = `0 2px 8px ${theme.primary}30`;
+                }}
+              >
+                <span>📖</span>
+                <span>View Documentation</span>
+                <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>↗</span>
+              </a>
+            </div>
+            
+            <div style={{
+              marginTop: '1rem',
+              fontSize: '0.75rem',
+              color: theme.textSecondary,
+              opacity: 0.7
+            }}>
+              Complete guides • Game rules • Smart contracts • Developer resources
+            </div>
+          </footer>
+        )}
+
         {/* Notification System */}
         <NotificationSystem notifications={notifications} onRemove={removeNotification} />
       </div>
