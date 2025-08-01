@@ -671,6 +671,10 @@ function ChessApp() {
       if (roomId) {
         // Only the white player should save the initial state
         if (playerRole === 'white') {
+          console.log('🎮 WHITE PLAYER: Starting initial game state save process');
+          console.log('🎮 Room ID:', roomId);
+          console.log('🎮 Game state to save:', newGameState);
+          
           // Set the flag to prevent immediate re-save when server broadcasts
           setIsReceivingServerUpdate(true);
           // Set the last saved state immediately to prevent duplicate saves
@@ -685,15 +689,24 @@ function ChessApp() {
           });
           setLastSavedState(initialStateHash);
           
-          databaseMultiplayerState.saveGameState(roomId, newGameState).catch(error => {
+          console.log('🎮 About to call saveGameState...');
+          databaseMultiplayerState.saveGameState(roomId, newGameState).then(() => {
+            console.log('✅ Initial game state saved successfully!');
+          }).catch(error => {
             console.error('❌ Error saving initial game state:', error);
+            console.error('❌ Error details:', error.message, error.stack);
           }).finally(() => {
+            console.log('🎮 Initial save process completed');
             // Keep the flag set for longer to prevent the broadcast from triggering a save
             setTimeout(() => {
               setIsReceivingServerUpdate(false);
             }, 3000); // Increased to 3 seconds to ensure broadcast is handled
           });
+        } else {
+          console.log('🎮 BLACK PLAYER: Skipping initial save (white player responsible)');
         }
+      } else {
+        console.log('❌ No roomId available for initial game state save');
       }
     }
   }, [gameMode, playerRole, roomId]);
@@ -1382,9 +1395,14 @@ function ChessApp() {
   };
 
   const handleStartGame = () => {
-    console.log('Starting game...');
+    console.log('🚀 HANDLE START GAME CALLED');
+    console.log('🚀 Current game mode:', gameMode);
+    console.log('🚀 Player role:', playerRole);
+    console.log('🚀 Room ID:', roomId);
+    console.log('🚀 Setting game mode to "game"...');
     setGameMode('game');
     setGameStatus('Game started!');
+    console.log('🚀 Start game process initiated');
   };
 
   const handleResignGame = async () => {
