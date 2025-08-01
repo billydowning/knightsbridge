@@ -10,5 +10,11 @@
       "VITE_WS_URL": "wss://knightsbridge-app-35xls.ondigitalocean.app",
       "VITE_BACKEND_URL": "https://knightsbridge-app-35xls.ondigitalocean.app"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 } 
