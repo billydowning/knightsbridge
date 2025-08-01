@@ -48,8 +48,6 @@ export interface SolanaWalletHook {
  * Custom hook for Solana wallet operations
  */
 export const useSolanaWallet = (): SolanaWalletHook => {
-  // Log Anchor version for debugging
-  console.log('🔍 Debug - Anchor version: 0.31.1 (from package.json)');
   try {
     const { publicKey, connected, signTransaction, sendTransaction } = useWallet();
     const { connection } = useConnection();

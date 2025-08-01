@@ -316,7 +316,6 @@ class DatabaseMultiplayerStateManager {
           reject(new Error('Create room request timed out'));
         }, 10000); // 10 second timeout
 
-        console.log('🔍 Frontend sending createRoom with timeLimit:', timeLimit, 'seconds');
         this.socket.emit('createRoom', { playerWallet, betAmount, timeLimit }, (response: any) => {
           clearTimeout(timeout);
           if (response.success) {

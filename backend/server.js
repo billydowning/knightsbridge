@@ -981,7 +981,7 @@ io.on('connection', (socket) => {
     
     try {
       const { playerWallet, betAmount, timeLimit } = data;
-      console.log('🔍 Backend received createRoom - playerWallet:', playerWallet, 'betAmount:', betAmount, 'timeLimit:', timeLimit);
+
       
       // Generate a unique room ID
       const roomId = 'ROOM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -1001,7 +1001,7 @@ io.on('connection', (socket) => {
 
         // Insert new room into database
         const finalTimeLimit = timeLimit || 600;
-        console.log('🔍 Storing in database - timeLimit:', timeLimit, 'finalTimeLimit:', finalTimeLimit);
+
         await poolInstance.query(
           'INSERT INTO games (room_id, player_white_wallet, game_state, stake_amount, time_limit, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
           [roomId, playerWallet, 'waiting', betAmount || 0, finalTimeLimit, new Date()]
@@ -1056,7 +1056,7 @@ io.on('connection', (socket) => {
     try {
       const { roomId, playerWallet } = data;
       console.log('📨 Received joinRoom event:', data);
-      console.log('🔍 Debug - Room ID:', roomId, 'Player Wallet:', playerWallet);
+  
       
       // Validate required parameters
       if (!roomId) {
