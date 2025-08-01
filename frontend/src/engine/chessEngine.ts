@@ -83,18 +83,6 @@ export const ChessEngine = {
     const [fromFile, fromRank] = ChessEngine.squareToCoords(from);
     const moves: string[] = [];
     const pieceColor = ChessEngine.getPieceColor(piece);
-    
-    // Debug en passant state for pawns
-    if (ChessEngine.PIECES.PAWNS.includes(piece)) {
-      console.log('🔍 Generating moves for pawn:', {
-        from,
-        piece,
-        pieceColor,
-        enPassantTarget: gameState.enPassantTarget,
-        fromFile,
-        fromRank
-      });
-    }
 
     switch (piece) {
       case '♙': // White pawn
@@ -121,11 +109,6 @@ export const ChessEngine = {
             // En passant capture (FIDE Article 3.7.d)
             if (gameState.enPassantTarget === captureSquare) {
               moves.push(captureSquare);
-              console.log('🔍 En passant move generated for white pawn:', {
-                from,
-                to: captureSquare,
-                enPassantTarget: gameState.enPassantTarget
-              });
             }
           }
         }
@@ -155,11 +138,6 @@ export const ChessEngine = {
             // En passant capture
             if (gameState.enPassantTarget === captureSquare) {
               moves.push(captureSquare);
-              console.log('🔍 En passant move generated for black pawn:', {
-                from,
-                to: captureSquare,
-                enPassantTarget: gameState.enPassantTarget
-              });
             }
           }
         }
@@ -480,8 +458,6 @@ export const ChessEngine = {
 
   // Make a move and return the new game state (FIDE compliant)
   makeMove: (from: string, to: string, position: Position, gameState: Partial<GameState> = {}): MoveResult | null => {
-    console.log('🔍 ChessEngine.makeMove called:', { from, to, piece: position[from], gameState });
-    
     const piece = position[from];
     if (!piece) return null;
     
@@ -563,15 +539,7 @@ export const ChessEngine = {
       
       // Check for double pawn move (sets en passant target)
       if (Math.abs(toRank - fromRank) === 2) {
-        const enPassantTarget = ChessEngine.coordsToSquare(fromFile, (fromRank + toRank) / 2);
-        newGameState.enPassantTarget = enPassantTarget;
-        console.log('🔍 En passant target set:', {
-          from,
-          to,
-          piece,
-          enPassantTarget,
-          pawnMovedTwoSquares: true
-        });
+        newGameState.enPassantTarget = ChessEngine.coordsToSquare(fromFile, (fromRank + toRank) / 2);
       }
       
       // Check for pawn promotion (FIDE Article 3.7.e)

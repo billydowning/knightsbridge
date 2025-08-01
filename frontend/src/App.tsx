@@ -943,15 +943,6 @@ function ChessApp() {
     const fromSquare = gameState.selectedSquare;
     const toSquare = square;
     
-    // Debug current game state for en passant tracking
-    console.log('🔍 Validating move:', {
-      from: fromSquare,
-      to: toSquare,
-      currentPlayer: gameState.currentPlayer,
-      enPassantTarget: gameState.enPassantTarget,
-      movingPiece: gameState.position[fromSquare]
-    });
-    
     // Validate move using existing function
     const isValidMove = validateLocalMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer, gameState);
     
@@ -982,23 +973,12 @@ function ChessApp() {
           const capturedPawnRank = pieceColor === 'white' ? toRank - 1 : toRank + 1;
           const capturedPawnSquare = toSquare[0] + capturedPawnRank;
           newPosition[capturedPawnSquare] = '';
-          console.log('🔍 En passant capture executed:', {
-            from: fromSquare,
-            to: toSquare,
-            capturedPawnSquare,
-            piece: movingPiece
-          });
         }
         
         // Check for two-square pawn move (sets en passant target)
         if (Math.abs(toRank - fromRank) === 2) {
           const targetRank = (fromRank + toRank) / 2;
           newEnPassantTarget = toSquare[0] + targetRank;
-          console.log('🔍 En passant target set:', {
-            from: fromSquare,
-            to: toSquare,
-            enPassantTarget: newEnPassantTarget
-          });
         }
       }
       
@@ -1726,16 +1706,7 @@ function ChessApp() {
           return true; // Allow capturing any piece, including pawns
         }
         // En passant capture - check if target square is the en passant target
-        const isEnPassant = gameState?.enPassantTarget === toSquare;
-        if (isEnPassant) {
-          console.log('🔍 En passant move validated:', {
-            from: fromSquare,
-            to: toSquare,
-            enPassantTarget: gameState?.enPassantTarget,
-            piece
-          });
-        }
-        return isEnPassant;
+        return gameState?.enPassantTarget === toSquare;
       }
       return false;
     }
