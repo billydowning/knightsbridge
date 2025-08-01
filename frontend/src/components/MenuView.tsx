@@ -791,6 +791,90 @@ export const MenuView: React.FC<MenuViewProps> = ({
           ))}
         </div>
       </section>
+
+      {/* Documentation Link Section */}
+      <section style={{ 
+        backgroundColor: theme.surface, 
+        padding: isDesktopLayout ? '2rem' : '1.5rem', 
+        borderRadius: isDesktopLayout ? '16px' : '12px',
+        boxShadow: theme.shadow,
+        border: `1px solid ${theme.border}`,
+        maxWidth: isDesktopLayout ? '800px' : '100%',
+        width: '100%',
+        margin: '2rem auto 0 auto',
+        textAlign: 'center',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginBottom: '1.5rem'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>📚</span>
+          <h3 style={{ 
+            margin: 0, 
+            color: theme.text,
+            fontSize: isDesktopLayout ? '1.25rem' : '1.1rem',
+            fontWeight: '600'
+          }}>
+            Need Help?
+          </h3>
+          <span style={{ fontSize: '1.5rem' }}>📚</span>
+        </div>
+        
+        <p style={{
+          margin: '0 0 1.5rem 0',
+          color: theme.textSecondary,
+          fontSize: isDesktopLayout ? '1rem' : '0.9rem',
+          lineHeight: 1.6
+        }}>
+          Check out our comprehensive documentation for detailed guides, rules, and technical information.
+        </p>
+
+        <a
+          href="https://docs.knightsbridge.games"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            padding: isDesktopLayout ? '1rem 2rem' : '0.875rem 1.5rem',
+            backgroundColor: theme.primary,
+            color: 'white',
+            textDecoration: 'none',
+            borderRadius: isDesktopLayout ? '12px' : '8px',
+            fontSize: isDesktopLayout ? '1rem' : '0.9rem',
+            fontWeight: '600',
+            transition: 'all 0.3s ease',
+            boxShadow: `0 4px 12px ${theme.primary}40`,
+            border: `2px solid ${theme.primary}`
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = `0 6px 20px ${theme.primary}60`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = `0 4px 12px ${theme.primary}40`;
+          }}
+        >
+          <span style={{ fontSize: '1.2rem' }}>📖</span>
+          <span>View Documentation</span>
+          <span style={{ fontSize: '0.8rem' }}>↗</span>
+        </a>
+
+        <div style={{
+          marginTop: '1rem',
+          fontSize: '0.8rem',
+          color: theme.textSecondary,
+          fontStyle: 'italic'
+        }}>
+          Complete guides • Chess rules • Smart contracts • Developer resources
+        </div>
+      </section>
     </div>
   );
 };
