@@ -2825,16 +2825,18 @@ function ChessApp() {
               <a
                 href="/terms"
                 style={{
-                  color: theme.textSecondary,
-                  textDecoration: 'none',
-                  opacity: 0.7,
+                  color: theme.primary,
+                  textDecoration: 'underline',
+                  opacity: 1,
+                  fontSize: '0.8rem',
+                  fontWeight: '500',
                   transition: 'opacity 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '1';
+                  e.currentTarget.style.opacity = '0.8';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '0.7';
+                  e.currentTarget.style.opacity = '1';
                 }}
               >
                 Terms & Conditions

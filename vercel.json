@@ -1,5 +1,17 @@
 {
   "version": 2,
+  "env": {
+    "VITE_API_URL": "https://knightsbridge-app-35xls.ondigitalocean.app",
+    "VITE_WS_URL": "wss://knightsbridge-app-35xls.ondigitalocean.app",
+    "VITE_BACKEND_URL": "https://knightsbridge-app-35xls.ondigitalocean.app"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://knightsbridge-app-35xls.ondigitalocean.app",
+      "VITE_WS_URL": "wss://knightsbridge-app-35xls.ondigitalocean.app",
+      "VITE_BACKEND_URL": "https://knightsbridge-app-35xls.ondigitalocean.app"
+    }
+  },
   "builds": [
     {
       "src": "frontend/package.json",
@@ -9,10 +21,10 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "source": "/(.*)",
+      "destination": "/frontend/index.html"
     }
   ]
 } 
