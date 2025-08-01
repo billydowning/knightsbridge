@@ -15,6 +15,7 @@ import { LobbyView } from './components/LobbyView';
 import { GameView } from './components/GameView';
 import { Header } from './components/Header';
 import { NotificationSystem, useNotifications } from './components/NotificationSystem';
+import { TermsPage } from './components/TermsPage';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -2699,6 +2700,15 @@ function ChessApp() {
 
 
 
+  // Check for special routes
+  if (window.location.pathname === '/terms') {
+    return (
+      <ErrorBoundary>
+        <TermsPage />
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="App" style={{ 
@@ -2803,9 +2813,32 @@ function ChessApp() {
               marginTop: '1rem',
               fontSize: '0.75rem',
               color: theme.textSecondary,
-              opacity: 0.7
+              opacity: 0.7,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1rem',
+              flexWrap: 'wrap'
             }}>
-              Complete guides • Game rules • Smart contracts • Developer resources
+              <span>Complete guides • Game rules • Smart contracts • Developer resources</span>
+              <span>•</span>
+              <a
+                href="/terms"
+                style={{
+                  color: theme.textSecondary,
+                  textDecoration: 'none',
+                  opacity: 0.7,
+                  transition: 'opacity 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '0.7';
+                }}
+              >
+                Terms & Conditions
+              </a>
             </div>
           </footer>
         )}
