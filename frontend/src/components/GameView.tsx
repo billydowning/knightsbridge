@@ -25,6 +25,7 @@ export interface GameViewProps {
   isLoading: boolean;
   betAmount: number;
   timeLimit: number;
+  onTimerUpdate?: (whiteTime: number, blackTime: number) => void; // For timer sync
 }
 
 export const GameView: React.FC<GameViewProps> = ({
@@ -41,7 +42,8 @@ export const GameView: React.FC<GameViewProps> = ({
   winningsClaimed,
   isLoading,
   betAmount,
-  timeLimit
+  timeLimit,
+  onTimerUpdate
 }) => {
   const { theme } = useTheme();
   const textSizes = useTextSizes();
@@ -52,29 +54,65 @@ export const GameView: React.FC<GameViewProps> = ({
   const showClaimButton = gameState.winner && gameState.winner === playerRole;
   const isGameOver = gameState.winner || gameState.draw;
 
-  // Timer logic - properly track each player's remaining time
+  // Timer logic - hybrid approach with sync
   const [whiteTimeRemaining, setWhiteTimeRemaining] = React.useState(timeLimit);
   const [blackTimeRemaining, setBlackTimeRemaining] = React.useState(timeLimit);
   const [timeoutTriggered, setTimeoutTriggered] = React.useState(false);
+  const [lastTimerSync, setLastTimerSync] = React.useState(Date.now());
   
   // Debug: Log when timeLimit prop changes
 
 
-  // Initialize timers when game starts or timeLimit changes
+  // HYBRID TIMER SYNC: Initialize and restore timers from game state
   React.useEffect(() => {
-    if (gameState.gameActive && !isGameOver) {
+    // Restore timers from game state if available (for reconnection and move sync)
+    if (gameState?.whiteTimeRemaining !== undefined && gameState?.blackTimeRemaining !== undefined) {
+      const syncedWhiteTime = gameState.whiteTimeRemaining;
+      const syncedBlackTime = gameState.blackTimeRemaining;
+      const syncTimestamp = gameState.timerLastSync || Date.now();
+      
+      // Apply drift correction if timers were synced recently
+      const timeSinceSync = (Date.now() - syncTimestamp) / 1000;
+      if (timeSinceSync < 60) { // Only correct if sync was within last minute
+        console.log('🕐 Syncing timers from game state:', { 
+          white: syncedWhiteTime, 
+          black: syncedBlackTime,
+          drift: Math.floor(timeSinceSync) 
+        });
+        
+        // Apply gentle drift correction for the current player
+        if (gameState.currentPlayer === 'white' && gameState.gameActive) {
+          setWhiteTimeRemaining(Math.max(0, syncedWhiteTime - Math.floor(timeSinceSync)));
+          setBlackTimeRemaining(syncedBlackTime);
+        } else if (gameState.currentPlayer === 'black' && gameState.gameActive) {
+          setWhiteTimeRemaining(syncedWhiteTime);
+          setBlackTimeRemaining(Math.max(0, syncedBlackTime - Math.floor(timeSinceSync)));
+        } else {
+          // Game not active, use exact synced values
+          setWhiteTimeRemaining(syncedWhiteTime);
+          setBlackTimeRemaining(syncedBlackTime);
+        }
+        setLastTimerSync(Date.now());
+      }
+    } else if (timeLimit > 0) {
+      // Initialize with default time limit for new games
+      console.log('🕐 Initializing timers with default time limit:', timeLimit);
       setWhiteTimeRemaining(timeLimit);
       setBlackTimeRemaining(timeLimit);
+      setLastTimerSync(Date.now());
+    }
+    
+    if (gameState.gameActive && !isGameOver) {
       setTimeoutTriggered(false); // Reset timeout flag when game starts
     }
-  }, [gameState.gameActive, isGameOver, timeLimit, playerRole]);
-  
-  // Also update timers when timeLimit changes (even during active game)
+  }, [gameState?.whiteTimeRemaining, gameState?.blackTimeRemaining, gameState?.timerLastSync, gameState?.currentPlayer, gameState?.gameActive, isGameOver, timeLimit]);
+
+  // HYBRID TIMER SYNC: Notify parent of timer changes for move synchronization
   React.useEffect(() => {
-    setWhiteTimeRemaining(timeLimit);
-    setBlackTimeRemaining(timeLimit);
-    setTimeoutTriggered(false); // Reset timeout flag when timers reset
-  }, [timeLimit]);
+    if (onTimerUpdate && gameState.gameActive) {
+      onTimerUpdate(whiteTimeRemaining, blackTimeRemaining);
+    }
+  }, [whiteTimeRemaining, blackTimeRemaining, gameState.gameActive, onTimerUpdate]);
 
   // Handle timeout - declare the opponent as winner
   const handleTimeout = React.useCallback((timedOutPlayer: 'white' | 'black') => {

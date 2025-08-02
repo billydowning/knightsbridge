@@ -34,6 +34,11 @@ export interface GameState {
   inCheckmate: boolean;
   lastMove?: { from: string; to: string } | null;
   canClaimFiftyMoveRule?: boolean;
+  
+  // Timer synchronization (hybrid approach)
+  whiteTimeRemaining?: number;
+  blackTimeRemaining?: number;
+  timerLastSync?: number; // timestamp when timers were last synced
 }
 
 export interface MoveResult {

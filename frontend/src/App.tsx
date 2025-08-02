@@ -444,6 +444,17 @@ function ChessApp() {
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
+  // HYBRID TIMER SYNC: Track current timer values for move synchronization
+  const [currentTimerValues, setCurrentTimerValues] = useState<{
+    whiteTime: number;
+    blackTime: number;
+  }>({ whiteTime: timeLimit, blackTime: timeLimit });
+
+  // HYBRID TIMER SYNC: Update timer values from GameView
+  const handleTimerUpdate = useCallback((whiteTime: number, blackTime: number) => {
+    setCurrentTimerValues({ whiteTime, blackTime });
+  }, []);
+
   // Performance optimizations
   const {
     legalMoves,
@@ -1187,7 +1198,12 @@ function ChessApp() {
         canClaimFiftyMoveRule: canClaimFiftyMoveRule,
         // Increment fullmoveNumber after black's move (chess standard)
         fullmoveNumber: (gameState.fullmoveNumber || 1) + (gameState.currentPlayer === 'black' ? 1 : 0),
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
+        
+        // HYBRID TIMER SYNC: Include current timer values for synchronization
+        whiteTimeRemaining: currentTimerValues.whiteTime,
+        blackTimeRemaining: currentTimerValues.blackTime,
+        timerLastSync: Date.now()
       };
       
       // Set flag to prevent receiving server updates during this operation
@@ -2880,6 +2896,7 @@ function ChessApp() {
             isLoading={appLoading}
             betAmount={betAmount}
             timeLimit={timeLimit}
+            onTimerUpdate={handleTimerUpdate}
           />
         );
       
