@@ -2477,12 +2477,16 @@ function ChessApp() {
     }
   };
 
-  // Load chat messages from database
+  // Load chat messages from database (with delay to prevent race condition)
   useEffect(() => {
     if (roomId) {
-  
-      databaseMultiplayerState.getChatMessages(roomId)
-        .then((messages) => {
+      // Add small delay to ensure database transaction commits first
+      const loadChatMessages = async () => {
+        try {
+          // Wait a moment for database transaction to commit
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          const messages = await databaseMultiplayerState.getChatMessages(roomId);
           if (messages && Array.isArray(messages)) {
             // Convert timestamp strings back to numbers
             const messagesWithTimestamps = messages.map((msg: any) => ({
@@ -2490,12 +2494,24 @@ function ChessApp() {
               timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp
             }));
             setChatMessages(messagesWithTimestamps);
-      
           }
-        })
-        .catch(error => {
+        } catch (error) {
           console.error('Error loading chat messages:', error);
-        });
+          // If first attempt fails, try once more after longer delay (network issues)
+          setTimeout(async () => {
+            try {
+              const messages = await databaseMultiplayerState.getChatMessages(roomId);
+              if (messages && Array.isArray(messages)) {
+                setChatMessages(messages);
+              }
+            } catch (retryError) {
+              console.error('Retry also failed for chat messages:', retryError);
+            }
+          }, 1000);
+        }
+      };
+      
+      loadChatMessages();
     }
   }, [roomId]);
 
