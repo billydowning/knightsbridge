@@ -2483,8 +2483,8 @@ function ChessApp() {
       // Add small delay to ensure database transaction commits first
       const loadChatMessages = async () => {
         try {
-          // Wait a moment for database transaction to commit
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Wait longer for database transaction to commit (more conservative)
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           const messages = await databaseMultiplayerState.getChatMessages(roomId);
           if (messages && Array.isArray(messages)) {
