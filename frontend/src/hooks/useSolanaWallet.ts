@@ -60,6 +60,28 @@ export interface SolanaWalletHook {
 }
 
 /**
+ * Handle wallet disconnection errors gracefully
+ */
+const handleWalletError = (error: any, operation: string): string => {
+  const errorMessage = error?.message || error?.toString() || 'Unknown error';
+  
+  if (errorMessage.includes('WalletDisconnectedError') || 
+      errorMessage.includes('wallet disconnected') ||
+      errorMessage.includes('Wallet not connected')) {
+    console.log(`🔌 Wallet disconnected during ${operation} - this is normal when switching wallets`);
+    return `Wallet disconnected during ${operation}. Please reconnect and try again.`;
+  }
+  
+  if (errorMessage.includes('User rejected') || errorMessage.includes('rejected')) {
+    console.log(`❌ User rejected ${operation}`);
+    return `Transaction was rejected. Please try again.`;
+  }
+  
+  console.error(`❌ Error during ${operation}:`, error);
+  return `Error during ${operation}: ${errorMessage}`;
+};
+
+/**
  * Custom hook for Solana wallet operations
  */
 export const useSolanaWallet = (): SolanaWalletHook => {
@@ -79,7 +101,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       if (connected && publicKey) {
         // Reset attempts when wallet reconnects
         setBalanceCheckAttempts(0);
-        checkBalance();
+        setError(null); // Clear any previous errors
+        
+        // Add a small delay to ensure wallet is fully connected
+        setTimeout(() => {
+          if (connected && publicKey) {
+            checkBalance();
+          }
+        }, 100);
       } else {
         setBalance(0);
         setError(null);
@@ -432,8 +461,14 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         setBalanceCheckAttempts(0);
         
       } catch (err) {
-        const errorMessage = (err as Error).message;
-        console.error('Balance check failed:', errorMessage);
+        const errorMessage = handleWalletError(err, 'balance check');
+        
+        // Handle specific error types
+        if (errorMessage.includes('WalletDisconnectedError') || errorMessage.includes('disconnected')) {
+          // Don't retry on wallet disconnection - wait for user to reconnect
+          setError('Wallet disconnected. Please reconnect your wallet.');
+          return;
+        }
         
         // Handle rate limiting specifically
         if (errorMessage.includes('403') || errorMessage.includes('Forbidden') || errorMessage.includes('Rate limit')) {
@@ -447,7 +482,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           }, 3000 + (balanceCheckAttempts * 2000));
           
         } else {
-          setError(`Error checking balance: ${errorMessage}`);
+          setError(errorMessage);
         }
       } finally {
         setIsLoading(false);
@@ -628,29 +663,35 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         }
         
       } catch (err: any) {
-        let errorMessage = 'Escrow creation failed';
+        const errorMessage = handleWalletError(err, 'escrow creation');
         
-        // Parse Anchor errors
-        if (err.error?.errorCode?.code) {
-          switch (err.error.errorCode.code) {
-            case 'RoomIdTooLong':
-              errorMessage = 'Room ID is too long (max 32 characters)';
-              break;
-            case 'InvalidStakeAmount':
-              errorMessage = 'Invalid stake amount';
-              break;
-            case 'AlreadyDeposited':
-              errorMessage = 'You have already deposited for this game';
-              break;
-            default:
-              errorMessage = err.error.errorCode.code;
-          }
-        } else if (err.message) {
-          errorMessage = err.message;
+        // Handle wallet disconnection specifically
+        if (errorMessage.includes('WalletDisconnectedError') || errorMessage.includes('disconnected')) {
+          setError('Wallet disconnected during escrow creation. Please reconnect and try again.');
+          return false;
         }
         
-        setError(errorMessage);
-        console.error('❌ Escrow creation error:', err);
+        // Parse Anchor errors if it's not a wallet error
+        if (err.error?.errorCode?.code) {
+          let anchorErrorMessage = 'Escrow creation failed';
+          switch (err.error.errorCode.code) {
+            case 'RoomIdTooLong':
+              anchorErrorMessage = 'Room ID is too long (max 32 characters)';
+              break;
+            case 'InvalidStakeAmount':
+              anchorErrorMessage = 'Invalid stake amount';
+              break;
+            case 'AlreadyDeposited':
+              anchorErrorMessage = 'You have already deposited for this game';
+              break;
+            default:
+              anchorErrorMessage = err.error.errorCode.code;
+          }
+          setError(anchorErrorMessage);
+        } else {
+          setError(errorMessage);
+        }
+        
         return false;
       } finally {
         setIsLoading(false);
@@ -732,28 +773,35 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return signature; // Return the actual transaction signature
         
       } catch (err: any) {
-        let errorMessage = 'Failed to deposit stake';
+        const errorMessage = handleWalletError(err, 'stake deposit');
         
-        if (err.error?.errorCode?.code) {
-          switch (err.error.errorCode.code) {
-            case 'InvalidGameStateForDeposit':
-              errorMessage = 'Game is not ready for deposits';
-              break;
-            case 'UnauthorizedPlayer':
-              errorMessage = 'You are not authorized for this game';
-              break;
-            case 'AlreadyDeposited':
-              errorMessage = 'You have already deposited for this game';
-              break;
-            default:
-              errorMessage = err.error.errorCode.code;
-          }
-        } else if (err.message) {
-          errorMessage = err.message;
+        // Handle wallet disconnection specifically
+        if (errorMessage.includes('WalletDisconnectedError') || errorMessage.includes('disconnected')) {
+          setError('Wallet disconnected during deposit. Please reconnect and try again.');
+          return null;
         }
         
-        setError(errorMessage);
-        console.error('❌ Deposit stake error:', err);
+        // Parse Anchor errors if it's not a wallet error
+        if (err.error?.errorCode?.code) {
+          let anchorErrorMessage = 'Failed to deposit stake';
+          switch (err.error.errorCode.code) {
+            case 'InvalidGameStateForDeposit':
+              anchorErrorMessage = 'Game is not ready for deposits';
+              break;
+            case 'UnauthorizedPlayer':
+              anchorErrorMessage = 'You are not authorized for this game';
+              break;
+            case 'AlreadyDeposited':
+              anchorErrorMessage = 'You have already deposited for this game';
+              break;
+            default:
+              anchorErrorMessage = err.error.errorCode.code;
+          }
+          setError(anchorErrorMessage);
+        } else {
+          setError(errorMessage);
+        }
+        
         return null;
       } finally {
         setIsLoading(false);
