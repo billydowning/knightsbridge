@@ -107,7 +107,7 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
       fontVariant: 'normal',
       transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
       filter: disabled ? 'grayscale(70%) opacity(0.6)' : 'none',
-      lineHeight: '1',
+      lineHeight: `${squareSize}px`, // Set line-height to square size for perfect centering
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -123,7 +123,12 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
       userSelect: 'none',
       WebkitUserSelect: 'none',
       MozUserSelect: 'none',
-      msUserSelect: 'none'
+      msUserSelect: 'none',
+      // Additional centering properties
+      verticalAlign: 'middle',
+      textAlign: 'center',
+      position: 'relative',
+      top: '0px' // Fine-tune if needed
     };
 
     // Enhanced colors and shadows for pieces
