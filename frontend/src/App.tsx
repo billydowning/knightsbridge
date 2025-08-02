@@ -75,14 +75,22 @@ export const useTheme = () => {
 // Types
 type AppGameMode = 'menu' | 'lobby' | 'game';
 
-// Error boundary component
+// Enhanced error boundary component with better recovery options
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
+  { 
+    hasError: boolean; 
+    error?: Error; 
+    errorInfo?: React.ErrorInfo;
+    attempts: number;
+  }
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { 
+      hasError: false, 
+      attempts: 0 
+    };
   }
 
   static getDerivedStateFromError(error: Error) {
@@ -90,18 +98,129 @@ class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('App Error:', error, errorInfo);
+    console.error('🚨 App Error Caught by Error Boundary:', error);
+    console.error('📍 Error Info:', errorInfo);
+    
+    // Log to backend for monitoring (if possible)
+    try {
+      if ((window as any).gtag) {
+        (window as any).gtag('event', 'exception', {
+          description: error.message,
+          fatal: false
+        });
+      }
+    } catch (e) {
+      // Ignore gtag errors
+    }
+    
+    this.setState({ errorInfo });
+  }
+
+  handleRetry = () => {
+    console.log('🔄 Attempting to recover from error...');
+    this.setState(prevState => ({ 
+      hasError: false, 
+      error: undefined,
+      errorInfo: undefined,
+      attempts: prevState.attempts + 1 
+    }));
   }
 
   render() {
     if (this.state.hasError) {
+      const isNetworkError = this.state.error?.message?.includes('fetch') || 
+                            this.state.error?.message?.includes('network') ||
+                            this.state.error?.message?.includes('connection');
+      
       return (
-        <div style={{ padding: '20px', textAlign: 'center' }}>
-          <h1>Something went wrong</h1>
-          <p>Please refresh the page and try again.</p>
-          <button onClick={() => window.location.reload()}>
-            Refresh Page
+        <div style={{ 
+          padding: '40px', 
+          textAlign: 'center',
+          maxWidth: '500px',
+          margin: '50px auto',
+          backgroundColor: '#1a1a1a',
+          color: '#ffffff',
+          borderRadius: '10px',
+          border: '1px solid #333'
+        }}>
+          <h1 style={{ color: '#ff6b6b', marginBottom: '20px' }}>
+            ⚠️ Something went wrong
+          </h1>
+          
+          {isNetworkError ? (
+            <div>
+              <p style={{ marginBottom: '20px' }}>
+                🌐 Network connection issue detected. Please check your internet connection.
+              </p>
+              <button 
+                onClick={this.handleRetry}
+                style={{
+                  padding: '10px 20px',
+                  marginRight: '10px',
+                  backgroundColor: '#4ecdc4',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                🔄 Retry Connection
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p style={{ marginBottom: '20px' }}>
+                🎮 The chess app encountered an unexpected error. This is usually temporary.
+              </p>
+              {this.state.attempts < 2 && (
+                <button 
+                  onClick={this.handleRetry}
+                  style={{
+                    padding: '10px 20px',
+                    marginRight: '10px',
+                    backgroundColor: '#4ecdc4',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 Try Again
+                </button>
+              )}
+            </div>
+          )}
+          
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#ff6b6b',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            🔄 Refresh Page
           </button>
+          
+          {process.env.NODE_ENV === 'development' && (
+            <details style={{ marginTop: '20px', textAlign: 'left' }}>
+              <summary style={{ cursor: 'pointer', color: '#999' }}>
+                Debug Information
+              </summary>
+              <pre style={{ 
+                backgroundColor: '#2a2a2a', 
+                padding: '10px', 
+                overflow: 'auto',
+                fontSize: '12px',
+                color: '#ccc'
+              }}>
+                {this.state.error?.stack}
+              </pre>
+            </details>
+          )}
         </div>
       );
     }
@@ -291,6 +410,10 @@ function ChessApp() {
   const [opponentEscrowCreated, setOpponentEscrowCreated] = useState<boolean>(false);
   const [bothEscrowsReady, setBothEscrowsReady] = useState<boolean>(false);
   const [hasDeposited, setHasDeposited] = useState<boolean>(false);
+
+  // Connection status tracking for user feedback
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting' | 'error'>('disconnected');
+  const [connectionMessage, setConnectionMessage] = useState<string>('');
 
   // Game state
   const [gameState, setGameState] = useState<any>({
@@ -510,6 +633,50 @@ function ChessApp() {
 
     loadGameState();
   }, [roomId, gameMode]);
+
+  // Monitor connection status for user feedback
+  useEffect(() => {
+    const handleConnectionEvents = () => {
+      // Set up connection status monitoring
+      const unsubscribe = databaseMultiplayerState.setupRealtimeSync('_connection', (event) => {
+        switch (event.type) {
+          case 'connected':
+            setConnectionStatus('connected');
+            setConnectionMessage('Connected to server');
+            break;
+          case 'disconnected':
+            setConnectionStatus('disconnected');
+            setConnectionMessage(`Disconnected: ${event.reason || 'Unknown reason'}`);
+            break;
+          case 'reconnected':
+            setConnectionStatus('connected');
+            setConnectionMessage('Reconnected successfully');
+            // Clear message after 3 seconds
+            setTimeout(() => setConnectionMessage(''), 3000);
+            break;
+          case 'stateRestored':
+            setConnectionMessage('Game state restored after reconnection');
+            setTimeout(() => setConnectionMessage(''), 3000);
+            break;
+          default:
+            if (event.type?.includes('error')) {
+              setConnectionStatus('error');
+              setConnectionMessage('Connection error - please check internet');
+            }
+        }
+      });
+
+      return unsubscribe;
+    };
+
+    const cleanup = handleConnectionEvents();
+    
+    return () => {
+      if (cleanup && typeof cleanup === 'function') {
+        cleanup();
+      }
+    };
+  }, []);
 
   // Add a flag to prevent infinite loops and track last saved state
   const [isReceivingServerUpdate, setIsReceivingServerUpdate] = useState<boolean>(false);
@@ -2780,6 +2947,43 @@ function ChessApp() {
             setGameState(null);
           }}
         />
+
+        {/* Connection Status Indicator */}
+        {(connectionStatus !== 'connected' || connectionMessage) && (
+          <div style={{
+            position: 'fixed',
+            top: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            padding: '8px 16px',
+            borderRadius: '20px',
+            fontSize: '0.85rem',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            maxWidth: '90vw',
+            backgroundColor: 
+              connectionStatus === 'connected' ? '#4caf50' :
+              connectionStatus === 'error' ? '#f44336' :
+              connectionStatus === 'reconnecting' ? '#ff9800' : '#757575',
+            color: '#ffffff'
+          }}>
+            <span>
+              {connectionStatus === 'connected' ? '🟢' :
+               connectionStatus === 'error' ? '🔴' :
+               connectionStatus === 'reconnecting' ? '🟡' : '⚫'}
+            </span>
+            <span>
+              {connectionMessage || 
+               (connectionStatus === 'connected' ? 'Connected' :
+                connectionStatus === 'error' ? 'Connection Error' :
+                connectionStatus === 'reconnecting' ? 'Reconnecting...' : 'Disconnected')}
+            </span>
+          </div>
+        )}
 
         {/* Main Content */}
         <main style={{ 

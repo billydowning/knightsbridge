@@ -82,6 +82,8 @@ class DatabaseMultiplayerStateManager {
   private connectionAttempts: number = 0;
   private maxConnectionAttempts: number = 5;
   private heartbeatInterval: NodeJS.Timeout | null = null;
+  private currentRoomId: string | null = null;
+  private currentPlayerWallet: string | null = null;
 
   constructor() {
     // Use production backend URL
@@ -149,17 +151,39 @@ class DatabaseMultiplayerStateManager {
         this.isConnecting = false;
         this.stopHeartbeat();
         
+        console.log('🔌 WebSocket disconnected:', reason);
+        
         // Notify UI about disconnection
         this.notifyCallbacks('disconnected', {
           reason,
           timestamp: Date.now()
         });
         
-        // Only attempt reconnection for certain disconnect reasons
-        if (reason === 'io server disconnect' || reason === 'transport close') {
-          // Use exponential backoff: 2s, 4s, 8s
-          const backoffDelay = Math.min(2000 * Math.pow(2, this.connectionAttempts), 8000);
-          setTimeout(() => this.connect(), backoffDelay);
+        // Attempt reconnection for most disconnect reasons (be more aggressive)
+        const reconnectReasons = [
+          'io server disconnect',
+          'transport close', 
+          'transport error',
+          'ping timeout',
+          'io client disconnect'
+        ];
+        
+        if (reconnectReasons.includes(reason) || reason.includes('error') || reason.includes('timeout')) {
+          this.connectionAttempts++;
+          console.log(`🔄 Attempting reconnection (attempt ${this.connectionAttempts})`);
+          
+          // Use exponential backoff: 1s, 2s, 4s, 8s, max 15s
+          const backoffDelay = Math.min(1000 * Math.pow(2, this.connectionAttempts - 1), 15000);
+          
+          setTimeout(async () => {
+            try {
+              await this.connect();
+              // After successful reconnection, restore state if we have room context
+              this.restoreStateAfterReconnection();
+            } catch (error) {
+              console.error('❌ Reconnection failed:', error);
+            }
+          }, backoffDelay);
         }
       });
 
@@ -271,6 +295,37 @@ class DatabaseMultiplayerStateManager {
     }
   }
 
+  /**
+   * Restore state after reconnection
+   */
+  private async restoreStateAfterReconnection(): Promise<void> {
+    console.log('🔄 Restoring state after reconnection...');
+    
+    if (this.currentRoomId && this.currentPlayerWallet) {
+      try {
+        // Rejoin the room
+        console.log(`🏠 Rejoining room: ${this.currentRoomId}`);
+        if (this.socket) {
+          this.socket.emit('joinRoom', { 
+            roomId: this.currentRoomId, 
+            playerWallet: this.currentPlayerWallet 
+          });
+        }
+        
+        // Notify callbacks about state restoration
+        this.notifyCallbacks('stateRestored', {
+          roomId: this.currentRoomId,
+          playerWallet: this.currentPlayerWallet,
+          timestamp: Date.now()
+        });
+        
+        console.log('✅ State restored successfully after reconnection');
+      } catch (error) {
+        console.error('❌ Failed to restore state after reconnection:', error);
+      }
+    }
+  }
+
   disconnect(): void {
     this.stopHeartbeat();
     if (this.socket) {
@@ -319,6 +374,10 @@ class DatabaseMultiplayerStateManager {
         this.socket.emit('createRoom', { playerWallet, betAmount, timeLimit }, (response: any) => {
           clearTimeout(timeout);
           if (response.success) {
+            // Track room and player for state restoration
+            this.currentRoomId = response.roomId;
+            this.currentPlayerWallet = playerWallet;
+            console.log('✅ Room created and context tracked for reliability:', response.roomId);
             resolve({ role: 'white', roomId: response.roomId });
           } else {
             console.error('❌ Failed to create room:', response.error);
@@ -350,6 +409,10 @@ class DatabaseMultiplayerStateManager {
         this.socket.emit('joinRoom', { roomId, playerWallet }, (response: any) => {
           clearTimeout(timeout);
           if (response.success) {
+            // Track room and player for state restoration
+            this.currentRoomId = roomId;
+            this.currentPlayerWallet = playerWallet;
+            console.log('✅ Room joined and context tracked for reliability:', roomId);
             resolve(response.role);
           } else {
             console.error('❌ Failed to join room:', response.error);
