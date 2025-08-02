@@ -10,91 +10,7 @@ import { useRenderPerformance } from '../utils/performance';
 import { useChessBoardConfig } from '../utils/responsive';
 import type { GameState, Position } from '../types';
 
-// Custom SVG-based chess pieces for 100% consistency
-const ChessPieceSVG: React.FC<{ piece: string; size: number; color: string; isHovered?: boolean; disabled?: boolean }> = ({ piece, size, color, isHovered = false, disabled = false }) => {
-  const getPieceType = (piece: string) => {
-    if (piece.includes('king')) return 'king';
-    if (piece.includes('queen')) return 'queen';
-    if (piece.includes('rook')) return 'rook';
-    if (piece.includes('bishop')) return 'bishop';
-    if (piece.includes('knight')) return 'knight';
-    if (piece.includes('pawn')) return 'pawn';
-    return 'pawn';
-  };
-
-  const isWhite = piece.includes('white');
-  const pieceType = getPieceType(piece);
-  const fillColor = isWhite ? '#ffffff' : '#1a1a1a';
-  const strokeColor = isWhite ? '#1a1a1a' : '#ffffff';
-
-  // Detailed, recognizable SVG paths for each piece type
-  const getPiecePath = () => {
-    switch (pieceType) {
-      case 'king':
-        return "M12 2L13 3L14 2L14 4L16 4L16 6L15 6L15 8L14 8L14 10L15 10L15 12L16 12L16 20L8 20L8 12L9 12L9 10L10 10L10 8L9 8L9 6L8 6L8 4L10 4L10 2L11 3L12 2ZM11 4L13 4L13 6L11 6L11 4Z";
-      case 'queen':
-        return "M6 4L7 2L8 4L9 2L10 4L11 2L12 4L13 2L14 4L15 2L16 4L17 2L18 4L16 6L15 6L15 8L14 8L14 10L15 10L15 12L16 12L16 20L8 20L8 12L9 12L9 10L10 10L10 8L9 8L9 6L8 6L6 4Z";
-      case 'rook':
-        return "M7 4L7 2L9 2L9 4L11 4L11 2L13 2L13 4L15 4L15 2L17 2L17 4L17 6L16 6L16 8L15 8L15 10L16 10L16 12L17 12L17 20L7 20L7 12L8 12L8 10L9 10L9 8L8 8L8 6L7 6L7 4Z";
-      case 'bishop':
-        return "M12 2C13 3 14 4 15 6C16 7 16 8 15 9L15 10L16 10L16 12L17 12L17 20L7 20L7 12L8 12L8 10L9 10L9 9C8 8 8 7 9 6C10 4 11 3 12 2ZM11 6L13 6L13 8L11 8L11 6Z";
-      case 'knight':
-        return "M8 4C9 3 10 2 12 2C13 2 14 3 15 4C16 5 16 6 15 7L16 8L16 10L17 10L17 12L18 12L18 20L6 20L6 12L7 12L7 10L8 10L8 8L9 8C8 7 8 6 8 5L8 4ZM10 6L12 6L12 8L10 8L10 6Z";
-      case 'pawn':
-        return "M12 4C13 4 14 5 14 6C14 7 13 8 12 8C11 8 10 7 10 6C10 5 11 4 12 4ZM10 10L14 10L15 12L16 12L16 20L8 20L8 12L9 12L10 10Z";
-      default:
-        return "M12 4C13 4 14 5 14 6C14 7 13 8 12 8C11 8 10 7 10 6C10 5 11 4 12 4ZM10 10L14 10L15 12L16 12L16 20L8 20L8 12L9 12L10 10Z";
-    }
-  };
-
-  const getFilter = () => {
-    if (disabled) return 'grayscale(70%) opacity(0.6)';
-    if (isHovered) {
-      return isWhite 
-        ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)) brightness(1.1)' 
-        : 'drop-shadow(0 0 6px rgba(0, 0, 0, 0.6)) brightness(1.2)';
-    }
-    return isWhite 
-      ? 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.3))' 
-      : 'drop-shadow(0 0 3px rgba(0, 0, 0, 0.4))';
-  };
-
-  return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      style={{ 
-        display: 'block',
-        filter: getFilter(),
-        transform: isHovered && !disabled ? 'scale(1.12)' : 'scale(1)',
-        transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-      }}
-    >
-      <defs>
-        <filter id={`shadow-${isWhite ? 'white' : 'black'}-${isHovered ? 'hover' : 'normal'}`}>
-          <feDropShadow 
-            dx="1" 
-            dy="1" 
-            stdDeviation={isHovered ? "2" : "1"} 
-            floodColor={strokeColor} 
-            floodOpacity={isHovered ? "1" : "0.8"}
-          />
-        </filter>
-      </defs>
-      <path
-        d={getPiecePath()}
-        fill={fillColor}
-        stroke={strokeColor}
-        strokeWidth="0.5"
-        strokeLinejoin="round"
-        filter={`url(#shadow-${isWhite ? 'white' : 'black'}-${isHovered ? 'hover' : 'normal'})`}
-      />
-    </svg>
-  );
-};
-
-// Fallback Unicode function for compatibility
+// Simple, reliable Unicode chess pieces
 const convertPieceToUnicode = (piece: string): string => {
   const pieceMap: { [key: string]: string } = {
     'white-king': '\u2654',
@@ -175,20 +91,78 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
   }, [disabled]);
 
   const getPieceStyle = useCallback((): React.CSSProperties => {
-    // Simplified styling for SVG container
-    return {
+    // Convert piece to Unicode first if needed
+    const unicodePiece = convertPieceToUnicode(piece);
+    
+    // Determine if piece is white or black
+    const isWhitePiece = ['♔', '♕', '♖', '♗', '♘', '♙'].includes(unicodePiece);
+    const isBlackPiece = ['♚', '♛', '♜', '♝', '♞', '♟'].includes(unicodePiece);
+    
+    // Consistent piece size calculation
+    const pieceSize = Math.floor(squareSize * 0.8); // 80% of square size
+    
+    const baseStyle: React.CSSProperties = {
+      fontSize: `${pieceSize}px`,
+      fontWeight: 'normal',
+      fontVariant: 'normal',
+      transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+      filter: disabled ? 'grayscale(70%) opacity(0.6)' : 'none',
+      lineHeight: '1',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       width: '100%',
       height: '100%',
+      // Use reliable font that has consistent chess pieces
+      fontFamily: '"Noto Sans Symbols 2", "Segoe UI Symbol", "Apple Color Emoji", monospace',
+      transform: isHovered && !disabled ? 'scale(1.1)' : 'scale(1)',
       cursor: disabled ? 'not-allowed' : 'pointer',
+      textRendering: 'optimizeLegibility',
+      WebkitFontSmoothing: 'antialiased',
+      MozOsxFontSmoothing: 'grayscale',
       userSelect: 'none',
       WebkitUserSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none'
     };
-  }, [disabled]);
+
+    // Enhanced colors and shadows for pieces
+    if (isWhitePiece) {
+      baseStyle.color = '#ffffff';
+      baseStyle.textShadow = `
+        0px 0px 0px #000000,
+        1px 1px 0px #1a1a1a,
+        2px 2px 0px #1a1a1a,
+        0px 0px 4px rgba(0, 0, 0, 0.6)
+      `;
+      baseStyle.filter = disabled 
+        ? 'grayscale(70%) opacity(0.6)' 
+        : 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.4))';
+    } else if (isBlackPiece) {
+      baseStyle.color = '#1a1a1a';
+      baseStyle.textShadow = `
+        0px 0px 0px #ffffff,
+        1px 1px 0px #ffffff,
+        2px 2px 0px #ffffff,
+        0px 0px 4px rgba(255, 255, 255, 0.5)
+      `;
+      baseStyle.filter = disabled 
+        ? 'grayscale(70%) opacity(0.6)' 
+        : 'drop-shadow(0 0 2px rgba(0, 0, 0, 0.5))';
+    }
+
+    // Enhanced hover effect
+    if (isHovered && !disabled) {
+      baseStyle.transform = 'scale(1.15)';
+      if (isWhitePiece) {
+        baseStyle.filter = 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.7)) brightness(1.1)';
+      } else {
+        baseStyle.filter = 'drop-shadow(0 0 4px rgba(0, 0, 0, 0.7)) brightness(1.2)';
+      }
+    }
+
+    return baseStyle;
+  }, [isHovered, disabled, piece, squareSize]);
 
   // Calculate indicator size based on square size
   const indicatorSize = Math.max(8, squareSize * 0.3);
@@ -245,15 +219,9 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
       aria-pressed={isSelected}
     >
       {piece && (
-        <div style={getPieceStyle()}>
-          <ChessPieceSVG 
-            piece={piece} 
-            size={Math.floor(squareSize * 0.75)} 
-            color={piece.includes('white') ? '#ffffff' : '#1a1a1a'}
-            isHovered={isHovered}
-            disabled={disabled}
-          />
-        </div>
+        <span className="chess-piece" style={getPieceStyle()}>
+          {convertPieceToUnicode(piece)}
+        </span>
       )}
       {isLegalMove && !piece && (
         <div

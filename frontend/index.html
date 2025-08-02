@@ -7,9 +7,18 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.svg?v=8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Knightsbridge - Blockchain Chess</title>
-    <!-- Preconnect for any future web fonts -->
+    <!-- Load web font for consistent chess pieces -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2:wght@400&display=swap" rel="stylesheet">
+    <style>
+      /* Force consistent chess piece font rendering */
+      .chess-piece {
+        font-family: 'Noto Sans Symbols 2', 'Segoe UI Symbol', 'Apple Color Emoji', monospace !important;
+        font-feature-settings: normal !important;
+        font-variant-ligatures: none !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
