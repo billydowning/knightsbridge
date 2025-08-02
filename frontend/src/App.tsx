@@ -1500,8 +1500,10 @@ function ChessApp() {
               if (isValidPlayer) {
                 const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
                 const gameNotFinished = !gameState.winner && !gameState.draw;
+                const gameHasMoves = gameState.moveHistory && gameState.moveHistory.length > 0;
                 
-                if (bothPlayersPresent && gameNotFinished) {
+                // Only skip lobby if game has actual moves (truly in progress)
+                if (bothPlayersPresent && gameNotFinished && gameHasMoves) {
                   // Skip lobby - restore directly to active game!
                   setGameState(gameState);
                   setGameMode('game');
