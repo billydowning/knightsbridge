@@ -10,7 +10,38 @@
     <!-- Chess font for consistent piece rendering -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols:wght@400&family=Noto+Emoji:wght@400&display=swap" rel="stylesheet">
+    <!-- Additional CSS for consistent chess piece rendering -->
+    <style>
+      .chess-piece {
+        font-variant-ligatures: none !important;
+        font-feature-settings: normal !important;
+        text-rendering: optimizeLegibility !important;
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+        font-family: "Noto Sans Symbols", "Symbola", "DejaVu Sans", "Arial Unicode MS", monospace !important;
+        font-synthesis: none !important;
+        font-kerning: none !important;
+      }
+      
+      /* Force all chess piece Unicode ranges to use consistent font */
+      .chess-piece::before,
+      .chess-piece::after {
+        font-family: inherit !important;
+      }
+      
+      /* Target specific Unicode ranges for chess pieces */
+      @supports (unicode-range: U+2654-U+265F) {
+        @font-face {
+          font-family: 'chess-fallback';
+          src: local('Noto Sans Symbols'), local('Symbola'), local('DejaVu Sans');
+          unicode-range: U+2654-U+265F; /* Chess pieces Unicode range */
+        }
+        .chess-piece {
+          font-family: 'chess-fallback', "Noto Sans Symbols", "Symbola", "DejaVu Sans", monospace !important;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

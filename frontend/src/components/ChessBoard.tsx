@@ -113,16 +113,18 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
       justifyContent: 'center',
       width: '100%',
       height: '100%',
-      // Simplified font stack for consistency - prioritize system chess fonts
-      fontFamily: '"Segoe UI Symbol", "DejaVu Sans", "Apple Color Emoji", "Noto Emoji", sans-serif',
+      // Force consistent chess font - CSS class will override with !important
+      fontFamily: '"Noto Sans Symbols", "Symbola", "DejaVu Sans", "Arial Unicode MS", monospace',
       transform: isHovered && !disabled ? 'scale(1.08)' : 'scale(1)',
       cursor: disabled ? 'not-allowed' : 'pointer',
-      // Optimize text rendering for crisp chess pieces
+      // Aggressive font rendering consistency
       textRendering: 'optimizeLegibility',
       WebkitFontSmoothing: 'antialiased',
       MozOsxFontSmoothing: 'grayscale',
       fontFeatureSettings: 'normal',
       fontVariantLigatures: 'none',
+      fontSynthesis: 'none', // Prevent font synthesis that could cause inconsistencies
+      fontKerning: 'none',   // Disable kerning that might affect spacing differently per piece
       // Prevent text selection
       userSelect: 'none',
       WebkitUserSelect: 'none',
@@ -227,7 +229,7 @@ const ChessSquare: React.FC<SquareProps> = React.memo(({
       aria-pressed={isSelected}
     >
       {piece && (
-        <span style={getPieceStyle()}>
+        <span className="chess-piece" style={getPieceStyle()}>
           {convertPieceToUnicode(piece)}
         </span>
       )}
