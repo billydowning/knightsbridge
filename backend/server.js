@@ -1002,11 +1002,44 @@ io.on('connection', (socket) => {
         // Insert new room into database
         const finalTimeLimit = timeLimit || 600;
 
-        await poolInstance.query(
-          'INSERT INTO games (room_id, player_white_wallet, game_state, stake_amount, time_limit, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
+        // Create the game record
+        const gameResult = await poolInstance.query(
+          'INSERT INTO games (room_id, player_white_wallet, game_state, stake_amount, time_limit, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
           [roomId, playerWallet, 'waiting', betAmount || 0, finalTimeLimit, new Date()]
         );
-        console.log('✅ Room created in database:', roomId, 'for player:', playerWallet, 'with timeLimit:', finalTimeLimit);
+        const gameId = gameResult.rows[0].id;
+        
+        // Create initial game state record
+        const initialGameState = {
+          position: {
+            'a1': 'white-rook', 'b1': 'white-knight', 'c1': 'white-bishop', 'd1': 'white-queen',
+            'e1': 'white-king', 'f1': 'white-bishop', 'g1': 'white-knight', 'h1': 'white-rook',
+            'a2': 'white-pawn', 'b2': 'white-pawn', 'c2': 'white-pawn', 'd2': 'white-pawn',
+            'e2': 'white-pawn', 'f2': 'white-pawn', 'g2': 'white-pawn', 'h2': 'white-pawn',
+            'a7': 'black-pawn', 'b7': 'black-pawn', 'c7': 'black-pawn', 'd7': 'black-pawn',
+            'e7': 'black-pawn', 'f7': 'black-pawn', 'g7': 'black-pawn', 'h7': 'black-pawn',
+            'a8': 'black-rook', 'b8': 'black-knight', 'c8': 'black-bishop', 'd8': 'black-queen',
+            'e8': 'black-king', 'f8': 'black-bishop', 'g8': 'black-knight', 'h8': 'black-rook'
+          },
+          currentPlayer: 'white',
+          selectedSquare: null,
+          gameActive: true,
+          winner: null,
+          draw: false,
+          inCheck: false,
+          inCheckmate: false,
+          moveHistory: [],
+          lastMove: null,
+          lastUpdated: Date.now()
+        };
+
+        // Insert initial game state
+        await poolInstance.query(
+          'INSERT INTO game_states (room_id, game_state, created_at, updated_at) VALUES ($1, $2, $3, $4)',
+          [roomId, JSON.stringify(initialGameState), new Date(), new Date()]
+        );
+
+        console.log('✅ Room and initial game state created in database:', roomId, 'for player:', playerWallet, 'with timeLimit:', finalTimeLimit);
       } else {
         // Use in-memory storage for testing
         testRooms.set(roomId, {
