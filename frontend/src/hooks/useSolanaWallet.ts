@@ -118,17 +118,25 @@ export const useSolanaWallet = (): SolanaWalletHook => {
 
       }
       
-      // Create truly minimal IDL with ONLY instructions - no account types
+      // Create truly minimal IDL with safe instruction handling
       try {
+        // Safely extract instructions with proper error checking
+        const instructions = [];
         
-        const initializeGame = ChessEscrowIDL.instructions?.find(i => i.name === 'initialize_game');
-        const depositStake = ChessEscrowIDL.instructions?.find(i => i.name === 'deposit_stake');
-        const declareResult = ChessEscrowIDL.instructions?.find(i => i.name === 'declare_result');
-        const joinGame = ChessEscrowIDL.instructions?.find(i => i.name === 'join_game');
-        
+        if (ChessEscrowIDL && ChessEscrowIDL.instructions && Array.isArray(ChessEscrowIDL.instructions)) {
+          const instructionNames = ['initialize_game', 'deposit_stake', 'declare_result', 'join_game'];
+          
+          for (const name of instructionNames) {
+            const instruction = ChessEscrowIDL.instructions.find(i => i && i.name === name);
+            if (instruction) {
+              instructions.push(instruction);
+            }
+          }
+        }
 
+        console.log(`Found ${instructions.length} valid instructions for minimal IDL`);
         
-        // Create working IDL with instructions and basic accounts for fetching
+        // Create working IDL with safe instructions and basic accounts for fetching
         const minimalIDL = {
           address: CHESS_PROGRAM_ID,
           metadata: {
@@ -136,12 +144,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             version: "0.1.0",
             spec: "0.1.0"
           },
-          instructions: [
-            ...(initializeGame ? [initializeGame] : []),
-            ...(depositStake ? [depositStake] : []),
-            ...(declareResult ? [declareResult] : []),
-            ...(joinGame ? [joinGame] : [])
-          ],
+          instructions: instructions, // Use safely extracted instructions
           accounts: [
             // Add basic account definition for fetching
             {
@@ -154,7 +157,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           errors: []
         };
         
+        // Validate IDL before creating program
+        if (!minimalIDL.instructions || !Array.isArray(minimalIDL.instructions)) {
+          throw new Error('Invalid IDL structure: instructions array is malformed');
+        }
+        
         const program = new Program(minimalIDL, new PublicKey(CHESS_PROGRAM_ID), provider);
+        console.log('✅ Successfully created minimal IDL program');
         return program;
         
       } catch (minimalError) {
@@ -162,6 +171,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         
         // Final fallback: Create dummy program for direct RPC
         try {
+          console.log('⚠️ Falling back to dummy program for blockchain operations');
           const dummyIDL = {
             address: CHESS_PROGRAM_ID,
             metadata: { name: "dummy", version: "0.1.0", spec: "0.1.0" },
@@ -172,10 +182,18 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             errors: []
           };
           
+          // Validate dummy IDL structure
+          if (!dummyIDL.instructions || !Array.isArray(dummyIDL.instructions)) {
+            console.error('❌ Invalid dummy IDL structure');
+            return null;
+          }
+          
           const dummyProgram = new Program(dummyIDL, new PublicKey(CHESS_PROGRAM_ID), provider);
+          console.log('✅ Dummy program created successfully (limited functionality)');
           return dummyProgram;
         } catch (dummyError) {
-          console.error('Dummy program creation failed:', dummyError.message);
+          console.error('❌ Dummy program creation failed:', dummyError.message);
+          console.warn('⚠️ Blockchain functionality will be limited');
           return null;
         }
       }

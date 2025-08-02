@@ -485,6 +485,32 @@ function ChessApp() {
     }
   }, [roomId, gameMode]);
 
+  // Load existing game state when joining a room
+  useEffect(() => {
+    const loadGameState = async () => {
+      if (roomId && gameMode === 'game') {
+        try {
+          console.log('🔄 Loading game state for room:', roomId);
+          const savedGameState = await databaseMultiplayerState.getGameState(roomId);
+          
+          if (savedGameState) {
+            console.log('✅ Found existing game state:', savedGameState);
+            setGameState(savedGameState);
+            setGameStatus('Game state loaded successfully');
+          } else {
+            console.log('⚠️ No saved game state found, using fresh state');
+            // Keep current game state if no saved state exists
+          }
+        } catch (error) {
+          console.error('❌ Failed to load game state:', error);
+          setGameStatus('Failed to load game state. Using fresh state.');
+        }
+      }
+    };
+
+    loadGameState();
+  }, [roomId, gameMode]);
+
   // Add a flag to prevent infinite loops and track last saved state
   const [isReceivingServerUpdate, setIsReceivingServerUpdate] = useState<boolean>(false);
   const [lastSavedState, setLastSavedState] = useState<string>('');
@@ -1381,9 +1407,54 @@ function ChessApp() {
     }
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
+    console.log('🎮 Starting game for room:', roomId);
+    
+    // Initialize fresh game state for both players
+    const initialGameState = {
+      position: {
+        a1: '♖', b1: '♘', c1: '♗', d1: '♕', e1: '♔', f1: '♗', g1: '♘', h1: '♖',
+        a2: '♙', b2: '♙', c2: '♙', d2: '♙', e2: '♙', f2: '♙', g2: '♙', h2: '♙',
+        a3: '', b3: '', c3: '', d3: '', e3: '', f3: '', g3: '', h3: '',
+        a4: '', b4: '', c4: '', d4: '', e4: '', f4: '', g4: '', h4: '',
+        a5: '', b5: '', c5: '', d5: '', e5: '', f5: '', g5: '', h5: '',
+        a6: '', b6: '', c6: '', d6: '', e6: '', f6: '', g6: '', h6: '',
+        a7: '♟', b7: '♟', c7: '♟', d7: '♟', e7: '♟', f7: '♟', g7: '♟', h7: '♟',
+        a8: '♜', b8: '♞', c8: '♝', d8: '♛', e8: '♚', f8: '♝', g8: '♞', h8: '♜'
+      },
+      currentPlayer: 'white' as 'white' | 'black',
+      selectedSquare: null,
+      gameActive: true,
+      winner: null,
+      draw: false,
+      moveHistory: [],
+      lastUpdated: Date.now(),
+      castlingRights: 'KQkq',
+      enPassantTarget: null,
+      halfmoveClock: 0,
+      fullmoveNumber: 1,
+      inCheck: false,
+      inCheckmate: false,
+      lastMove: null
+    };
+
+    // Set the local game state
+    setGameState(initialGameState);
+    
+    // Save initial game state to database for multiplayer sync
+    if (roomId) {
+      try {
+        await databaseMultiplayerState.saveGameState(roomId, initialGameState);
+        console.log('✅ Initial game state saved to database');
+      } catch (error) {
+        console.error('❌ Failed to save initial game state:', error);
+        setGameStatus('Failed to initialize game state. Please try again.');
+        return;
+      }
+    }
+
     setGameMode('game');
-    setGameStatus('Game started!');
+    setGameStatus('Game started! Good luck!');
   };
 
   const handleResignGame = async () => {

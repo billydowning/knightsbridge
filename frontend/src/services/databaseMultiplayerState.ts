@@ -473,11 +473,19 @@ class DatabaseMultiplayerStateManager {
           return;
         }
 
+        // Add timeout to prevent hanging requests
+        const timeout = setTimeout(() => {
+          console.warn('⚠️ Game state request timed out for room:', roomId);
+          resolve(null);
+        }, 5000); // 5 second timeout
+
         this.socket.emit('getGameState', { roomId }, (response: any) => {
-          if (response.success) {
+          clearTimeout(timeout);
+          if (response && response.success) {
+            console.log('✅ Successfully retrieved game state for room:', roomId);
             resolve(response.gameState);
           } else {
-            console.error('❌ Failed to get game state:', response.error);
+            console.warn('⚠️ No game state found for room:', roomId, response?.error || 'Unknown error');
             resolve(null);
           }
         });
