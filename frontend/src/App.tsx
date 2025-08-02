@@ -411,9 +411,7 @@ function ChessApp() {
   const [bothEscrowsReady, setBothEscrowsReady] = useState<boolean>(false);
   const [hasDeposited, setHasDeposited] = useState<boolean>(false);
 
-  // Connection status tracking for user feedback
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting' | 'error'>('disconnected');
-  const [connectionMessage, setConnectionMessage] = useState<string>('');
+
 
   // Game state
   const [gameState, setGameState] = useState<any>({
@@ -634,49 +632,7 @@ function ChessApp() {
     loadGameState();
   }, [roomId, gameMode]);
 
-  // Monitor connection status for user feedback
-  useEffect(() => {
-    const handleConnectionEvents = () => {
-      // Set up connection status monitoring
-      const unsubscribe = databaseMultiplayerState.setupRealtimeSync('_connection', (event) => {
-        switch (event.type) {
-          case 'connected':
-            setConnectionStatus('connected');
-            setConnectionMessage('Connected to server');
-            break;
-          case 'disconnected':
-            setConnectionStatus('disconnected');
-            setConnectionMessage(`Disconnected: ${event.reason || 'Unknown reason'}`);
-            break;
-          case 'reconnected':
-            setConnectionStatus('connected');
-            setConnectionMessage('Reconnected successfully');
-            // Clear message after 3 seconds
-            setTimeout(() => setConnectionMessage(''), 3000);
-            break;
-          case 'stateRestored':
-            setConnectionMessage('Game state restored after reconnection');
-            setTimeout(() => setConnectionMessage(''), 3000);
-            break;
-          default:
-            if (event.type?.includes('error')) {
-              setConnectionStatus('error');
-              setConnectionMessage('Connection error - please check internet');
-            }
-        }
-      });
 
-      return unsubscribe;
-    };
-
-    const cleanup = handleConnectionEvents();
-    
-    return () => {
-      if (cleanup && typeof cleanup === 'function') {
-        cleanup();
-      }
-    };
-  }, []);
 
   // Add a flag to prevent infinite loops and track last saved state
   const [isReceivingServerUpdate, setIsReceivingServerUpdate] = useState<boolean>(false);
@@ -2948,42 +2904,7 @@ function ChessApp() {
           }}
         />
 
-        {/* Connection Status Indicator */}
-        {(connectionStatus !== 'connected' || connectionMessage) && (
-          <div style={{
-            position: 'fixed',
-            top: '80px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            padding: '8px 16px',
-            borderRadius: '20px',
-            fontSize: '0.85rem',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            maxWidth: '90vw',
-            backgroundColor: 
-              connectionStatus === 'connected' ? '#4caf50' :
-              connectionStatus === 'error' ? '#f44336' :
-              connectionStatus === 'reconnecting' ? '#ff9800' : '#757575',
-            color: '#ffffff'
-          }}>
-            <span>
-              {connectionStatus === 'connected' ? '🟢' :
-               connectionStatus === 'error' ? '🔴' :
-               connectionStatus === 'reconnecting' ? '🟡' : '⚫'}
-            </span>
-            <span>
-              {connectionMessage || 
-               (connectionStatus === 'connected' ? 'Connected' :
-                connectionStatus === 'error' ? 'Connection Error' :
-                connectionStatus === 'reconnecting' ? 'Reconnecting...' : 'Disconnected')}
-            </span>
-          </div>
-        )}
+
 
         {/* Main Content */}
         <main style={{ 
