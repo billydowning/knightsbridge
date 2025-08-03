@@ -415,7 +415,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
             width: '100%',
             maxWidth: '100%'
           }}>
-            {timePresets.slice(0, isDesktopLayout ? 6 : 4).map((preset) => (
+            {timePresets.map((preset) => (
               <button
                 key={preset.seconds}
                 onClick={() => setTimeLimit(preset.seconds)}

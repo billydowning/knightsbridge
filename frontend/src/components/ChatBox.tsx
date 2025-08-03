@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '../App';
 import { useTextSizes, useIsMobile, useIsTabletOrSmaller } from '../utils/responsive';
 
@@ -28,23 +28,101 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
 }) => {
   const { theme } = useTheme();
   const [newMessage, setNewMessage] = useState('');
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    // Load sound preference from localStorage
+    const saved = localStorage.getItem('knightsbridge-chat-sound');
+    return saved !== null ? JSON.parse(saved) : true; // Default enabled
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastMessageCountRef = useRef(messages.length);
   
   // Responsive utilities
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
   const isTabletOrSmaller = useIsTabletOrSmaller();
 
-
-
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    const messagesContainer = messagesEndRef.current?.parentElement;
-    if (messagesContainer) {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  // Sound notification system
+  const playNotificationSound = useCallback(() => {
+    if (!soundEnabled) return;
+    
+    try {
+      // Create a simple notification sound using Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create a short, pleasant notification sound
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Configure the sound: gentle notification tone
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // Higher pitch
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1); // Drop to lower pitch
+      
+      // Volume envelope: soft attack and quick decay
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.05); // Gentle volume
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      // Play the sound
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+      
+    } catch (error) {
+      // Fallback: try simple beep with legacy Audio
+      try {
+        // Create a simple beep sound using data URI
+        const audio = new Audio();
+        audio.volume = 0.2;
+        // Simple sine wave beep (more compatible)
+        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcBjiK1fLNeSsFJHfH8N+QQQoUXrTp65hVFAlFnt/zv2EcBjiK1fLOeSsFJHfH8N+QQQoUXrTp65hVFAlFnt/zv2EcBjiK1fLOeSsFJHfH8N+QQQoUXrTp65hVFAlFnt/zv2EcBjiK1fLOeSsFJHfH8N+QQQoUXrTp65hVFAlFnt/zv2EcBjiK1fLOeSsFJHfH8N+QQQoUXrTp65hVFAlFnt/zv2EcBjiK1fLOeSsFJHfH8N+QQQoUXrTp6';
+        audio.play().catch(() => {
+          // Silent fail if audio is blocked
+        });
+      } catch (fallbackError) {
+        // Silent fail - no audio support
+      }
     }
-  }, [messages]);
+  }, [soundEnabled]);
+
+  // Toggle sound setting and save to localStorage
+  const toggleSound = useCallback(() => {
+    const newSoundEnabled = !soundEnabled;
+    setSoundEnabled(newSoundEnabled);
+    localStorage.setItem('knightsbridge-chat-sound', JSON.stringify(newSoundEnabled));
+  }, [soundEnabled]);
+
+
+
+  // Auto-scroll to bottom when new messages arrive + sound notification
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+
+    // Play sound for new incoming messages (not from current player)
+    if (messages.length > lastMessageCountRef.current) {
+      const newMessages = messages.slice(lastMessageCountRef.current);
+      const hasIncomingMessage = newMessages.some(msg => 
+        msg.playerId !== playerRole && msg.type !== 'system'
+      );
+      
+      if (hasIncomingMessage) {
+        // Small delay to ensure smooth scrolling completes first
+        setTimeout(() => {
+          playNotificationSound();
+        }, 100);
+      }
+    }
+    
+    lastMessageCountRef.current = messages.length;
+  }, [messages, playerRole, playNotificationSound]);
 
   // Focus input when component mounts
   useEffect(() => {
@@ -119,7 +197,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
         color: 'white',
         borderBottom: `1px solid ${theme.border}`,
         display: 'flex',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         alignItems: 'center'
       }}>
         <div style={{ 
@@ -128,15 +206,50 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
         }}>
           💬 Game Chat
         </div>
+        
+        {/* Sound Toggle Button */}
+        <button
+          onClick={toggleSound}
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: '4px',
+            color: 'white',
+            padding: '4px 8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+          title={`Chat sounds ${soundEnabled ? 'ON' : 'OFF'}`}
+        >
+          <span style={{ fontSize: '12px' }}>
+            {soundEnabled ? '🔊' : '🔇'}
+          </span>
+          <span style={{ fontSize: '11px', fontWeight: 'normal' }}>
+            {soundEnabled ? 'ON' : 'OFF'}
+          </span>
+        </button>
       </div>
 
       {/* Messages Area */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: isMobile ? '10px' : '15px',
-        backgroundColor: theme.background
-      }}>
+      <div 
+        ref={messagesContainerRef}
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: isMobile ? '10px' : '15px',
+          backgroundColor: theme.background
+        }}
+      >
         {messages.length === 0 ? (
           <div style={{
             textAlign: 'center',
@@ -189,6 +302,42 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
         borderTop: `1px solid ${theme.border}`,
         backgroundColor: theme.surface
       }}>
+        {/* Quick Emoji Bar */}
+        <div style={{
+          display: 'flex',
+          gap: '4px',
+          marginBottom: '8px',
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }}>
+          {['👍', '😄', '😅', '🤔', '😎', '🔥', '⚡', '🎯', '🏆', '💰'].map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => setNewMessage(prev => prev + emoji)}
+              style={{
+                padding: '4px 8px',
+                backgroundColor: 'transparent',
+                border: `1px solid ${theme.border}`,
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                transition: 'all 0.2s ease',
+                minWidth: '32px',
+                height: '32px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.border;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+        
         <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px' }}>
           <input
             ref={inputRef}
