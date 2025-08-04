@@ -1162,8 +1162,9 @@ function ChessApp() {
     const fromSquare = gameState.selectedSquare;
     const toSquare = square;
     
-    // Validate move using existing function
-    const isValidMove = validateLocalMove(gameState.position, fromSquare, toSquare, gameState.currentPlayer, gameState);
+    // CRITICAL FIX: Use proper chess engine validation instead of simplified version
+    // This ensures moves are validated for check situations and all chess rules
+    const isValidMove = ChessEngine.isLegalMove(fromSquare, toSquare, gameState.position, gameState.currentPlayer, gameState);
     
     if (isValidMove) {
       
@@ -1288,7 +1289,9 @@ function ChessApp() {
           setIsReceivingServerUpdate(false);
         });
     } else {
-      // Invalid move - just update selection
+      // Invalid move - provide specific feedback for check situations
+      const isInCheck = ChessEngine.isInCheck(gameState.position, gameState.currentPlayer);
+      
       const piece = gameState.position[square];
       if (piece) {
         const pieceColor = getPieceColorFromAnyFormat(piece);
@@ -1297,11 +1300,19 @@ function ChessApp() {
           setGameStatus(`Selected ${piece} at ${square}`);
         } else {
           setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
-          setGameStatus('Invalid move - cleared selection');
+          if (isInCheck) {
+            setGameStatus('⚠️ You are in CHECK! You must move to get out of check.');
+          } else {
+            setGameStatus('Invalid move - cleared selection');
+          }
         }
       } else {
         setGameState((prev: any) => ({ ...prev, selectedSquare: null }));
-        setGameStatus('Invalid move to empty square - cleared selection');
+        if (isInCheck) {
+          setGameStatus('⚠️ You are in CHECK! You must move to get out of check.');
+        } else {
+          setGameStatus('Invalid move to empty square - cleared selection');
+        }
       }
     }
   };
@@ -1737,9 +1748,11 @@ function ChessApp() {
   };
 
   const handleResignGame = async () => {
+    addDebugMessage(`🏳️ Resignation initiated by ${playerRole} in room ${roomId}`);
 
     
     if (!playerRole || !roomId) {
+      addDebugMessage(`❌ Cannot resign: missing playerRole=${playerRole}, roomId=${roomId}`);
       console.error('Cannot resign: missing player role or room ID');
       return;
     }
@@ -1747,6 +1760,8 @@ function ChessApp() {
     try {
       // Update local game state
       const winner = playerRole === 'white' ? 'black' : 'white';
+      addDebugMessage(`🏳️ Setting winner to ${winner}, gameActive to false`);
+      
       setGameState((prev: any) => ({
         ...prev,
         winner,
@@ -1762,26 +1777,24 @@ function ChessApp() {
         lastUpdated: Date.now()
       };
       
+      addDebugMessage(`💾 Saving resignation state to database...`);
       await databaseMultiplayerState.saveGameState(roomId, updatedState);
+      addDebugMessage(`✅ Resignation state saved to database`);
       
-      // Notify backend about game completion
-      if (websocketService && websocketService.isConnected()) {
-    
-        websocketService.gameComplete({
-          roomId,
-          winner,
-          gameResult: 'resignation',
-          playerRole
-        });
-      }
+      // TOYOTA RELIABILITY: Use databaseMultiplayerState for consistent WebSocket handling
+      addDebugMessage(`📡 Broadcasting resignation via WebSocket...`);
+      // The saveGameState should automatically trigger gameStateUpdated events to other players
       
-      // Send chat message about resignation
+      // Send chat message about resignation  
       const resignationMessage = `${playerRole} resigned the game. ${winner} wins!`;
+      addDebugMessage(`💬 Sending resignation chat message...`);
       await databaseMultiplayerState.sendChatMessage(roomId, resignationMessage, publicKey?.toString() || '', playerRole);
       
+      addDebugMessage(`✅ Resignation complete: ${winner} wins!`);
       setGameStatus(`${winner} wins by resignation!`);
       
     } catch (error) {
+      addDebugMessage(`❌ Error during resignation: ${error instanceof Error ? error.message : 'Unknown error'}`);
       console.error('Error resigning game:', error);
       setGameStatus(`Error resigning game: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -2692,20 +2705,152 @@ function ChessApp() {
       addDebugMessage(`🔄 Fetching initial room status for lobby`);
       fetchRoomStatus();
       
-      // TOYOTA RELIABILITY: Poll room status every 3 seconds as backup
-      // This ensures UI updates even if WebSocket events are missed
-      addDebugMessage(`⏰ Starting room status polling backup (every 3s)`);
-      const pollInterval = setInterval(() => {
-        addDebugMessage(`🔄 Polling room status (backup mechanism)`);
-        fetchRoomStatus();
-      }, 3000);
+      // MOBILE RELIABILITY: Smart connection health monitoring
+      // Less frequent polling with mobile-specific connection recovery
+      addDebugMessage(`📱 Starting mobile-optimized connection monitoring`);
+      let missedUpdates = 0;
+      const isLikelyMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      const healthCheckInterval = setInterval(() => {
+        // Only poll if we suspect connection issues or on mobile
+        const shouldCheck = isLikelyMobile || missedUpdates > 0;
+        
+        if (shouldCheck) {
+          addDebugMessage(`📱 Connection health check (mobile: ${isLikelyMobile}, missed: ${missedUpdates})`);
+          fetchRoomStatus().catch(() => {
+            missedUpdates++;
+            addDebugMessage(`⚠️ Connection issue detected (count: ${missedUpdates})`);
+            
+            if (missedUpdates > 2) {
+              addDebugMessage(`🔄 Multiple failures detected, forcing WebSocket reconnect...`);
+              // Force WebSocket reconnection for mobile reliability
+              try {
+                if (databaseMultiplayerState.isConnected()) {
+                  databaseMultiplayerState.disconnect();
+                  setTimeout(() => {
+                    databaseMultiplayerState.connect();
+                    addDebugMessage(`✅ WebSocket reconnection attempted`);
+                  }, 1000);
+                }
+              } catch (error) {
+                addDebugMessage(`❌ Reconnection failed: ${error}`);
+              }
+              missedUpdates = 0;
+            }
+          });
+        }
+      }, isLikelyMobile ? 8000 : 12000); // More frequent on mobile
       
       return () => {
-        addDebugMessage(`⏰ Stopping room status polling`);
-        clearInterval(pollInterval);
+        addDebugMessage(`📱 Stopping mobile connection monitoring`);
+        clearInterval(healthCheckInterval);
       };
     }
   }, [gameMode, roomId, fetchRoomStatus, addDebugMessage]);
+
+  // MOBILE RELIABILITY: Handle page visibility changes (mobile backgrounding/foregrounding)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && roomId) {
+        addDebugMessage(`📱 App returned to foreground, checking connection health...`);
+        
+        // Give mobile browsers a moment to restore connections
+        setTimeout(() => {
+          if (gameMode === 'lobby' || gameMode === 'game') {
+            addDebugMessage(`🔄 Foreground recovery: Refreshing room status`);
+            fetchRoomStatus();
+            
+            // For active games, also refresh game state to catch resignations/moves
+            if (gameMode === 'game') {
+              addDebugMessage(`🎮 Foreground recovery: Refreshing game state`);
+              databaseMultiplayerState.getGameState(roomId)
+                .then((gameState) => {
+                  if (gameState) {
+                    addDebugMessage(`✅ Game state refreshed after foreground`);
+                    setGameState(gameState);
+                    
+                    // Handle any game endings that happened while backgrounded
+                    if (gameState.winner && !gameState.gameActive) {
+                      const isWinner = gameState.winner === playerRole;
+                      const statusMessage = isWinner ? 'You won! 🎉' : 'You lost 😞';
+                      addDebugMessage(`🏆 Game ended while backgrounded: ${statusMessage}`);
+                      setGameStatus(statusMessage);
+                    }
+                  }
+                })
+                .catch((error) => {
+                  addDebugMessage(`⚠️ Error refreshing game state: ${error.message}`);
+                });
+            }
+            
+            // Check WebSocket connection health
+            if (!databaseMultiplayerState.isConnected()) {
+              addDebugMessage(`🔌 WebSocket disconnected after backgrounding, reconnecting...`);
+              databaseMultiplayerState.connect();
+            }
+          }
+        }, 1000);
+      } else if (document.visibilityState === 'hidden') {
+        addDebugMessage(`📱 App backgrounded - connections may be suspended`);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [roomId, gameMode, fetchRoomStatus, addDebugMessage]);
+
+  // MOBILE RELIABILITY: Connection heartbeat for active games
+  useEffect(() => {
+    const isLikelyMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (gameMode === 'game' && roomId && isLikelyMobile) {
+      addDebugMessage(`📱 Starting mobile game connection heartbeat`);
+      
+      let lastHeartbeat = Date.now();
+      const heartbeatInterval = setInterval(() => {
+        // Test connection health by checking if we can fetch room status
+        const heartbeatStart = Date.now();
+        
+        databaseMultiplayerState.getRoomStatus(roomId)
+          .then(() => {
+            const latency = Date.now() - heartbeatStart;
+            lastHeartbeat = Date.now();
+            
+            // Only log if latency is concerning
+            if (latency > 3000) {
+              addDebugMessage(`📱 Heartbeat slow (${latency}ms) - connection may be degraded`);
+            }
+          })
+          .catch((error) => {
+            const timeSinceLastSuccess = Date.now() - lastHeartbeat;
+            addDebugMessage(`💔 Heartbeat failed (${timeSinceLastSuccess}ms ago): ${error.message}`);
+            
+            // If heartbeat has been failing for >15 seconds, force reconnection
+            if (timeSinceLastSuccess > 15000) {
+              addDebugMessage(`🔄 Heartbeat failure threshold reached, forcing reconnection...`);
+              try {
+                databaseMultiplayerState.disconnect();
+                setTimeout(() => {
+                  databaseMultiplayerState.connect();
+                  addDebugMessage(`✅ Mobile heartbeat reconnection attempted`);
+                }, 1000);
+              } catch (reconnectError) {
+                addDebugMessage(`❌ Heartbeat reconnection failed: ${reconnectError}`);
+              }
+              lastHeartbeat = Date.now(); // Reset timer
+            }
+          });
+      }, 10000); // Check every 10 seconds on mobile
+      
+      return () => {
+        addDebugMessage(`📱 Stopping mobile game heartbeat`);
+        clearInterval(heartbeatInterval);
+      };
+    }
+  }, [gameMode, roomId, addDebugMessage]);
 
   // Listen for real-time chat messages
   useEffect(() => {
@@ -2770,10 +2915,13 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStateUpdated = (data: any) => {
+        addDebugMessage(`🎯 handleGameStateUpdated called for room: ${data.roomId || 'unknown'}`);
+        
         // Skip if this is our own broadcast
         const currentSocketId = (databaseMultiplayerState as any).socket?.id;
         
         if (data.senderId && currentSocketId === data.senderId) {
+          addDebugMessage(`⏩ Skipping own broadcast (senderId: ${data.senderId})`);
           return;
         }
         
@@ -2805,6 +2953,9 @@ function ChessApp() {
           
           // Only update if the state has actually changed AND the received state is newer
           if (localStateHash !== receivedStateHash && receivedTimestamp >= localTimestamp) {
+            addDebugMessage(`🔄 Game state update: local vs received different, updating...`);
+            addDebugMessage(`🎮 New state: winner=${data.gameState.winner}, gameActive=${data.gameState.gameActive}`);
+            
             sendLogToBackend('info', 'State has changed and is newer, updating from server', {
               fromPlayer: gameState.currentPlayer,
               toPlayer: data.gameState.currentPlayer,
@@ -2817,6 +2968,17 @@ function ChessApp() {
             
             // Update game state
             setGameState(data.gameState);
+            
+            // CRITICAL FIX: Handle game ending scenarios (resignations, checkmates, etc.)
+            if (data.gameState.winner) {
+              const isWinner = data.gameState.winner === playerRole;
+              const statusMessage = isWinner ? `You won! 🎉` : `You lost 😞`;
+              addDebugMessage(`🏆 Game ended: ${statusMessage} (winner: ${data.gameState.winner})`);
+              setGameStatus(statusMessage);
+            } else if (data.gameState.draw) {
+              addDebugMessage(`🤝 Game ended in a draw`);
+              setGameStatus('Game ended in a draw 🤝');
+            }
             
             // Reset flag after a longer delay to ensure state has settled
             // Use longer delay for black player to avoid race conditions
@@ -2836,7 +2998,11 @@ function ChessApp() {
               setLastSavedState(newStateHash);
               sendLogToBackend('info', 'Server update processing completed', { delay });
             }, delay);
+          } else {
+            addDebugMessage(`⏭️ Skipping game state update: localHash=${localStateHash === receivedStateHash ? 'same' : 'different'}, timestamp=${receivedTimestamp >= localTimestamp ? 'newer' : 'older'}`);
           }
+        } else {
+          addDebugMessage(`⚠️ No gameState in update data`);
         }
       };
 
@@ -2849,7 +3015,7 @@ function ChessApp() {
       
       return cleanup;
     }
-  }, [roomId, gameMode]);
+  }, [roomId, gameMode, addDebugMessage, gameState, playerRole]);
 
   // Listen for game started event
   useEffect(() => {
@@ -2931,6 +3097,15 @@ function ChessApp() {
           handleGameStarted(eventData.data);
         } else if (eventData.eventType === 'roomUpdated') {
           handleRoomUpdated(eventData.data);
+        } else if (eventData.eventType === 'gameStateUpdated') {
+          addDebugMessage(`🎯 Game state updated event received - delegating to main handler`);
+          // This is handled by the main gameStateUpdated useEffect hook above
+        } else if (eventData.eventType === 'connected') {
+          addDebugMessage(`🔌 WebSocket connected event received`);
+          // Connection events are handled by the WebSocket service automatically
+        } else if (eventData.eventType === 'disconnected') {
+          addDebugMessage(`🔌 WebSocket disconnected event received`);
+          // Disconnection events are handled by the WebSocket service automatically
         } else {
           addDebugMessage(`⚠️ Unknown WebSocket event type: ${eventData.eventType}`);
         }

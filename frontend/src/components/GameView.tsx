@@ -214,6 +214,17 @@ export const GameView: React.FC<GameViewProps> = ({
       };
     }
     if (gameState.gameActive) {
+      // CRITICAL FIX: Check for check status first!
+      if (gameState.inCheck) {
+        const isYouInCheck = gameState.currentPlayer === playerRole;
+        return {
+          text: isYouInCheck ? '⚠️ YOU ARE IN CHECK!' : '⚠️ OPPONENT IN CHECK',
+          icon: '🚨',
+          color: theme.error, // Red for check
+          urgent: true
+        };
+      }
+      
       const isYourTurn = gameState.currentPlayer === playerRole;
       return {
         text: isYourTurn ? 'Your Turn' : 'Opponent\'s Turn',
@@ -241,8 +252,13 @@ export const GameView: React.FC<GameViewProps> = ({
         margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
         padding: isDesktopLayout ? '2rem' : '1.5rem',
         textAlign: 'center',
-        background: `linear-gradient(135deg, ${statusInfo.color}12 0%, ${statusInfo.color}06 100%)`,
-        border: `1px solid ${statusInfo.color}30`
+        background: statusInfo.urgent 
+          ? `linear-gradient(135deg, ${statusInfo.color}25 0%, ${statusInfo.color}15 100%)`
+          : `linear-gradient(135deg, ${statusInfo.color}12 0%, ${statusInfo.color}06 100%)`,
+        border: statusInfo.urgent 
+          ? `2px solid ${statusInfo.color}80`
+          : `1px solid ${statusInfo.color}30`,
+        animation: statusInfo.urgent ? 'pulse 2s infinite' : 'none'
       }}>
         {/* Status Header */}
         <div style={{

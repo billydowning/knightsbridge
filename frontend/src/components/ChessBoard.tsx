@@ -295,7 +295,10 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
         const isSelected = selectedSquare === square;
         const isLegalMove = getLegalMovesForSquare(selectedSquare || '').some(move => move.to === square);
         const isLastMove = lastMove ? (lastMove.from === square || lastMove.to === square) : false;
-        const isInCheck = gameState.inCheck && ChessEngine.isKing(piece);
+        // Highlight the king that is in check
+        const isInCheck = gameState.inCheck && 
+                         ChessEngine.isKing(piece) && 
+                         ChessEngine.getPieceColor(piece) === gameState.currentPlayer;
         
         squares.push({
           square,
