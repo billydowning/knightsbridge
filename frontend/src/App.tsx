@@ -1516,8 +1516,6 @@ function ChessApp() {
         if (result.role && result.roomId) {
           setPlayerRole(result.role);
           setRoomId(result.roomId);
-          addDebugMessage(`🏗️ Setting gameMode to lobby for room creator`);
-          setGameMode('lobby');
           setGameStatus(`Room created! Share Room ID: ${result.roomId} with your opponent`);
           
           // Get room status using the new room ID
@@ -1529,6 +1527,49 @@ function ChessApp() {
           if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
             setEscrowCreated(true);
           }
+          
+          // TOYOTA RELIABILITY: Room creators need smart reconnection too!
+          // Apply the same smart reconnection logic as joiners
+          try {
+            addDebugMessage(`🔄 Room creator smart reconnection: Checking for active game in room ${result.roomId}`);
+            const gameState = await databaseMultiplayerState.getGameState(result.roomId);
+            addDebugMessage(`🔄 Room creator game state check: gameActive=${gameState?.gameActive}, moves=${gameState?.moveHistory?.length || 0}`);
+            
+            // If there's an active game and this player belongs to it, restore directly to game
+            if (gameState && gameState.gameActive && roomStatus) {
+              const isValidPlayer = validateWalletForRole(roomStatus, result.role, playerWallet);
+              addDebugMessage(`🔄 Room creator player validation: isValid=${isValidPlayer}, role=${result.role}`);
+              
+              if (isValidPlayer) {
+                const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
+                const gameNotFinished = !gameState.winner && !gameState.draw;
+                const gameHasMoves = gameState.moveHistory && gameState.moveHistory.length > 0;
+                
+                addDebugMessage(`🔄 Room creator reconnection conditions: players=${bothPlayersPresent}, notFinished=${gameNotFinished}, hasMoves=${gameHasMoves}`);
+                
+                // Only skip lobby if game has actual moves (truly in progress)
+                if (bothPlayersPresent && gameNotFinished && gameHasMoves) {
+                  addDebugMessage(`✅ Room creator smart reconnection: Restoring to active game, skipping lobby`);
+                  // Skip lobby - restore directly to active game!
+                  setGameState(gameState);
+                  setGameMode('game');
+                  setGameStatus(`🔄 Rejoined active game! You are ${result.role}.`);
+                  return; // Skip the lobby entirely
+                } else {
+                  addDebugMessage(`⚠️ Room creator smart reconnection: Conditions not met, proceeding to lobby`);
+                }
+              }
+            } else {
+              addDebugMessage(`⚠️ Room creator smart reconnection: No active game found, proceeding to lobby`);
+            }
+          } catch (error) {
+            console.error('Error during room creator smart reconnection check:', error);
+            // Graceful fallback - continue to lobby if smart reconnection fails
+          }
+          
+          // Normal flow: Set game mode to lobby AFTER all syncing is complete (room creator)
+          addDebugMessage(`✅ Room creator setting game mode to lobby. Role: ${result.role}, RoomStatus: players=${roomStatus?.players?.length || 0}, escrows=${roomStatus?.escrowCount || 0}`);
+          setGameMode('lobby');
         } else {
           setGameStatus('Failed to create room');
         }
@@ -2834,10 +2875,17 @@ function ChessApp() {
       };
 
       const handleRoomUpdated = (data: any) => {
-        // DISABLED: Don't auto-start game just because database says 'active'
+        // TOYOTA RELIABILITY: Handle room status updates without auto-starting game
         // The game should only start via proper gameStarted WebSocket event
         // when both players have confirmed deposits
-        // Room updates should not trigger game start - only handle room status changes
+        addDebugMessage(`🔄 Room updated: ${JSON.stringify(data)}`);
+        
+        if (data.roomId === roomId) {
+          // Update room status to reflect changes (like escrow updates)
+          fetchRoomStatus().then(() => {
+            addDebugMessage(`🔄 Room status refreshed after update. Players: ${roomStatus?.players?.length || 0}, Escrows: ${roomStatus?.escrowCount || 0}`);
+          });
+        }
       };
 
       // Use the databaseMultiplayerState callback system
@@ -2851,7 +2899,7 @@ function ChessApp() {
       
       return cleanup;
     }
-  }, [roomId, gameMode, roomStatus]);
+  }, [roomId, gameMode, roomStatus, fetchRoomStatus, addDebugMessage]);
 
   // Check game state when reconnecting to handle missed events
   useEffect(() => {
