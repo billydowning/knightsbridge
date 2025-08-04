@@ -578,16 +578,23 @@ function ChessApp() {
   // Check if both escrows are ready and start game
   useEffect(() => {
     if (bothEscrowsReady && gameMode === 'lobby') {
-      // Check room status to confirm game should start
+      // TOYOTA RELIABILITY: Double-check room status before starting game
       fetchRoomStatus().then(() => {
-        // Set a small delay to ensure all state updates are processed
-        setTimeout(() => {
-          setGameMode('game');
-          setGameStatus(`Game started! You are ${playerRole}. ${playerRole === 'white' ? 'Your turn!' : 'White goes first.'}`);
-        }, 1000); // Reduced delay
+        // Verify both players actually have escrows before starting
+        if (roomStatus && roomStatus.escrowCount >= 2) {
+          // Set a small delay to ensure all state updates are processed
+          setTimeout(() => {
+            console.log('✅ Starting game via bothEscrowsReady trigger - both escrows confirmed');
+            setGameMode('game');
+            setGameStatus(`Game started! You are ${playerRole}. ${playerRole === 'white' ? 'Your turn!' : 'White goes first.'}`);
+          }, 1000); // Reduced delay
+        } else {
+          console.log('⚠️ bothEscrowsReady is true but escrow count insufficient. Not starting game.');
+          setBothEscrowsReady(false); // Reset the flag
+        }
       });
     }
-  }, [bothEscrowsReady, gameMode, playerRole, roomId]);
+  }, [bothEscrowsReady, gameMode, playerRole, roomId, roomStatus]);
 
   // Watch for room status changes and set bothEscrowsReady when both escrows are present
   useEffect(() => {
@@ -2703,10 +2710,25 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStarted = (data: any) => {
-
+        console.log('🎮 Received gameStarted event:', data);
+        
         if (data.roomId === roomId) {
-          
-          setGameMode('game');
+          // TOYOTA RELIABILITY: Validate that both players have actually deposited
+          // before starting the game (prevent premature game start)
+          if (roomStatus && roomStatus.players && roomStatus.players.length === 2) {
+            const bothPlayersHaveEscrows = roomStatus.escrowCount >= 2;
+            
+            if (bothPlayersHaveEscrows) {
+              console.log('✅ Both players have deposited, starting game');
+              setGameMode('game');
+            } else {
+              console.log('⚠️ gameStarted event received but not all players have deposited yet. Ignoring.');
+              return; // Don't start the game yet
+            }
+          } else {
+            console.log('⚠️ gameStarted event received but room not ready. Ignoring.');
+            return; // Don't start the game yet
+          }
         }
         // Reset game state for new game
         setGameState({
@@ -2754,7 +2776,7 @@ function ChessApp() {
       
       return cleanup;
     }
-  }, [roomId, gameMode]);
+  }, [roomId, gameMode, roomStatus]);
 
   // Check game state when reconnecting to handle missed events
   useEffect(() => {

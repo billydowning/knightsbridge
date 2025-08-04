@@ -302,42 +302,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
         borderTop: `1px solid ${theme.border}`,
         backgroundColor: theme.surface
       }}>
-        {/* Quick Emoji Bar */}
-        <div style={{
-          display: 'flex',
-          gap: '4px',
-          marginBottom: '8px',
-          flexWrap: 'wrap',
-          justifyContent: 'center'
-        }}>
-          {['👍', '😄', '😅', '🤔', '😎', '🔥', '⚡', '🎯', '🏆', '💰'].map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              onClick={() => setNewMessage(prev => prev + emoji)}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: 'transparent',
-                border: `1px solid ${theme.border}`,
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                transition: 'all 0.2s ease',
-                minWidth: '32px',
-                height: '32px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.border;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-        
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px' }}>
           <input
             ref={inputRef}
