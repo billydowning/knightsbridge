@@ -1509,16 +1509,21 @@ function ChessApp() {
 
       // If roomId is empty, we're creating a new room
       if (!roomId.trim()) {
+        addDebugMessage(`🏗️ Creating new room. Bet: ${betAmount}, Time: ${timeLimit}`);
         // Create the room (backend will generate room ID)
         const result = await databaseMultiplayerState.createRoom(playerWallet, betAmount, timeLimit);
+        addDebugMessage(`🏗️ Room creation result: role=${result.role}, roomId=${result.roomId}`);
         if (result.role && result.roomId) {
           setPlayerRole(result.role);
           setRoomId(result.roomId);
+          addDebugMessage(`🏗️ Setting gameMode to lobby for room creator`);
           setGameMode('lobby');
           setGameStatus(`Room created! Share Room ID: ${result.roomId} with your opponent`);
           
           // Get room status using the new room ID
+          addDebugMessage(`🏗️ Fetching room status for new room: ${result.roomId}`);
           const roomStatus = await databaseMultiplayerState.getRoomStatus(result.roomId);
+          addDebugMessage(`🏗️ Room status: players=${roomStatus?.players?.length || 0}, escrows=${roomStatus?.escrowCount || 0}`);
           
           // Check if current player already has an escrow
           if (roomStatus && roomStatus.escrows && roomStatus.escrows[playerWallet]) {
@@ -1529,13 +1534,17 @@ function ChessApp() {
         }
       } else {
         // Joining an existing room
+        addDebugMessage(`🚪 Joining existing room: ${roomId}`);
         const role = await databaseMultiplayerState.joinRoom(roomId, playerWallet);
+        addDebugMessage(`🚪 Join room result: role=${role}`);
         if (role) {
           setPlayerRole(role);
           setGameStatus(`Joined room as ${role}`);
           
           // Get room status using the current room ID
+          addDebugMessage(`🚪 Fetching room status for existing room: ${roomId}`);
           const roomStatus = await databaseMultiplayerState.getRoomStatus(roomId);
+          addDebugMessage(`🚪 Room status: players=${roomStatus?.players?.length || 0}, escrows=${roomStatus?.escrowCount || 0}`);
           
           // Sync bet amount from room (when joining existing room)
           if (roomStatus && roomStatus.stakeAmount && roomStatus.stakeAmount > 0) {
@@ -1554,26 +1563,36 @@ function ChessApp() {
           
           // SMART MANUAL RECONNECTION: Check if we should go straight to active game
           try {
+            addDebugMessage(`🔄 Smart reconnection: Checking for active game in room ${roomId}`);
             const gameState = await databaseMultiplayerState.getGameState(roomId);
+            addDebugMessage(`🔄 Game state check: gameActive=${gameState?.gameActive}, moves=${gameState?.moveHistory?.length || 0}`);
             
             // If there's an active game and this player belongs to it, restore directly to game
             if (gameState && gameState.gameActive && roomStatus) {
               const isValidPlayer = validateWalletForRole(roomStatus, role, playerWallet);
+              addDebugMessage(`🔄 Player validation: isValid=${isValidPlayer}, role=${role}`);
               
               if (isValidPlayer) {
                 const bothPlayersPresent = roomStatus.players && roomStatus.players.length === 2;
                 const gameNotFinished = !gameState.winner && !gameState.draw;
                 const gameHasMoves = gameState.moveHistory && gameState.moveHistory.length > 0;
                 
+                addDebugMessage(`🔄 Reconnection conditions: players=${bothPlayersPresent}, notFinished=${gameNotFinished}, hasMoves=${gameHasMoves}`);
+                
                 // Only skip lobby if game has actual moves (truly in progress)
                 if (bothPlayersPresent && gameNotFinished && gameHasMoves) {
+                  addDebugMessage(`✅ Smart reconnection: Restoring to active game, skipping lobby`);
                   // Skip lobby - restore directly to active game!
                   setGameState(gameState);
                   setGameMode('game');
                   setGameStatus(`🔄 Rejoined active game! You are ${role}.`);
                   return; // Skip the lobby entirely
+                } else {
+                  addDebugMessage(`⚠️ Smart reconnection: Conditions not met, proceeding to lobby`);
                 }
               }
+            } else {
+              addDebugMessage(`⚠️ Smart reconnection: No active game found, proceeding to lobby`);
             }
           } catch (error) {
             console.error('Error during smart manual reconnection check:', error);
