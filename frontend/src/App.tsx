@@ -388,7 +388,7 @@ function ChessApp() {
   // };
 
   // App state - manual reconnection only, no URL persistence
-  const [gameMode, setGameMode] = useState<'menu' | 'lobby' | 'game'>('menu');
+  const [gameMode, setGameModeInternal] = useState<'menu' | 'lobby' | 'game'>('menu');
   const [roomId, setRoomId] = useState<string>('');
   const [betAmount, setBetAmount] = useState<number>(0.1);
   const [timeLimit, setTimeLimit] = useState<number>(10 * 60); // Default to 10 minutes (Rapid)
@@ -405,6 +405,26 @@ function ChessApp() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState<boolean>(false);
   const [leaderboardError, setLeaderboardError] = useState<string>('');
+  
+  // TOYOTA RELIABILITY: Mobile debug panel (temporary for troubleshooting)
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [showDebugPanel, setShowDebugPanel] = useState<boolean>(false);
+  
+  const addDebugMessage = useCallback((message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `${timestamp}: ${message}`;
+    setDebugLog(prev => [...prev.slice(-9), logEntry]); // Keep last 10 messages
+    console.log(logEntry); // Also log to console for desktop users
+  }, []);
+  
+  // TOYOTA RELIABILITY: Wrapper to log all game mode changes for debugging
+  const setGameMode = useCallback((newMode: 'menu' | 'lobby' | 'game') => {
+    if (newMode === 'game' && gameMode !== 'game') {
+      addDebugMessage(`🎮 GAME MODE CHANGE: ${gameMode} → ${newMode}`);
+      console.trace('Game mode change stack trace:');
+    }
+    setGameModeInternal(newMode);
+  }, [gameMode, addDebugMessage]);
   
   // Multiplayer state tracking
   const [opponentEscrowCreated, setOpponentEscrowCreated] = useState<boolean>(false);
@@ -578,23 +598,25 @@ function ChessApp() {
   // Check if both escrows are ready and start game
   useEffect(() => {
     if (bothEscrowsReady && gameMode === 'lobby') {
+      addDebugMessage('🎮 bothEscrowsReady trigger fired - checking if should start game');
       // TOYOTA RELIABILITY: Double-check room status before starting game
       fetchRoomStatus().then(() => {
         // Verify both players actually have escrows before starting
         if (roomStatus && roomStatus.escrowCount >= 2) {
+          addDebugMessage(`🎮 Room status check: escrowCount=${roomStatus.escrowCount}, players=${roomStatus.players?.length}`);
           // Set a small delay to ensure all state updates are processed
           setTimeout(() => {
-            console.log('✅ Starting game via bothEscrowsReady trigger - both escrows confirmed');
+            addDebugMessage('✅ Starting game via bothEscrowsReady trigger - both escrows confirmed');
             setGameMode('game');
             setGameStatus(`Game started! You are ${playerRole}. ${playerRole === 'white' ? 'Your turn!' : 'White goes first.'}`);
           }, 1000); // Reduced delay
         } else {
-          console.log('⚠️ bothEscrowsReady is true but escrow count insufficient. Not starting game.');
+          addDebugMessage(`⚠️ bothEscrowsReady is true but escrow count insufficient. roomStatus escrowCount=${roomStatus?.escrowCount || 'undefined'}`);
           setBothEscrowsReady(false); // Reset the flag
         }
       });
     }
-  }, [bothEscrowsReady, gameMode, playerRole, roomId, roomStatus]);
+  }, [bothEscrowsReady, gameMode, playerRole, roomId, roomStatus, addDebugMessage]);
 
   // Watch for room status changes and set bothEscrowsReady when both escrows are present
   useEffect(() => {
@@ -1028,18 +1050,35 @@ function ChessApp() {
         setGameStatus('💎 Deposit confirmed! Waiting for opponent to confirm their deposit...');
         
         const handleGameStarted = (data: any) => {
+          addDebugMessage(`🎮 Deposit flow received gameStarted event for room: ${data.roomId}`);
           
           if (data.roomId === roomId) {
-  
-            setGameStatus('🎮 Both players confirmed! Game starting now...');
-            setBothEscrowsReady(true);
-            setGameMode('game'); // Ensure game mode is set via WebSocket event
+            // TOYOTA RELIABILITY: Critical fix - validate both players have deposited before starting
+            // This was the bug causing white player to skip deposit screen!
+            if (roomStatus && roomStatus.players && roomStatus.players.length === 2) {
+              const bothPlayersHaveEscrows = roomStatus.escrowCount >= 2;
+              
+              if (bothPlayersHaveEscrows) {
+                addDebugMessage('✅ Deposit flow: Both players confirmed, starting game');
+                setGameStatus('🎮 Both players confirmed! Game starting now...');
+                addDebugMessage('🎮 Deposit flow: Setting bothEscrowsReady = true');
+                setBothEscrowsReady(true);
+                setGameMode('game'); 
+              } else {
+                addDebugMessage(`⚠️ Deposit flow: gameStarted received but escrows not ready (count=${roomStatus.escrowCount}). Ignoring.`); 
+                return; // Don't start game yet
+              }
+            } else {
+              addDebugMessage(`⚠️ Deposit flow: gameStarted received but room not ready (players=${roomStatus?.players?.length || 0}). Ignoring.`);
+              return; // Don't start game yet  
+            }
+            
             const socket = (websocketService as any).socket;
             if (socket) {
               socket.off('gameStarted', handleGameStarted); // Remove listener
             }
           } else {
-  
+            addDebugMessage(`🎮 Deposit flow: gameStarted for different room (${data.roomId} vs ${roomId}), ignoring`);
           }
         };
         
@@ -1456,6 +1495,7 @@ function ChessApp() {
   };
 
   const handleJoinRoom = async () => {
+    addDebugMessage(`🚪 handleJoinRoom called for room: ${roomId}`);
     if (!publicKey) {
       setGameStatus('Please connect your wallet first');
       return;
@@ -1541,6 +1581,7 @@ function ChessApp() {
           }
           
           // Normal flow: Set game mode to lobby AFTER all syncing is complete
+          addDebugMessage(`✅ Setting game mode to lobby. Role: ${role}, RoomStatus: players=${roomStatus?.players?.length || 0}, escrows=${roomStatus?.escrowCount || 0}`);
           setGameMode('lobby');
         } else {
           setGameStatus('Failed to join room');
@@ -1556,7 +1597,22 @@ function ChessApp() {
   };
 
   const handleStartGame = async () => {
-    console.log('🎮 Starting game for room:', roomId);
+    console.log('🎮 handleStartGame called for room:', roomId);
+    
+    // TOYOTA RELIABILITY: Additional safety check before starting game
+    if (!roomStatus || !roomStatus.players || roomStatus.players.length < 2) {
+      console.log('⚠️ handleStartGame: Room not ready, cannot start game');
+      setGameStatus('Room not ready. Please wait for opponent.');
+      return;
+    }
+    
+    if (roomStatus.escrowCount < 2) {
+      console.log('⚠️ handleStartGame: Not all players have deposited, cannot start game');
+      setGameStatus('Waiting for all players to deposit their stakes.');
+      return;
+    }
+    
+    console.log('✅ handleStartGame: All conditions met, starting game');
     
     // Initialize fresh game state for both players
     const initialGameState = {
@@ -2710,7 +2766,7 @@ function ChessApp() {
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleGameStarted = (data: any) => {
-        console.log('🎮 Received gameStarted event:', data);
+        addDebugMessage(`🎮 Main useEffect received gameStarted event for room: ${data.roomId}`);
         
         if (data.roomId === roomId) {
           // TOYOTA RELIABILITY: Validate that both players have actually deposited
@@ -2719,14 +2775,14 @@ function ChessApp() {
             const bothPlayersHaveEscrows = roomStatus.escrowCount >= 2;
             
             if (bothPlayersHaveEscrows) {
-              console.log('✅ Both players have deposited, starting game');
+              addDebugMessage('✅ Main useEffect: Both players have deposited, starting game');
               setGameMode('game');
             } else {
-              console.log('⚠️ gameStarted event received but not all players have deposited yet. Ignoring.');
+              addDebugMessage(`⚠️ Main useEffect: gameStarted event received but not all players have deposited yet (count=${roomStatus.escrowCount}). Ignoring.`);
               return; // Don't start the game yet
             }
           } else {
-            console.log('⚠️ gameStarted event received but room not ready. Ignoring.');
+            addDebugMessage(`⚠️ Main useEffect: gameStarted event received but room not ready (players=${roomStatus?.players?.length || 0}). Ignoring.`);
             return; // Don't start the game yet
           }
         }
@@ -2802,8 +2858,9 @@ function ChessApp() {
               const gameHasMoves = gameState.moveHistory && gameState.moveHistory.length > 0;
               const gameNotFinished = !gameState.winner && !gameState.draw;
               
-              if (bothPlayersPresent && gameNotFinished) {
-                // Safe to reconnect - restore game state
+              if (bothPlayersPresent && gameNotFinished && gameHasMoves) {
+                // Safe to reconnect - restore game state (only games with actual moves)
+                console.log('✅ Reconnection: Game has moves, restoring game state');
                 setGameState(gameState);
                 setGameMode('game');
                 setGameStatus(`🔄 Reconnected to game! You are ${playerRole}.`);
@@ -2961,7 +3018,98 @@ function ChessApp() {
           }}
         />
 
+        {/* Debug Panel for Mobile Testing (Toggle with triple-tap on status) */}
+        {showDebugPanel && (
+          <div style={{
+            position: 'fixed',
+            top: '80px',
+            left: '10px',
+            right: '10px',
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            color: '#00ff00',
+            padding: '10px',
+            borderRadius: '8px',
+            zIndex: 9999,
+            maxHeight: '200px',
+            overflow: 'auto',
+            fontSize: '11px',
+            fontFamily: 'monospace'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '8px',
+              borderBottom: '1px solid #333',
+              paddingBottom: '4px'
+            }}>
+              <strong>🚛 Debug Log</strong>
+              <button
+                onClick={() => setShowDebugPanel(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #666',
+                  color: '#ff6666',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '10px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            {debugLog.map((message, index) => (
+              <div key={index} style={{ marginBottom: '2px', wordBreak: 'break-word' }}>
+                {message}
+              </div>
+            ))}
+            {debugLog.length === 0 && (
+              <div style={{ color: '#666', fontStyle: 'italic' }}>
+                No debug messages yet...
+              </div>
+            )}
+          </div>
+        )}
 
+        {/* Debug Panel Toggle - Triple-tap any game status message */}
+        <div style={{ textAlign: 'center', margin: '10px 0' }}>
+          <div 
+            onClick={(e) => {
+              // Triple-tap detection for mobile
+              const now = Date.now();
+              const lastTap = (e.target as any).lastTap || 0;
+              const tapCount = ((e.target as any).tapCount || 0) + 1;
+              
+              if (now - lastTap < 500) { // 500ms between taps
+                (e.target as any).tapCount = tapCount;
+                if (tapCount >= 3) {
+                  setShowDebugPanel(!showDebugPanel);
+                  addDebugMessage('🚛 Debug panel toggled');
+                  (e.target as any).tapCount = 0;
+                }
+              } else {
+                (e.target as any).tapCount = 1;
+              }
+              (e.target as any).lastTap = now;
+            }}
+            style={{
+              padding: '8px',
+              color: theme.textSecondary,
+              fontSize: textSizes.small,
+              cursor: 'pointer',
+              userSelect: 'none',
+              border: showDebugPanel ? `1px dashed ${theme.primary}` : 'none',
+              borderRadius: '4px'
+            }}
+          >
+            {gameStatus}
+            {!showDebugPanel && (
+              <div style={{ fontSize: '10px', opacity: 0.5, marginTop: '2px' }}>
+                Triple-tap to show debug
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Main Content */}
         <main style={{ 
