@@ -618,9 +618,24 @@ function ChessApp() {
     }
   }, [bothEscrowsReady, gameMode, playerRole, roomId, roomStatus, addDebugMessage]);
 
-  // Watch for room status changes and set bothEscrowsReady when both escrows are present
+  // Watch for room status changes and force UI updates in lobby
   useEffect(() => {
     if (roomStatus && gameMode === 'lobby') {
+      addDebugMessage(`🔄 Room status changed in lobby: players=${roomStatus.players?.length || 0}, escrows=${roomStatus.escrowCount || 0}`);
+      
+      // TOYOTA RELIABILITY: Force component re-render when room status changes
+      // This ensures lobby UI shows correct "Game Ready" vs "Waiting" sections
+      
+      // If we have 2 players but UI hasn't updated, force a small state update
+      if (roomStatus.players && roomStatus.players.length === 2) {
+        addDebugMessage(`✅ Both players present - lobby should show Game Ready section`);
+        
+        // Small hack to force lobby re-render: trigger gameStatus update
+        setGameStatus(prev => prev === `Room has ${roomStatus.players.length} players` 
+          ? `Room has ${roomStatus.players.length} players ready` 
+          : `Room has ${roomStatus.players.length} players`);
+      }
+      
       // DISABLED: Auto-set bothEscrowsReady based on escrow count
       // This was causing premature game start before deposits
       /*
@@ -630,7 +645,7 @@ function ChessApp() {
       */
 
     }
-  }, [roomStatus, gameMode]);
+  }, [roomStatus, gameMode, addDebugMessage]);
 
   // Set up multiplayer sync when room ID or game mode changes
   useEffect(() => {
@@ -2671,12 +2686,26 @@ function ChessApp() {
     }
   }, [roomId]);
 
-  // Fetch room status when entering lobby
+  // Fetch room status when entering lobby + Toyota reliability polling
   useEffect(() => {
     if (gameMode === 'lobby' && roomId) {
+      addDebugMessage(`🔄 Fetching initial room status for lobby`);
       fetchRoomStatus();
+      
+      // TOYOTA RELIABILITY: Poll room status every 3 seconds as backup
+      // This ensures UI updates even if WebSocket events are missed
+      addDebugMessage(`⏰ Starting room status polling backup (every 3s)`);
+      const pollInterval = setInterval(() => {
+        addDebugMessage(`🔄 Polling room status (backup mechanism)`);
+        fetchRoomStatus();
+      }, 3000);
+      
+      return () => {
+        addDebugMessage(`⏰ Stopping room status polling`);
+        clearInterval(pollInterval);
+      };
     }
-  }, [gameMode, roomId, fetchRoomStatus]);
+  }, [gameMode, roomId, fetchRoomStatus, addDebugMessage]);
 
   // Listen for real-time chat messages
   useEffect(() => {
@@ -2878,22 +2907,32 @@ function ChessApp() {
         // TOYOTA RELIABILITY: Handle room status updates without auto-starting game
         // The game should only start via proper gameStarted WebSocket event
         // when both players have confirmed deposits
-        addDebugMessage(`🔄 Room updated: ${JSON.stringify(data)}`);
+        addDebugMessage(`🔄 Room updated received: ${JSON.stringify(data)}`);
         
         if (data.roomId === roomId) {
+          addDebugMessage(`🔄 Room update matches current room, refreshing status...`);
           // Update room status to reflect changes (like escrow updates)
           fetchRoomStatus().then(() => {
             addDebugMessage(`🔄 Room status refreshed after update. Players: ${roomStatus?.players?.length || 0}, Escrows: ${roomStatus?.escrowCount || 0}`);
+          }).catch((error) => {
+            addDebugMessage(`❌ Error refreshing room status: ${error.message}`);
           });
+        } else {
+          addDebugMessage(`⚠️ Room update for different room: ${data.roomId} vs ${roomId}`);
         }
       };
 
       // Use the databaseMultiplayerState callback system
+      addDebugMessage(`🔌 Setting up WebSocket listeners for room: ${roomId}`);
       const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
+        addDebugMessage(`📡 WebSocket event received: ${eventData.eventType} for room: ${eventData.data?.roomId || 'unknown'}`);
+        
         if (eventData.eventType === 'gameStarted') {
           handleGameStarted(eventData.data);
         } else if (eventData.eventType === 'roomUpdated') {
           handleRoomUpdated(eventData.data);
+        } else {
+          addDebugMessage(`⚠️ Unknown WebSocket event type: ${eventData.eventType}`);
         }
       });
       
