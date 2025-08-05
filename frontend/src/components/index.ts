@@ -17,3 +17,6 @@ export { NotificationSystem } from './NotificationSystem';
 // Performance and error handling components
 export { ErrorBoundary } from './ErrorBoundary';
 export { PerformanceDashboard } from './PerformanceDashboard';
+
+// Toyota Feature System
+export { FeatureWrapper, useFeature } from './FeatureWrapper';
