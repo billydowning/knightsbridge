@@ -1162,9 +1162,8 @@ function ChessApp() {
     const fromSquare = gameState.selectedSquare;
     const toSquare = square;
     
-    // CRITICAL FIX: Use proper chess engine validation instead of simplified version
-    // This ensures moves are validated for check situations and all chess rules
-    const isValidMove = ChessEngine.isLegalMove(fromSquare, toSquare, gameState.position, gameState.currentPlayer, gameState);
+    // TOYOTA FIX: Use pre-calculated legal moves from optimization hook
+    const isValidMove = legalMoves.some(move => move.from === fromSquare && move.to === toSquare);
     
     if (isValidMove) {
       
