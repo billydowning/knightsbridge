@@ -7,6 +7,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useTheme } from '../App';
 import { useContainerWidth, useTextSizes, useIsMobile, useIsDesktopLayout } from '../utils/responsive';
 import type { RoomStatus } from '../types';
+import { FeatureWrapper, ConnectionStatus } from '.';
+import { FEATURES } from '../config/features';
 
 export interface LobbyViewProps {
   roomId: string;
@@ -25,6 +27,10 @@ export interface LobbyViewProps {
   onStartGame: () => void;
   onBackToMenu: () => void;
   hasDeposited?: boolean;
+  // Toyota Reconnection features
+  gameState?: any;
+  connectionStatus?: 'connected' | 'connecting' | 'disconnected';
+  onResumeGame?: () => void;
 }
 
 export const LobbyView: React.FC<LobbyViewProps> = ({
@@ -43,7 +49,11 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   onDepositStake,
   onStartGame,
   onBackToMenu,
-  hasDeposited = false
+  hasDeposited = false,
+  // Toyota Reconnection features
+  gameState,
+  connectionStatus = 'connected',
+  onResumeGame
 }) => {
   const { theme } = useTheme();
   const [copied, setCopied] = React.useState(false);
@@ -1110,6 +1120,116 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             Joined Game - Waiting for opponent
           </div>
         )}
+
+        {/* TOYOTA RECONNECTION: Resume Active Game Section */}
+        <FeatureWrapper feature="RECONNECTION">
+          {gameState && gameState.gameActive && gameState.moveHistory && gameState.moveHistory.length > 0 && (
+            <div style={{
+              ...cardStyle,
+              margin: isMobile ? '0 auto 1.5rem auto' : '0 auto 2rem auto',
+              padding: isDesktopLayout ? '2rem' : '1.5rem',
+              background: `linear-gradient(135deg, ${theme.warning}15 0%, ${theme.warning}08 100%)`,
+              border: `2px solid ${theme.warning}40`,
+              borderRadius: '16px',
+              position: 'relative',
+              animation: 'pulse 2s infinite'
+            }}>
+              {/* Connection status indicator */}
+              <div style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px'
+              }}>
+                <ConnectionStatus status={connectionStatus} />
+              </div>
+
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontSize: isDesktopLayout ? '24px' : '20px',
+                  fontWeight: '700',
+                  color: theme.warning,
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}>
+                  🎮 <span>Active Game Detected</span>
+                </div>
+                
+                <div style={{
+                  fontSize: isDesktopLayout ? '16px' : '14px',
+                  color: theme.text,
+                  marginBottom: '20px',
+                  lineHeight: '1.5'
+                }}>
+                  <strong>Found ongoing game:</strong> {gameState.moveHistory.length} moves played
+                  <br />
+                  <span style={{ color: theme.textSecondary }}>
+                    Current turn: <strong style={{ color: gameState.currentPlayer === 'white' ? '#e6b800' : '#4a4a4a' }}>
+                      {gameState.currentPlayer}
+                    </strong>
+                  </span>
+                  {connectionStatus !== 'connected' && (
+                    <>
+                      <br />
+                      <span style={{ color: theme.warning, fontWeight: '600' }}>
+                        ⚠️ Connection issue detected - safe to resume
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    console.log('🚛 TOYOTA: Resume game button clicked');
+                    if (onResumeGame) {
+                      onResumeGame();
+                    }
+                  }}
+                  style={{
+                    ...sharedButtonStyle,
+                    background: connectionStatus === 'connected' 
+                      ? `linear-gradient(135deg, ${theme.warning} 0%, ${theme.warning}CC 100%)`
+                      : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)`,
+                    color: 'white',
+                    border: 'none',
+                    fontSize: isDesktopLayout ? '18px' : '16px',
+                    fontWeight: '700',
+                    padding: isDesktopLayout ? '16px 32px' : '14px 28px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
+                    animation: 'glow 2s ease-in-out infinite alternate'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)';
+                  }}
+                >
+                  {connectionStatus === 'connected' ? (
+                    <>🎯 Resume Game</>
+                  ) : (
+                    <>🔄 Reconnect & Resume</>
+                  )}
+                </button>
+
+                <div style={{
+                  marginTop: '12px',
+                  fontSize: '12px',
+                  color: theme.textSecondary,
+                  fontStyle: 'italic'
+                }}>
+                  Toyota Reliability: Your game progress is safely stored
+                </div>
+              </div>
+            </div>
+          )}
+        </FeatureWrapper>
 
         {/* Back to Menu Button */}
         <button

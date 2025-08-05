@@ -15,6 +15,7 @@ import { GameView } from './components/GameView';
 import { Header } from './components/Header';
 import { NotificationSystem, useNotifications } from './components/NotificationSystem';
 import { TermsPage } from './components/TermsPage';
+import { FeatureWrapper, ConnectionStatus, ConnectionBanner } from './components';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -27,6 +28,7 @@ import type { ChatMessage } from './components/ChatBox';
 import { ENV_CONFIG } from './config/appConfig';
 import { useChessOptimizations, useDebounce, useThrottle } from './hooks/useChessOptimizations';
 import { useRenderPerformance } from './utils/performance';
+import { FEATURES } from './config/features';
 // import { useMemoryCleanup } from './utils/memoryManager';
 import { performanceMonitor } from './utils/performance';
 // import { memoryManager } from './utils/memoryManager';
@@ -409,6 +411,9 @@ function ChessApp() {
   // TOYOTA RELIABILITY: Mobile debug panel (temporary for troubleshooting)
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [showDebugPanel, setShowDebugPanel] = useState<boolean>(false);
+  
+  // TOYOTA RECONNECTION: Simple connection status (only when feature enabled)
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   
   const addDebugMessage = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -3120,10 +3125,25 @@ function ChessApp() {
           // This is handled by the main gameStateUpdated useEffect hook above
         } else if (eventData.eventType === 'connected') {
           addDebugMessage(`🔌 WebSocket connected event received`);
-          // Connection events are handled by the WebSocket service automatically
+          // TOYOTA RECONNECTION: Update connection status when feature enabled
+          if (FEATURES.RECONNECTION) {
+            setConnectionStatus('connected');
+            addDebugMessage(`🚛 TOYOTA: Connection restored`);
+          }
         } else if (eventData.eventType === 'disconnected') {
           addDebugMessage(`🔌 WebSocket disconnected event received`);
-          // Disconnection events are handled by the WebSocket service automatically
+          // TOYOTA RECONNECTION: Update connection status when feature enabled
+          if (FEATURES.RECONNECTION) {
+            setConnectionStatus('disconnected');
+            addDebugMessage(`🚛 TOYOTA: Connection lost, will auto-retry`);
+          }
+        } else if (eventData.eventType === 'reconnecting') {
+          addDebugMessage(`🔌 WebSocket reconnecting event received`);
+          // TOYOTA RECONNECTION: Update connection status when feature enabled
+          if (FEATURES.RECONNECTION) {
+            setConnectionStatus('connecting');
+            addDebugMessage(`🚛 TOYOTA: Attempting to reconnect...`);
+          }
         } else {
           addDebugMessage(`⚠️ Unknown WebSocket event type: ${eventData.eventType}`);
         }
@@ -3254,6 +3274,16 @@ function ChessApp() {
             opponentEscrowCreated={opponentEscrowCreated}
             bothEscrowsReady={bothEscrowsReady}
             hasDeposited={hasDeposited}
+            // Toyota Reconnection features
+            gameState={gameState}
+            connectionStatus={connectionStatus}
+            onResumeGame={() => {
+              addDebugMessage('🚛 TOYOTA: Resume game triggered from lobby');
+              if (gameState && gameState.gameActive && gameState.moveHistory?.length > 0) {
+                setGameMode('game');
+                addDebugMessage(`🎯 Resuming active game: ${gameState.moveHistory.length} moves, ${gameState.currentPlayer}'s turn`);
+              }
+            }}
           />
         );
       
@@ -3316,6 +3346,19 @@ function ChessApp() {
             setGameState(null);
           }}
         />
+
+        {/* TOYOTA RECONNECTION: Connection status banner (only when feature enabled) */}
+        <FeatureWrapper feature="RECONNECTION">
+          <ConnectionBanner 
+            status={connectionStatus}
+            onManualReconnect={() => {
+              addDebugMessage('🚛 TOYOTA: Manual reconnection triggered');
+              setConnectionStatus('connecting');
+              // Force reconnection via databaseMultiplayerState
+              databaseMultiplayerState.connect();
+            }}
+          />
+        </FeatureWrapper>
 
         {/* Debug Panel for Mobile Testing (Toggle with triple-tap on status) */}
         {showDebugPanel && (

@@ -20,3 +20,6 @@ export { PerformanceDashboard } from './PerformanceDashboard';
 
 // Toyota Feature System
 export { FeatureWrapper, DevOnlyFeature, useFeature, useFeatures } from './FeatureWrapper';
+
+// Toyota Reconnection System
+export { ConnectionStatus, ConnectionBanner } from './ConnectionStatus';
