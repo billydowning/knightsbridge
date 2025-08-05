@@ -1128,13 +1128,21 @@ function ChessApp() {
   };
 
   const handleSquareClick = (square: string) => {
+    // TOYOTA DEBUG: Add extensive logging for move blocking diagnosis
+    addDebugMessage(`🎯 handleSquareClick: square=${square}, roomId=${!!roomId}, gameMode=${gameMode}, gameState=${!!gameState}`);
+    addDebugMessage(`🎯 Turn check: currentPlayer=${gameState?.currentPlayer}, playerRole=${playerRole}, match=${gameState?.currentPlayer === playerRole}`);
+    addDebugMessage(`🎯 GameState details: gameActive=${gameState?.gameActive}, legalMoves=${legalMoves?.length || 0}`);
+    
     if (!roomId || gameMode !== 'game' || !gameState) {
+      addDebugMessage(`❌ Early exit: roomId=${!!roomId}, gameMode=${gameMode}, gameState=${!!gameState}`);
       return;
     }
     
     // Check if it's the player's turn
     if (gameState.currentPlayer !== playerRole) {
-      setGameStatus(`It's ${gameState.currentPlayer}'s turn. You are ${playerRole}.`);
+      const blockMessage = `It's ${gameState.currentPlayer}'s turn. You are ${playerRole}.`;
+      addDebugMessage(`❌ Turn blocked: ${blockMessage}`);
+      setGameStatus(blockMessage);
       return;
     }
     
