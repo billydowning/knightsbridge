@@ -1132,6 +1132,8 @@ function ChessApp() {
     addDebugMessage(`🎯 handleSquareClick: square=${square}, roomId=${!!roomId}, gameMode=${gameMode}, gameState=${!!gameState}`);
     addDebugMessage(`🎯 Turn check: currentPlayer=${gameState?.currentPlayer}, playerRole=${playerRole}, match=${gameState?.currentPlayer === playerRole}`);
     addDebugMessage(`🎯 GameState details: gameActive=${gameState?.gameActive}, legalMoves=${legalMoves?.length || 0}`);
+    addDebugMessage(`🎯 Position object: ${Object.keys(gameState?.position || {}).length} squares populated`);
+    addDebugMessage(`🎯 Position sample: ${JSON.stringify(Object.entries(gameState?.position || {}).slice(0, 4))}`);
     
     if (!roomId || gameMode !== 'game' || !gameState) {
       addDebugMessage(`❌ Early exit: roomId=${!!roomId}, gameMode=${gameMode}, gameState=${!!gameState}`);

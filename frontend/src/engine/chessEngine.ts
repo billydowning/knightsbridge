@@ -31,6 +31,43 @@ export const ChessEngine = {
     PAWNS: ['♙', '♟']
   },
 
+  // TOYOTA RELIABILITY: Converter between text-based pieces and Unicode pieces
+  TEXT_TO_UNICODE: {
+    'white-king': '♔', 'white-queen': '♕', 'white-rook': '♖', 
+    'white-bishop': '♗', 'white-knight': '♘', 'white-pawn': '♙',
+    'black-king': '♚', 'black-queen': '♛', 'black-rook': '♜',
+    'black-bishop': '♝', 'black-knight': '♞', 'black-pawn': '♟'
+  } as const,
+
+  UNICODE_TO_TEXT: {
+    '♔': 'white-king', '♕': 'white-queen', '♖': 'white-rook',
+    '♗': 'white-bishop', '♘': 'white-knight', '♙': 'white-pawn',
+    '♚': 'black-king', '♛': 'black-queen', '♜': 'black-rook',
+    '♝': 'black-bishop', '♞': 'black-knight', '♟': 'black-pawn'
+  } as const,
+
+  // Convert text-based position to Unicode for engine processing
+  convertPositionToUnicode: (textPosition: Record<string, string>): Position => {
+    const unicodePosition: Position = {};
+    for (const [square, piece] of Object.entries(textPosition)) {
+      if (piece && piece !== '') {
+        unicodePosition[square] = ChessEngine.TEXT_TO_UNICODE[piece as keyof typeof ChessEngine.TEXT_TO_UNICODE] || piece;
+      }
+    }
+    return unicodePosition;
+  },
+
+  // Convert Unicode moves back to text-based notation
+  convertMovesToText: (unicodeMoves: Move[]): Move[] => {
+    return unicodeMoves.map(move => ({
+      ...move,
+      piece: ChessEngine.UNICODE_TO_TEXT[move.piece as keyof typeof ChessEngine.UNICODE_TO_TEXT] || move.piece,
+      capturedPiece: move.capturedPiece ? 
+        (ChessEngine.UNICODE_TO_TEXT[move.capturedPiece as keyof typeof ChessEngine.UNICODE_TO_TEXT] || move.capturedPiece) : 
+        undefined
+    }));
+  },
+
   // Helper functions
   isWhitePiece: (piece: string): boolean => ChessEngine.PIECES.WHITE.includes(piece),
   isBlackPiece: (piece: string): boolean => ChessEngine.PIECES.BLACK.includes(piece),
@@ -289,25 +326,29 @@ export const ChessEngine = {
 
   // Check if the specified color is in check (FIDE Article 3.9)
   isInCheck: (position: Position, color: 'white' | 'black'): boolean => {
-    const kingSquare = ChessEngine.findKing(position, color);
+    // TOYOTA RELIABILITY: Convert text-based pieces to Unicode for engine processing
+    const unicodePosition = ChessEngine.convertPositionToUnicode(position);
+    const kingSquare = ChessEngine.findKing(unicodePosition, color);
     if (!kingSquare) return false;
     
     const opponentColor = color === 'white' ? 'black' : 'white';
-    return ChessEngine.isSquareUnderAttack(kingSquare, position, opponentColor);
+    return ChessEngine.isSquareUnderAttack(kingSquare, unicodePosition, opponentColor);
   },
 
   // Get all legal moves for a color (considering check constraints)
   getLegalMoves: (position: Position, color: 'white' | 'black', gameState: Partial<GameState> = {}): Move[] => {
+    // TOYOTA RELIABILITY: Convert text-based pieces to Unicode for engine processing
+    const unicodePosition = ChessEngine.convertPositionToUnicode(position);
     const legalMoves: Move[] = [];
     
-    for (const square in position) {
-      const piece = position[square];
+    for (const square in unicodePosition) {
+      const piece = unicodePosition[square];
       if (piece && ChessEngine.getPieceColor(piece) === color) {
-        const possibleMoves = ChessEngine.generatePieceMoves(square, position, gameState);
+        const possibleMoves = ChessEngine.generatePieceMoves(square, unicodePosition, gameState);
         
         for (const targetSquare of possibleMoves) {
           // Simulate the move
-          const newPosition = { ...position };
+          const newPosition = { ...unicodePosition };
           const capturedPiece = newPosition[targetSquare];
           
           // Handle special moves
@@ -359,7 +400,8 @@ export const ChessEngine = {
       }
     }
     
-    return legalMoves;
+    // TOYOTA RELIABILITY: Convert moves back to text-based notation
+    return ChessEngine.convertMovesToText(legalMoves);
   },
 
   // Check if it's checkmate (FIDE Article 5.1.1)
