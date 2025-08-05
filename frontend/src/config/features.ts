@@ -8,18 +8,27 @@
  * 4. Environment variables allow per-deployment control
  */
 
+// Helper to check URL parameters for runtime feature flags
+const getUrlParam = (key: string): boolean => {
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(key) === 'true';
+  }
+  return false;
+};
+
 export const FEATURES = {
   // Reconnection system - can be disabled instantly if it breaks basic flow
-  RECONNECTION: process.env.VITE_ENABLE_RECONNECTION === 'true',
+  RECONNECTION: process.env.VITE_ENABLE_RECONNECTION === 'true' || getUrlParam('VITE_ENABLE_RECONNECTION'),
   
   // Game history feature - caused major instability before
-  GAME_HISTORY: process.env.VITE_ENABLE_GAME_HISTORY === 'true',
+  GAME_HISTORY: process.env.VITE_ENABLE_GAME_HISTORY === 'true' || getUrlParam('VITE_ENABLE_GAME_HISTORY'),
   
   // Advanced analytics and tracking
-  ANALYTICS: process.env.VITE_ENABLE_ANALYTICS === 'true',
+  ANALYTICS: process.env.VITE_ENABLE_ANALYTICS === 'true' || getUrlParam('VITE_ENABLE_ANALYTICS'),
   
   // Performance monitoring and debug logging
-  DEBUG_LOGGING: process.env.VITE_ENABLE_DEBUG === 'true',
+  DEBUG_LOGGING: process.env.VITE_ENABLE_DEBUG === 'true' || getUrlParam('VITE_ENABLE_DEBUG'),
   
   // Enhanced UI features that might interfere with core flow
   ENHANCED_UI: process.env.VITE_ENABLE_ENHANCED_UI === 'true',
