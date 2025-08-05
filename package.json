@@ -15,7 +15,10 @@
     "build:frontend": "cd frontend && npm run build",
     "test": "cd programs/escrow && anchor test",
     "lint": "cd frontend && npm run lint",
-    "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\""
+    "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
+    "test:baseline": "node scripts/baseline-test.js",
+    "toyota:check": "npm run test:baseline && echo '✅ Toyota baseline check passed'",
+    "toyota:feature-status": "node -e \"const {getFeatureStatus} = require('./frontend/src/config/features.ts'); console.table(getFeatureStatus());\""
   },
   "keywords": [
     "chess",
