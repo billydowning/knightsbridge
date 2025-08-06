@@ -1030,7 +1030,12 @@ io.on('connection', (socket) => {
           inCheckmate: false,
           moveHistory: [],
           lastMove: null,
-          lastUpdated: Date.now()
+          lastUpdated: Date.now(),
+          // 🚛 TOYOTA FIX: Add missing chess state for proper castling support
+          castlingRights: 'KQkq',
+          enPassantTarget: null,
+          halfmoveClock: 0,
+          fullmoveNumber: 1
         };
 
         // Insert initial game state
