@@ -1232,7 +1232,9 @@ function ChessApp() {
       
       const nextPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
       const nextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
-      const nextPlayerInCheckmate = detectCheckmate(newPosition, nextPlayer);
+      
+      // 🚛 TOYOTA FIX: Use proven FIDE-compliant chess engine instead of buggy custom logic
+      const nextPlayerInCheckmate = ChessEngine.isCheckmate(newPosition, nextPlayer, gameState);
       
       // Determine winner if checkmate occurs
       const winner = nextPlayerInCheckmate ? gameState.currentPlayer : null;
@@ -1933,101 +1935,8 @@ function ChessApp() {
     }
   };
 
-  // Helper function to detect checkmate
-  const detectCheckmate = (position: any, currentPlayer: string): boolean => {
-
-
-    
-    // First, check if the king is in check
-    const isInCheck = isKingInCheck(position, currentPlayer);
-    if (!isInCheck) {
-
-      return false;
-    }
-    
-    // Find the king of the current player
-    let kingSquare = null;
-    
-    // Find the king's position using our helper function
-    for (const square in position) {
-      const piece = position[square];
-      if (piece && getPieceTypeFromAnyFormat(piece) === 'king' && getPieceColorFromAnyFormat(piece) === currentPlayer) {
-        kingSquare = square;
-        break;
-      }
-    }
-    
-    if (!kingSquare) {
-
-      return true;
-    }
-    
-
-    
-    // Check if king can escape
-    const canEscape = checkIfKingCanEscape(position, kingSquare, currentPlayer);
-    if (!canEscape) {
-
-      return true;
-    }
-    
-    
-    return false;
-  };
-  
-
-  
-  // Helper function to check if king can escape
-  const checkIfKingCanEscape = (position: any, kingSquare: string, currentPlayer: string): boolean => {
-    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
-    
-    const kingFile = kingSquare[0];
-    const kingRank = parseInt(kingSquare[1]);
-    
-    // Check all 8 possible king moves (including diagonals)
-    const possibleMoves = [
-      { file: kingFile.charCodeAt(0) - 1, rank: kingRank - 1 }, // a1
-      { file: kingFile.charCodeAt(0), rank: kingRank - 1 },     // b1
-      { file: kingFile.charCodeAt(0) + 1, rank: kingRank - 1 }, // c1
-      { file: kingFile.charCodeAt(0) - 1, rank: kingRank },     // a2
-      { file: kingFile.charCodeAt(0) + 1, rank: kingRank },     // c2
-      { file: kingFile.charCodeAt(0) - 1, rank: kingRank + 1 }, // a3
-      { file: kingFile.charCodeAt(0), rank: kingRank + 1 },     // b3
-      { file: kingFile.charCodeAt(0) + 1, rank: kingRank + 1 }  // c3
-    ];
-    
-    for (const move of possibleMoves) {
-      // Check if move is within board bounds
-      if (move.file >= 'a'.charCodeAt(0) && move.file <= 'h'.charCodeAt(0) && 
-          move.rank >= 1 && move.rank <= 8) {
-        
-        const targetSquare = String.fromCharCode(move.file) + move.rank;
-        const targetPiece = position[targetSquare];
-        
-        // Check if square is empty or contains opponent piece
-        const isOwnPiece = targetPiece && getPieceColorFromAnyFormat(targetPiece) === currentPlayer;
-        
-        if (!isOwnPiece) {
-          // Simulate the king move and check if it would still be in check
-          const simulatedPosition = { ...position };
-          simulatedPosition[targetSquare] = simulatedPosition[kingSquare];
-          simulatedPosition[kingSquare] = '';
-          
-          const wouldStillBeInCheck = isKingInCheck(simulatedPosition, currentPlayer);
-          if (!wouldStillBeInCheck) {
-    
-            return true;
-          } else {
-    
-          }
-        }
-      }
-    }
-    
-    
-    return false;
-  };
+  // 🚛 TOYOTA: Removed buggy detectCheckmate and checkIfKingCanEscape functions
+  // Now using proven ChessEngine.isCheckmate() for reliable FIDE-compliant checkmate detection
   
   // Helper function to validate chess moves
   const validateLocalMove = (position: any, fromSquare: string, toSquare: string, currentPlayer: string, gameState?: any): boolean => {
@@ -2557,9 +2466,9 @@ function ChessApp() {
     
 
     
-    // Test checkmate detection
-    const whiteCheckmate = detectCheckmate(checkmatePosition, 'white');
-    const blackCheckmate = detectCheckmate(checkmatePosition, 'black');
+    // 🚛 TOYOTA: Test checkmate detection using proven engine
+    const whiteCheckmate = ChessEngine.isCheckmate(checkmatePosition, 'white', gameState);
+    const blackCheckmate = ChessEngine.isCheckmate(checkmatePosition, 'black', gameState);
     
 
     
@@ -2596,9 +2505,9 @@ function ChessApp() {
     const whiteInCheck = isKingInCheck(gameState.position, 'white');
     const blackInCheck = isKingInCheck(gameState.position, 'black');
     
-    // Test checkmate detection for both players
-    const whiteCheckmate = detectCheckmate(gameState.position, 'white');
-    const blackCheckmate = detectCheckmate(gameState.position, 'black');
+    // 🚛 TOYOTA: Test checkmate detection for both players using proven engine
+    const whiteCheckmate = ChessEngine.isCheckmate(gameState.position, 'white', gameState);
+    const blackCheckmate = ChessEngine.isCheckmate(gameState.position, 'black', gameState);
     
 
     
