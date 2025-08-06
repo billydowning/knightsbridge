@@ -276,13 +276,20 @@ export const ChessEngine = {
           const queenside = pieceColor === 'white' ? 'Q' : 'q';
           
           // 🚛 TOYOTA FIX: Verify rooks are present before allowing castling
-          const expectedRook = pieceColor === 'white' ? '♖' : '♜';
+          const expectedRookUnicode = pieceColor === 'white' ? '♖' : '♜';
+          const expectedRookText = pieceColor === 'white' ? 'white-rook' : 'black-rook';
           const kingsideRookSquare = 'h' + (rank + 1);
           const queensideRookSquare = 'a' + (rank + 1);
           
+          // Helper to check if rook is present (handles both Unicode and text formats)
+          const isRookPresent = (square: string) => {
+            const piece = position[square];
+            return piece === expectedRookUnicode || piece === expectedRookText;
+          };
+          
           // Kingside castling (O-O)
           if (gameState.castlingRights.includes(kingside) &&
-              position[kingsideRookSquare] === expectedRook && // 🚛 TOYOTA: Verify rook exists
+              isRookPresent(kingsideRookSquare) && // 🚛 TOYOTA: Verify rook exists (both formats)
               !position['f' + (rank + 1)] && !position['g' + (rank + 1)] &&
               !ChessEngine.isSquareUnderAttack('e' + (rank + 1), position, pieceColor === 'white' ? 'black' : 'white') &&
               !ChessEngine.isSquareUnderAttack('f' + (rank + 1), position, pieceColor === 'white' ? 'black' : 'white') &&
@@ -292,7 +299,7 @@ export const ChessEngine = {
           
           // Queenside castling (O-O-O)
           if (gameState.castlingRights.includes(queenside) &&
-              position[queensideRookSquare] === expectedRook && // 🚛 TOYOTA: Verify rook exists
+              isRookPresent(queensideRookSquare) && // 🚛 TOYOTA: Verify rook exists (both formats)
               !position['d' + (rank + 1)] && !position['c' + (rank + 1)] && !position['b' + (rank + 1)] &&
               !ChessEngine.isSquareUnderAttack('e' + (rank + 1), position, pieceColor === 'white' ? 'black' : 'white') &&
               !ChessEngine.isSquareUnderAttack('d' + (rank + 1), position, pieceColor === 'white' ? 'black' : 'white') &&
