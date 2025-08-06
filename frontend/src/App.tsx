@@ -1140,6 +1140,14 @@ function ChessApp() {
     addDebugMessage(`🎯 Position object: ${Object.keys(gameState?.position || {}).length} squares populated`);
     addDebugMessage(`🎯 Position sample: ${JSON.stringify(Object.entries(gameState?.position || {}).slice(0, 4))}`);
     
+    // 🚛 TOYOTA DEBUG: Castling rights debugging
+    addDebugMessage(`🏰 CASTLING DEBUG: castlingRights="${gameState?.castlingRights}"`);
+    addDebugMessage(`🏰 CASTLING DEBUG: king(e1)="${gameState?.position?.e1}", rook(h1)="${gameState?.position?.h1}", rook(a1)="${gameState?.position?.a1}"`);
+    addDebugMessage(`🏰 CASTLING DEBUG: squares f1="${gameState?.position?.f1}", g1="${gameState?.position?.g1}"`);
+    if (square === 'e1' && gameState?.position?.e1?.includes('king')) {
+      addDebugMessage(`🏰 WHITE KING CLICKED: Legal moves for king should include castling if castlingRights contains K or Q`);
+    }
+    
     if (!roomId || gameMode !== 'game' || !gameState) {
       addDebugMessage(`❌ Early exit: roomId=${!!roomId}, gameMode=${gameMode}, gameState=${!!gameState}`);
       return;

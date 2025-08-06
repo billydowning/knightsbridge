@@ -1917,14 +1917,20 @@ io.on('connection', (socket) => {
       const nextPlayer = color === 'white' ? 'black' : 'white';
       const inCheck = security.isKingInCheck(newPosition, nextPlayer);
       
-      // Update game state
+      // Update game state - preserve ALL fields including castlingRights
       const updatedGameState = {
         ...gameState.game_state,
         position: newPosition,
         currentPlayer: nextPlayer,
         lastMove: move,
         inCheck,
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
+        // 🚛 TOYOTA FIX: Ensure critical chess state is preserved
+        castlingRights: gameState.game_state?.castlingRights || 'KQkq',
+        enPassantTarget: gameState.game_state?.enPassantTarget || null,
+        halfmoveClock: gameState.game_state?.halfmoveClock || 0,
+        fullmoveNumber: gameState.game_state?.fullmoveNumber || 1,
+        moveHistory: gameState.game_state?.moveHistory || []
       };
 
       // Generate integrity hash
