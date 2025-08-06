@@ -1185,17 +1185,25 @@ function ChessApp() {
       // Create new position by making the move
       const newPosition = { ...gameState.position };
       const movingPiece = gameState.position[fromSquare];
-      newPosition[toSquare] = movingPiece;
+      
+      // 🚛 TOYOTA FIX: Handle pawn promotion (FIDE Article 3.7.e)
+      const pieceType = getPieceTypeFromAnyFormat(movingPiece);
+      const pieceColor = getPieceColorFromAnyFormat(movingPiece);
+      const toRank = parseInt(toSquare[1]);
+      
+      if (pieceType === 'pawn' && ((pieceColor === 'white' && toRank === 8) || (pieceColor === 'black' && toRank === 1))) {
+        // Auto-promote to queen (in a full game, this should offer choice)
+        newPosition[toSquare] = pieceColor === 'white' ? 'white-queen' : 'black-queen';
+      } else {
+        newPosition[toSquare] = movingPiece;
+      }
       newPosition[fromSquare] = '';
       
       // Track en passant for next move (default: no en passant target)
       let newEnPassantTarget = null;
       
-      // Handle special moves
-      const pieceType = getPieceTypeFromAnyFormat(movingPiece);
-      const pieceColor = getPieceColorFromAnyFormat(movingPiece);
+      // Handle special moves  
       const fromRank = parseInt(fromSquare[1]);
-      const toRank = parseInt(toSquare[1]);
       const fileDiff = Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0));
       
       // En passant handling for pawns
