@@ -1230,10 +1230,7 @@ function ChessApp() {
       // 🚛 TOYOTA FIX: Use robust ChessEngine.isCheckmate instead of flawed detectCheckmate
       const nextPlayerInCheckmate = ChessEngine.isCheckmate(newPosition, nextPlayer, gameState);
       
-      // Determine winner if checkmate occurs or draw conditions
-      const winner = nextPlayerInCheckmate ? gameState.currentPlayer : 
-                    (isThreefoldRepetition || canClaimFiftyMoveRule) ? 'draw' : null;
-      
+      // 🚛 TOYOTA FIX: Calculate draw conditions BEFORE winner determination
       // 50-move rule logic
       const capturedPiece = gameState.position[toSquare];
       const isPawnMove = movingPiece && (movingPiece.includes('pawn') || movingPiece === '♙' || movingPiece === '♟');
@@ -1245,7 +1242,7 @@ function ChessApp() {
       // Check for 50-move rule draw (100 half-moves = 50 full moves)
       const canClaimFiftyMoveRule = newHalfmoveClock >= 100;
       
-      // 🚛 TOYOTA FIX: Check for threefold repetition
+      // Check for threefold repetition
       const updatedMoveHistory = [...(gameState.moveHistory || []), {
         from: fromSquare,
         to: toSquare,
@@ -1259,6 +1256,10 @@ function ChessApp() {
       }];
       
       const isThreefoldRepetition = ChessEngine.isThreefoldRepetition(newPosition, updatedMoveHistory);
+      
+      // Determine winner if checkmate occurs or draw conditions
+      const winner = nextPlayerInCheckmate ? gameState.currentPlayer : 
+                    (isThreefoldRepetition || canClaimFiftyMoveRule) ? 'draw' : null;
       
       // 🚛 TOYOTA DEBUG: Log draw conditions
       if (isThreefoldRepetition) {
