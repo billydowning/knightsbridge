@@ -193,7 +193,22 @@ export const useSolanaWallet = (): SolanaWalletHook => {
           try {
             const program = await Program.at(CHESS_PROGRAM_ID, provider);
             console.log(`✅ Successfully fetched IDL from chain (attempt ${attempt})`);
-            return program;
+            
+            // 🔍 TOYOTA DEBUG: Check if the program has the required account interface
+            console.log('🔍 Chain-fetched program account interface check:', {
+              hasAccount: !!program.account,
+              hasGameEscrow: !!(program.account && program.account.gameEscrow)
+            });
+            
+            // Only return if it has the required interface
+            if (program.account && program.account.gameEscrow) {
+              console.log('✅ Chain-fetched program has full account interface');
+              return program;
+            } else {
+              console.log('❌ Chain-fetched program missing account interface - continuing to minimal IDL');
+              throw new Error('Program missing account interface');
+            }
+          
           } catch (chainError) {
             lastError = chainError;
             if (attempt === 1) {
