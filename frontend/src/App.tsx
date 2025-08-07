@@ -1337,19 +1337,33 @@ function ChessApp() {
           
           // 🚛 TOYOTA FIX: Automatic blockchain declaration for draws
           if (isThreefoldRepetition || canClaimFiftyMoveRule) {
-            console.log('🤝 DRAW DETECTED - Automatically declaring result on blockchain');
-            try {
-              const result = await declareResult(roomId, null, 'Stalemate'); // null = Draw, Stalemate covers threefold/50-move
-              if (result) {
-                console.log('✅ Draw result declared on blockchain successfully');
-                setGameStatus('🤝 Draw declared! Deposits automatically refunded.');
-              } else {
-                console.error('❌ Failed to declare draw on blockchain');
-                setGameStatus('⚠️ Draw detected but blockchain declaration failed');
+            console.log('🤝 DRAW DETECTED - Checking if blockchain escrow exists');
+            
+            // Check if both players have deposited by checking roomStatus escrowCount
+            const hasActiveEscrows = roomStatus?.escrowCount >= 2;
+            console.log(`🔍 Escrow check: escrowCount=${roomStatus?.escrowCount}, hasActiveEscrows=${hasActiveEscrows}`);
+            
+            // Only declare on blockchain if both players have deposited (escrow exists)
+            if (hasActiveEscrows) {
+              console.log('💰 Both escrows ready - declaring draw on blockchain');
+              try {
+                const result = await declareResult(roomId, null, 'Stalemate'); // null = Draw, Stalemate covers threefold/50-move
+                if (result) {
+                  console.log('✅ Draw result declared on blockchain successfully');
+                  setGameStatus('🤝 Draw declared! Deposits automatically refunded.');
+                } else {
+                  console.error('❌ Failed to declare draw on blockchain');
+                  setGameStatus('⚠️ Draw detected but blockchain declaration failed');
+                }
+              } catch (error) {
+                console.error('❌ Error declaring draw on blockchain:', error);
+                setGameStatus(`⚠️ Draw detected but blockchain declaration failed: ${error.message}`);
               }
-            } catch (error) {
-              console.error('❌ Error declaring draw on blockchain:', error);
-              setGameStatus('⚠️ Draw detected but blockchain declaration failed');
+            } else {
+              console.log('⚠️ Draw detected but no blockchain escrow exists (players haven\'t deposited)');
+              console.log(`   roomStatus.escrowCount: ${roomStatus?.escrowCount}`);
+              console.log(`   bothEscrowsReady (old flag): ${bothEscrowsReady}`);
+              setGameStatus('🤝 Draw declared! (No deposits to refund - game was free)');
             }
           }
           

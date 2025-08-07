@@ -1468,7 +1468,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         );
 
         // Get game account to read player addresses - fee collector is always hardcoded
-        const gameAccount = await program.account.gameEscrow.fetch(gameEscrowPda);
+        console.log('🔍 Attempting to fetch gameEscrow for room:', roomId);
+        console.log('🔍 GameEscrow PDA:', gameEscrowPda.toString());
+        
+        const gameAccount = await program.account.gameEscrow.fetch(gameEscrowPda).catch(error => {
+          console.error('❌ Failed to fetch gameEscrow account:', error);
+          throw new Error(`Game escrow not found for room ${roomId}. Ensure both players have deposited stakes.`);
+        });
         
         // Convert winner to smart contract enum
         let gameWinner: any;
