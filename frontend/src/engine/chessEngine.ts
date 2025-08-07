@@ -455,36 +455,87 @@ export const ChessEngine = {
 
   // Check for threefold repetition (FIDE Article 5.2.2)
   isThreefoldRepetition: (position: Position, moveHistory: Move[]): boolean => {
-    // 🚛 TOYOTA FIX: Detect position repetition (not move repetition)
-    if (moveHistory.length < 8) return false; // Need at least 4 moves each side for repetition
+    // 🚛 TOYOTA FIX: Proper position-based threefold repetition detection
+    if (moveHistory.length < 8) return false; // Need at least 4 moves each side
 
-    // Check for simple back-and-forth pattern that creates same position 3 times
-    // Pattern: A-B-reverse(A)-reverse(B)-A-B (knights going back and forth)
-    if (moveHistory.length >= 6) {
-      const len = moveHistory.length;
-      const move1 = moveHistory[len - 6]; // A: g1→f3
-      const move2 = moveHistory[len - 5]; // B: g8→f6  
-      const move3 = moveHistory[len - 4]; // reverse(A): f3→g1
-      const move4 = moveHistory[len - 3]; // reverse(B): f6→g8
-      const move5 = moveHistory[len - 2]; // A again: g1→f3
-      const move6 = moveHistory[len - 1]; // B again: g8→f6
-
-      // Check if moves 1&5 are the same (A repeated)
-      // Check if moves 2&6 are the same (B repeated)  
-      // Check if moves 3&1 are reverse of each other
-      // Check if moves 4&2 are reverse of each other
-      const sameMove1and5 = move1.from === move5.from && move1.to === move5.to;
-      const sameMove2and6 = move2.from === move6.from && move2.to === move6.to;
-      const reverseMove3and1 = move3.from === move1.to && move3.to === move1.from;
-      const reverseMove4and2 = move4.from === move2.to && move4.to === move2.from;
-
-      if (sameMove1and5 && sameMove2and6 && reverseMove3and1 && reverseMove4and2) {
-        console.log('🔄 THREEFOLD REPETITION DETECTED: Back-and-forth pattern found');
-        console.log(`Pattern: ${move1.from}-${move1.to} / ${move2.from}-${move2.to} repeated via back-and-forth`);
+    // Convert current position to canonical form
+    const currentPositionKey = ChessEngine.positionToKey(position);
+    
+    // Reconstruct all positions from move history
+    const initialPosition = ChessEngine.getInitialPosition();
+    let checkPosition = { ...initialPosition };
+    const positionCounts = new Map<string, number>();
+    
+    // Count initial position
+    const initialKey = ChessEngine.positionToKey(initialPosition);
+    positionCounts.set(initialKey, 1);
+    
+    // Apply each move and count positions
+    for (const move of moveHistory) {
+      // Apply the move
+      checkPosition[move.to] = checkPosition[move.from];
+      checkPosition[move.from] = '';
+      
+      // Handle castling rook movement
+      if (move.isCastling) {
+        const isKingside = move.to.charCodeAt(0) > move.from.charCodeAt(0);
+        const rank = move.from[1];
+        const rookFrom = (isKingside ? 'h' : 'a') + rank;
+        const rookTo = String.fromCharCode(move.to.charCodeAt(0) + (isKingside ? -1 : 1)) + rank;
+        checkPosition[rookTo] = checkPosition[rookFrom];
+        checkPosition[rookFrom] = '';
+      }
+      
+      // Handle en passant capture
+      if (move.isEnPassant) {
+        const capturedPawnRank = move.to[1] === '6' ? '5' : '4';
+        const capturedPawnSquare = move.to[0] + capturedPawnRank;
+        checkPosition[capturedPawnSquare] = '';
+      }
+      
+      // Convert position to key and count
+      const positionKey = ChessEngine.positionToKey(checkPosition);
+      const count = positionCounts.get(positionKey) || 0;
+      positionCounts.set(positionKey, count + 1);
+      
+      // If current position has occurred 3 times, it's threefold repetition
+      if (positionKey === currentPositionKey && count + 1 >= 3) {
+        console.log('🔄 THREEFOLD REPETITION DETECTED: Position occurred 3+ times');
+        console.log(`Current position key: ${currentPositionKey.substring(0, 50)}...`);
+        console.log(`Occurrence count: ${count + 1}`);
         return true;
       }
     }
+    
     return false;
+  },
+
+  // Convert position to a canonical key for comparison
+  positionToKey: (position: Position): string => {
+    // Create a deterministic string representation of the position
+    const squares = [];
+    for (let rank = 1; rank <= 8; rank++) {
+      for (let file = 'a'; file <= 'h'; file = String.fromCharCode(file.charCodeAt(0) + 1)) {
+        const square = file + rank;
+        const piece = position[square] || '';
+        squares.push(`${square}:${piece}`);
+      }
+    }
+    return squares.join('|');
+  },
+
+  // Get the initial chess position
+  getInitialPosition: (): Position => {
+    return {
+      'a1': 'white-rook', 'b1': 'white-knight', 'c1': 'white-bishop', 'd1': 'white-queen',
+      'e1': 'white-king', 'f1': 'white-bishop', 'g1': 'white-knight', 'h1': 'white-rook',
+      'a2': 'white-pawn', 'b2': 'white-pawn', 'c2': 'white-pawn', 'd2': 'white-pawn',
+      'e2': 'white-pawn', 'f2': 'white-pawn', 'g2': 'white-pawn', 'h2': 'white-pawn',
+      'a7': 'black-pawn', 'b7': 'black-pawn', 'c7': 'black-pawn', 'd7': 'black-pawn',
+      'e7': 'black-pawn', 'f7': 'black-pawn', 'g7': 'black-pawn', 'h7': 'black-pawn',
+      'a8': 'black-rook', 'b8': 'black-knight', 'c8': 'black-bishop', 'd8': 'black-queen',
+      'e8': 'black-king', 'f8': 'black-bishop', 'g8': 'black-knight', 'h8': 'black-rook'
+    };
   },
 
   // Convert position to FEN-like string for comparison
