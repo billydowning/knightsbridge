@@ -14,7 +14,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import ChessEscrowIDL from '../idl/chess_escrow.json';
 import { databaseMultiplayerState } from '../services/databaseMultiplayerState';
 import { ChessEscrow } from '../idl/chess_escrow';
