@@ -1230,8 +1230,9 @@ function ChessApp() {
       // 🚛 TOYOTA FIX: Use robust ChessEngine.isCheckmate instead of flawed detectCheckmate
       const nextPlayerInCheckmate = ChessEngine.isCheckmate(newPosition, nextPlayer, gameState);
       
-      // Determine winner if checkmate occurs
-      const winner = nextPlayerInCheckmate ? gameState.currentPlayer : null;
+      // Determine winner if checkmate occurs or draw conditions
+      const winner = nextPlayerInCheckmate ? gameState.currentPlayer : 
+                    (isThreefoldRepetition || canClaimFiftyMoveRule) ? 'draw' : null;
       
       // 50-move rule logic
       const capturedPiece = gameState.position[toSquare];
@@ -1243,6 +1244,31 @@ function ChessApp() {
       
       // Check for 50-move rule draw (100 half-moves = 50 full moves)
       const canClaimFiftyMoveRule = newHalfmoveClock >= 100;
+      
+      // 🚛 TOYOTA FIX: Check for threefold repetition
+      const updatedMoveHistory = [...(gameState.moveHistory || []), {
+        from: fromSquare,
+        to: toSquare,
+        piece: movingPiece,
+        capturedPiece: capturedPiece,
+        notation: `${fromSquare}${toSquare}`,
+        isCastling: pieceType === 'king' && 
+                   Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0)) === 2,
+        isEnPassant: pieceType === 'pawn' && fileDiff === 1 && !gameState.position[toSquare] && gameState.enPassantTarget === toSquare,
+        timestamp: Date.now()
+      }];
+      
+      const isThreefoldRepetition = ChessEngine.isThreefoldRepetition(newPosition, updatedMoveHistory);
+      
+      // 🚛 TOYOTA DEBUG: Log draw conditions
+      if (isThreefoldRepetition) {
+        addDebugMessage('🔄 THREEFOLD REPETITION DETECTED! Game will end in draw.');
+        console.log('🔄 THREEFOLD REPETITION: Move history length:', updatedMoveHistory.length);
+        console.log('🔄 LAST 6 MOVES:', updatedMoveHistory.slice(-6));
+      }
+      if (canClaimFiftyMoveRule) {
+        addDebugMessage('⏰ 50-MOVE RULE: Game can be claimed as draw.');
+      }
       
       // Create updated game state
       const updatedGameState = {
@@ -1265,6 +1291,7 @@ function ChessApp() {
         inCheck: nextPlayerInCheck,
         inCheckmate: nextPlayerInCheckmate,
         winner: winner,
+        draw: winner === 'draw',
         gameActive: winner ? false : gameState.gameActive,
         halfmoveClock: newHalfmoveClock,
         canClaimFiftyMoveRule: canClaimFiftyMoveRule,
