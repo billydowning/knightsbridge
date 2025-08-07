@@ -1175,6 +1175,16 @@ function ChessApp() {
     // TOYOTA FIX: Use pre-calculated legal moves from optimization hook
     const isValidMove = legalMoves.some(move => move.from === fromSquare && move.to === toSquare);
     
+    // 🚛 TOYOTA DEBUG: Log move validation details
+    console.log('🎯 MOVE VALIDATION:', {
+      fromSquare,
+      toSquare,
+      isValidMove,
+      totalLegalMoves: legalMoves.length,
+      availableFromMoves: legalMoves.filter(m => m.from === fromSquare),
+      firstFewMoves: legalMoves.slice(0, 5)
+    });
+    
     if (isValidMove) {
       
       // Create new position by making the move
@@ -1332,6 +1342,15 @@ function ChessApp() {
           setIsReceivingServerUpdate(false);
         });
     } else {
+      // 🚛 TOYOTA DEBUG: Log why move failed
+      console.log('❌ MOVE FAILED VALIDATION:', {
+        fromSquare,
+        toSquare,
+        availableFromMoves: legalMoves.filter(m => m.from === fromSquare),
+        allLegalMoves: legalMoves
+      });
+      addDebugMessage(`❌ Invalid move: ${fromSquare}→${toSquare}`);
+      
       // Invalid move - provide specific feedback for check situations
       const isInCheck = ChessEngine.isInCheck(gameState.position, gameState.currentPlayer);
       
