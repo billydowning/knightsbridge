@@ -1251,13 +1251,16 @@ function ChessApp() {
         piece: movingPiece,
         capturedPiece: capturedPiece,
         notation: `${fromSquare}${toSquare}`,
-        isCastling: pieceType === 'king' && 
+        isCastle: pieceType === 'king' && 
                    Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0)) === 2,
         isEnPassant: pieceType === 'pawn' && fileDiff === 1 && !gameState.position[toSquare] && gameState.enPassantTarget === toSquare,
         timestamp: Date.now()
       }];
       
+      // 🚛 TOYOTA DEBUG: Always log threefold repetition check
+      console.log('🔄 CHECKING THREEFOLD REPETITION:', updatedMoveHistory.length, 'moves');
       const isThreefoldRepetition = ChessEngine.isThreefoldRepetition(newPosition, updatedMoveHistory);
+      console.log('🔄 THREEFOLD RESULT:', isThreefoldRepetition);
       
       // Determine winner if checkmate occurs or draw conditions
       const winner = nextPlayerInCheckmate ? gameState.currentPlayer : 
