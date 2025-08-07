@@ -1489,7 +1489,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         return '';
       }
 
-      const program = getProgram();
+      const program = await getProgram();
       if (!program) {
         setError('Failed to connect to program');
         return '';
