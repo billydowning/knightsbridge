@@ -154,8 +154,16 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         if (ChessEscrowIDL && ChessEscrowIDL.instructions) {
           
           try {
-            // 🚛 TOYOTA FIX: Use bundled IDL with explicit provider cluster override
-            const program = new Program(ChessEscrowIDL as any, new PublicKey(CHESS_PROGRAM_ID), provider);
+            // 🚛 TOYOTA FIX: Normalize IDL structure for current Anchor version
+            const normalizedIDL = {
+              ...ChessEscrowIDL,
+              // Ensure required fields exist for current Anchor version
+              version: ChessEscrowIDL.version || ChessEscrowIDL.metadata?.version || "0.1.0",
+              name: ChessEscrowIDL.name || ChessEscrowIDL.metadata?.name || "chess_escrow"
+            };
+            
+            // Create program with normalized IDL
+            const program = new Program(normalizedIDL as any, new PublicKey(CHESS_PROGRAM_ID), provider);
             console.log('✅ Successfully created program with bundled IDL (full functionality)');
             console.log('🔍 Program account interface check:', {
               hasAccount: !!program.account,
@@ -164,6 +172,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             return program;
           } catch (programCreateError) {
             console.log('❌ Bundled IDL Program creation failed:', programCreateError.message);
+            console.log('🔍 Error stack:', programCreateError.stack);
             // Continue to fallback methods
           }
         } else {
