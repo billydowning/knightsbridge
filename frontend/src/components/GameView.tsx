@@ -51,6 +51,7 @@ export const GameView: React.FC<GameViewProps> = ({
   const { boardSize } = useChessBoardConfig();
   const isDesktopLayout = useIsDesktopLayout();
 
+  // Only show claim button for winners (draws are automatic)
   const showClaimButton = gameState.winner && gameState.winner === playerRole;
   const isGameOver = gameState.winner || gameState.draw;
 

@@ -287,7 +287,8 @@ function ChessApp() {
     createEscrow,
     joinAndDepositStake,
     claimWinnings,
-    depositStake
+    depositStake,
+    declareResult
   } = useSolanaWallet();
   const isMobile = useIsMobile();
   const textSizes = useTextSizes();
@@ -1330,9 +1331,27 @@ function ChessApp() {
       
       // Save to database FIRST (single source of truth)
       databaseMultiplayerState.saveGameState(roomId, updatedGameState)
-        .then(() => {
+        .then(async () => {
           // Update local state AFTER successful database save
           setGameState(updatedGameState);
+          
+          // 🚛 TOYOTA FIX: Automatic blockchain declaration for draws
+          if (isThreefoldRepetition || canClaimFiftyMoveRule) {
+            console.log('🤝 DRAW DETECTED - Automatically declaring result on blockchain');
+            try {
+              const result = await declareResult(roomId, null, 'Stalemate'); // null = Draw, Stalemate covers threefold/50-move
+              if (result) {
+                console.log('✅ Draw result declared on blockchain successfully');
+                setGameStatus('🤝 Draw declared! Deposits automatically refunded.');
+              } else {
+                console.error('❌ Failed to declare draw on blockchain');
+                setGameStatus('⚠️ Draw detected but blockchain declaration failed');
+              }
+            } catch (error) {
+              console.error('❌ Error declaring draw on blockchain:', error);
+              setGameStatus('⚠️ Draw detected but blockchain declaration failed');
+            }
+          }
           
           // Reset the receiving flag after a longer delay to ensure server broadcast is processed
           setTimeout(() => {
