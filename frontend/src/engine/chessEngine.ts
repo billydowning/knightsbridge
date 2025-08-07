@@ -469,42 +469,57 @@ export const ChessEngine = {
 
   // Check for threefold repetition (FIDE Article 5.2.2)
   isThreefoldRepetition: (position: Position, moveHistory: Move[]): boolean => {
-    // 🚛 TOYOTA FIX: Implement proper threefold repetition detection
-    
-    // Convert current position to FEN for comparison
-    const currentFEN = ChessEngine.positionToFEN(position);
-    let repetitionCount = 1; // Current position counts as 1
-    
-    // We need to check position history, but moveHistory only has moves
-    // For a proper implementation, we'd need to reconstruct positions from moves
-    // For now, implement a conservative approach that works with available data
-    
-    if (moveHistory.length < 8) return false; // Need at least 4 moves each side for repetition
-    
-    // Check if the last few moves suggest repetition pattern
-    // Look for move patterns that could create position repetition
-    const lastMoves = moveHistory.slice(-8);
-    
-    // Simple pattern detection: A-B-A-B or A-B-C-A-B-C patterns
-    if (lastMoves.length >= 6) {
-      const move1 = lastMoves[lastMoves.length - 6];
-      const move2 = lastMoves[lastMoves.length - 5];
-      const move3 = lastMoves[lastMoves.length - 4];
-      const move4 = lastMoves[lastMoves.length - 3];
-      const move5 = lastMoves[lastMoves.length - 2];
-      const move6 = lastMoves[lastMoves.length - 1];
-      
-      // Check for A-B-A-B-A-B pattern (simple repetition)
-      if (move1.from === move3.from && move1.to === move3.to &&
-          move2.from === move4.from && move2.to === move4.to &&
-          move3.from === move5.from && move3.to === move5.to &&
-          move4.from === move6.from && move4.to === move6.to) {
-        return true; // Likely threefold repetition
+    // 🚛 TOYOTA FIX: Proper position-based threefold repetition detection
+    if (moveHistory.length < 8) return false; // Need at least 4 moves each side
+
+    // Convert current position to canonical form
+    const currentPositionKey = ChessEngine.positionToKey(position);
+
+    // Reconstruct all positions from move history
+    const initialPosition = ChessEngine.getInitialPosition();
+    let checkPosition = { ...initialPosition };
+    const positionCounts = new Map<string, number>();
+
+    // Count initial position
+    const initialKey = ChessEngine.positionToKey(initialPosition);
+    positionCounts.set(initialKey, 1);
+
+    // Apply each move and count positions
+    for (const move of moveHistory) {
+      // Apply the move
+      checkPosition[move.to] = checkPosition[move.from];
+      checkPosition[move.from] = '';
+
+      // Handle castling rook movement
+      if (move.isCastle) {
+        const isKingside = move.to.charCodeAt(0) > move.from.charCodeAt(0);
+        const rank = move.from[1];
+        const rookFrom = (isKingside ? 'h' : 'a') + rank;
+        const rookTo = String.fromCharCode(move.to.charCodeAt(0) + (isKingside ? -1 : 1)) + rank;
+        checkPosition[rookTo] = checkPosition[rookFrom];
+        checkPosition[rookFrom] = '';
+      }
+
+      // Handle en passant capture
+      if (move.isEnPassant) {
+        const capturedPawnRank = move.to[1] === '6' ? '5' : '4';
+        const capturedPawnSquare = move.to[0] + capturedPawnRank;
+        checkPosition[capturedPawnSquare] = '';
+      }
+
+      // Convert position to key and count
+      const positionKey = ChessEngine.positionToKey(checkPosition);
+      const count = positionCounts.get(positionKey) || 0;
+      positionCounts.set(positionKey, count + 1);
+
+      // If current position has occurred 3 times, it's threefold repetition
+      if (positionKey === currentPositionKey && count + 1 >= 3) {
+        console.log('🔄 THREEFOLD REPETITION DETECTED: Position occurred 3+ times');
+        console.log(`Current position key: ${currentPositionKey.substring(0, 50)}...`);
+        console.log(`Occurrence count: ${count + 1}`);
+        return true;
       }
     }
-    
-    // For full FIDE compliance, we'd need complete position history
-    // This is a reasonable approximation for now
     return false;
   },
 
