@@ -142,24 +142,31 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       // 🚛 PRIMARY: Use complete bundled IDL (instant, reliable, no network dependency)
       try {
         console.log('🎯 Using bundled IDL for maximum reliability...');
+        console.log('🔍 IDL validation:', {
+          idlExists: !!ChessEscrowIDL,
+          hasInstructions: !!(ChessEscrowIDL && ChessEscrowIDL.instructions),
+          hasAccounts: !!(ChessEscrowIDL && ChessEscrowIDL.accounts),
+          instructionCount: ChessEscrowIDL?.instructions?.length,
+          accountCount: ChessEscrowIDL?.accounts?.length
+        });
         
-        // Validate that we have a complete local IDL
-        if (ChessEscrowIDL && 
-            ChessEscrowIDL.instructions && 
-            Array.isArray(ChessEscrowIDL.instructions) &&
-            ChessEscrowIDL.instructions.length > 0 &&
-            ChessEscrowIDL.accounts &&
-            ChessEscrowIDL.types) {
+        // Validate that we have a complete local IDL (simplified check)
+        if (ChessEscrowIDL && ChessEscrowIDL.instructions) {
           
           // Use the complete bundled IDL directly
           const program = new Program(ChessEscrowIDL as any, new PublicKey(CHESS_PROGRAM_ID), provider);
           console.log('✅ Successfully created program with bundled IDL (full functionality)');
+          console.log('🔍 Program account interface check:', {
+            hasAccount: !!program.account,
+            hasGameEscrow: !!(program.account && program.account.gameEscrow)
+          });
           return program;
         } else {
           console.log('⚠️ Bundled IDL incomplete, trying fallback methods...');
         }
       } catch (bundledError) {
-        console.log('⚠️ Bundled IDL failed, trying fallback methods...', bundledError.message);
+        console.log('⚠️ Bundled IDL failed, trying fallback methods...', bundledError);
+        console.log('Error details:', bundledError.message, bundledError.stack);
       }
       
       // 🔄 FALLBACK: Simple chain fetch with retry (network-dependent but robust)
@@ -1449,6 +1456,13 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       const program = getProgram();
       if (!program) {
         setError('Failed to connect to program');
+        return '';
+      }
+
+      // 🚛 TOYOTA FIX: Check if program has account interface (minimal IDL won't have it)
+      if (!program.account || !program.account.gameEscrow) {
+        console.error('❌ Program missing account interface - using simplified minimal IDL');
+        setError('Blockchain functionality temporarily limited. Please refresh and try again.');
         return '';
       }
 
