@@ -139,49 +139,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         { commitment: 'confirmed' }
       );
       
-      // 🚛 PRIMARY: Use complete bundled IDL (instant, reliable, no network dependency)
-      try {
-        console.log('🎯 Using bundled IDL for maximum reliability...');
-        console.log('🔍 IDL validation:', {
-          idlExists: !!ChessEscrowIDL,
-          hasInstructions: !!(ChessEscrowIDL && ChessEscrowIDL.instructions),
-          hasAccounts: !!(ChessEscrowIDL && ChessEscrowIDL.accounts),
-          instructionCount: ChessEscrowIDL?.instructions?.length,
-          accountCount: ChessEscrowIDL?.accounts?.length
-        });
-        
-        // Validate that we have a complete local IDL (simplified check)
-        if (ChessEscrowIDL && ChessEscrowIDL.instructions) {
-          
-          try {
-            // 🚛 TOYOTA FIX: Normalize IDL structure for current Anchor version
-            const normalizedIDL = {
-              ...ChessEscrowIDL,
-              // Ensure required fields exist for current Anchor version
-              version: ChessEscrowIDL.version || ChessEscrowIDL.metadata?.version || "0.1.0",
-              name: ChessEscrowIDL.name || ChessEscrowIDL.metadata?.name || "chess_escrow"
-            };
-            
-            // Create program with normalized IDL
-            const program = new Program(normalizedIDL as any, new PublicKey(CHESS_PROGRAM_ID), provider);
-            console.log('✅ Successfully created program with bundled IDL (full functionality)');
-            console.log('🔍 Program account interface check:', {
-              hasAccount: !!program.account,
-              hasGameEscrow: !!(program.account && program.account.gameEscrow)
-            });
-            return program;
-          } catch (programCreateError) {
-            console.log('❌ Bundled IDL Program creation failed:', programCreateError.message);
-            console.log('🔍 Error stack:', programCreateError.stack);
-            // Continue to fallback methods
-          }
-        } else {
-          console.log('⚠️ Bundled IDL incomplete, trying fallback methods...');
-        }
-      } catch (bundledError) {
-        console.log('⚠️ Bundled IDL failed, trying fallback methods...', bundledError);
-        console.log('Error details:', bundledError.message, bundledError.stack);
-      }
+      // 🚛 TOYOTA FIX: Skip broken bundled IDL completely - go straight to reliable chain fetch
+      console.log('🚛 TOYOTA: Skipping broken bundled IDL, using reliable chain fetch only...');
       
       // 🔄 FALLBACK: Simple chain fetch with retry (network-dependent but robust)
       try {
@@ -192,7 +151,10 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         for (let attempt = 1; attempt <= 2; attempt++) {
           try {
             console.log(`🔄 Chain fetch attempt ${attempt}: Starting Program.at call...`);
-            const program = await Program.at(CHESS_PROGRAM_ID, provider);
+            
+            // 🚛 TOYOTA FIX: Force fresh program instance by creating new provider
+            const freshProvider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
+            const program = await Program.at(CHESS_PROGRAM_ID, freshProvider);
             console.log(`✅ Successfully fetched IDL from chain (attempt ${attempt})`);
             
             // 🔍 TOYOTA DEBUG: Check if the program has the required account interface
@@ -206,7 +168,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
               console.log('✅ Chain-fetched program has full account interface');
               return program;
             } else {
-              console.log('❌ Chain-fetched program missing account interface - continuing to minimal IDL');
+              console.log('❌ Chain-fetched program missing account interface - retrying with fresh context');
               throw new Error('Program missing account interface');
             }
           
