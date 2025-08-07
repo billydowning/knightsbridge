@@ -2919,8 +2919,8 @@ function ChessApp() {
               ...data.gameState,
               // Ensure gameActive is true for ongoing games (unless explicitly ended)
               gameActive: data.gameState.winner || data.gameState.draw ? false : true,
-              // Preserve current player if not set in server data
-              currentPlayer: data.gameState.currentPlayer || gameState.currentPlayer || 'white'
+              // 🚛 CRITICAL FIX: Server state is authoritative for currentPlayer
+              currentPlayer: data.gameState.currentPlayer || 'white'
             };
             
             // Update game state
