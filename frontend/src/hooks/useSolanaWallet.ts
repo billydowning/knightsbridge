@@ -112,14 +112,31 @@ export const useSolanaWallet = (): SolanaWalletHook => {
       } else {
         setBalance(0);
         setError(null);
+        // 🚛 TOYOTA: Clear program cache when wallet disconnects
+        programCacheRef.current = null;
       }
     }, [connected, publicKey]);
 
+    // 🚛 TOYOTA: Simple program cache to prevent race conditions
+    const programCacheRef = useRef<Program<ChessEscrow> | null>(null);
+    
     /**
      * Get Anchor program instance - HYBRID RELIABILITY APPROACH
      * Toyota pickup truck reliability: bundled IDL + fallbacks
      */
     const getProgram = async (): Promise<Program<ChessEscrow> | null> => {
+      
+      // 🚛 TOYOTA FIX: Return cached program if available and valid
+      if (programCacheRef.current) {
+        console.log('✅ Using cached program instance');
+        // Quick validation that the cached program has the required interface
+        if (programCacheRef.current.account && programCacheRef.current.account.gameEscrow) {
+          return programCacheRef.current;
+        } else {
+          console.log('⚠️ Cached program missing interface, clearing cache');
+          programCacheRef.current = null;
+        }
+      }
       if (!publicKey || !signTransaction) {
         return null;
       }
@@ -166,6 +183,8 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             // Only return if it has the required interface
             if (program.account && program.account.gameEscrow) {
               console.log('✅ Chain-fetched program has full account interface');
+              // 🚛 TOYOTA: Cache the successful program
+              programCacheRef.current = program;
               return program;
             } else {
               console.log('❌ Chain-fetched program missing account interface - retrying with fresh context');
