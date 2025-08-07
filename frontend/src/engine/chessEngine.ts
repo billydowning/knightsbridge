@@ -512,10 +512,10 @@ export const ChessEngine = {
       const count = positionCounts.get(positionKey) || 0;
       positionCounts.set(positionKey, count + 1);
 
-      // If current position has occurred 3 times, it's threefold repetition
-      if (positionKey === currentPositionKey && count + 1 >= 3) {
+      // If ANY position has occurred 3 times, it's threefold repetition
+      if (count + 1 >= 3) {
         console.log('🔄 THREEFOLD REPETITION DETECTED: Position occurred 3+ times');
-        console.log(`Current position key: ${currentPositionKey.substring(0, 50)}...`);
+        console.log(`Position key: ${positionKey.substring(0, 50)}...`);
         console.log(`Occurrence count: ${count + 1}`);
         return true;
       }
