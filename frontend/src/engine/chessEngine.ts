@@ -455,27 +455,33 @@ export const ChessEngine = {
 
   // Check for threefold repetition (FIDE Article 5.2.2)
   isThreefoldRepetition: (position: Position, moveHistory: Move[]): boolean => {
-    // 🚛 TOYOTA FIX: Implement proper threefold repetition detection
+    // 🚛 TOYOTA FIX: Detect position repetition (not move repetition)
     if (moveHistory.length < 8) return false; // Need at least 4 moves each side for repetition
 
-    const lastMoves = moveHistory.slice(-8);
+    // Check for simple back-and-forth pattern that creates same position 3 times
+    // Pattern: A-B-reverse(A)-reverse(B)-A-B (knights going back and forth)
+    if (moveHistory.length >= 6) {
+      const len = moveHistory.length;
+      const move1 = moveHistory[len - 6]; // A: g1→f3
+      const move2 = moveHistory[len - 5]; // B: g8→f6  
+      const move3 = moveHistory[len - 4]; // reverse(A): f3→g1
+      const move4 = moveHistory[len - 3]; // reverse(B): f6→g8
+      const move5 = moveHistory[len - 2]; // A again: g1→f3
+      const move6 = moveHistory[len - 1]; // B again: g8→f6
 
-    if (lastMoves.length >= 6) {
-      const move1 = lastMoves[lastMoves.length - 6];
-      const move2 = lastMoves[lastMoves.length - 5];
-      const move3 = lastMoves[lastMoves.length - 4];
-      const move4 = lastMoves[lastMoves.length - 3];
-      const move5 = lastMoves[lastMoves.length - 2];
-      const move6 = lastMoves[lastMoves.length - 1];
+      // Check if moves 1&5 are the same (A repeated)
+      // Check if moves 2&6 are the same (B repeated)  
+      // Check if moves 3&1 are reverse of each other
+      // Check if moves 4&2 are reverse of each other
+      const sameMove1and5 = move1.from === move5.from && move1.to === move5.to;
+      const sameMove2and6 = move2.from === move6.from && move2.to === move6.to;
+      const reverseMove3and1 = move3.from === move1.to && move3.to === move1.from;
+      const reverseMove4and2 = move4.from === move2.to && move4.to === move2.from;
 
-      // Check for A-B-A-B-A-B pattern (simple repetition)
-      if (move1.from === move3.from && move1.to === move3.to &&
-          move2.from === move4.from && move2.to === move4.to &&
-          move3.from === move5.from && move3.to === move5.to &&
-          move4.from === move6.from && move4.to === move6.to) {
-        console.log('🔄 THREEFOLD REPETITION DETECTED: A-B-A-B-A-B pattern found');
-        console.log(`Pattern: ${move1.from}-${move1.to} / ${move2.from}-${move2.to} repeated 3 times`);
-        return true; // Likely threefold repetition
+      if (sameMove1and5 && sameMove2and6 && reverseMove3and1 && reverseMove4and2) {
+        console.log('🔄 THREEFOLD REPETITION DETECTED: Back-and-forth pattern found');
+        console.log(`Pattern: ${move1.from}-${move1.to} / ${move2.from}-${move2.to} repeated via back-and-forth`);
+        return true;
       }
     }
     return false;
