@@ -1217,6 +1217,20 @@ function ChessApp() {
       }
       newPosition[fromSquare] = '';
       
+      // 🚛 TOYOTA DEBUG: Always log threefold repetition check
+      console.log('🔄 CHECKING THREEFOLD REPETITION:', (gameState.moveHistory || []).length + 1, 'moves');
+      const isThreefoldRepetition = ChessEngine.isThreefoldRepetition(newPosition, [...(gameState.moveHistory || []), {
+        from: fromSquare,
+        to: toSquare,
+        piece: movingPiece,
+        capturedPiece: gameState.position[toSquare],
+        notation: `${fromSquare}${toSquare}`,
+        isCastle: false,
+        isEnPassant: false,
+        timestamp: Date.now()
+      }]);
+      console.log('🔄 THREEFOLD RESULT:', isThreefoldRepetition);
+      
       // Track en passant for next move (default: no en passant target)
       let newEnPassantTarget = null;
       
