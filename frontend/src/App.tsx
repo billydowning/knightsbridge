@@ -1311,7 +1311,8 @@ function ChessApp() {
         inCheck: nextPlayerInCheck,
         inCheckmate: nextPlayerInCheckmate,
         winner: winner,
-        gameActive: winner ? false : gameState.gameActive,
+        draw: isThreefoldRepetition || canClaimFiftyMoveRule, // 🚛 TOYOTA FIX: Add draw conditions
+        gameActive: (winner || isThreefoldRepetition || canClaimFiftyMoveRule) ? false : gameState.gameActive, // 🚛 TOYOTA FIX: End game on draw
         halfmoveClock: newHalfmoveClock,
         canClaimFiftyMoveRule: canClaimFiftyMoveRule,
         // Increment fullmoveNumber after black's move (chess standard)
