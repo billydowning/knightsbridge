@@ -1228,7 +1228,9 @@ function ChessApp() {
       const nextPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
       const nextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
       // 🚛 TOYOTA FIX: Use robust ChessEngine.isCheckmate instead of flawed detectCheckmate
-      const nextPlayerInCheckmate = ChessEngine.isCheckmate(newPosition, nextPlayer, gameState);
+      // 🚛 CRITICAL FIX: Ensure position is in Unicode format for chess engine
+      const unicodePosition = ChessEngine.convertPositionToUnicode(newPosition);
+      const nextPlayerInCheckmate = ChessEngine.isCheckmate(unicodePosition, nextPlayer, gameState);
       
       // 🚛 TOYOTA FIX: Calculate draw conditions BEFORE winner determination
       // 50-move rule logic
