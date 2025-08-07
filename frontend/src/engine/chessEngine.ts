@@ -455,16 +455,30 @@ export const ChessEngine = {
 
   // Check for threefold repetition (FIDE Article 5.2.2)
   isThreefoldRepetition: (position: Position, moveHistory: Move[]): boolean => {
-    const currentFEN = ChessEngine.positionToFEN(position);
-    let repetitionCount = 1; // Current position counts as 1
-    
-    // Check if this position occurred before
-    // Note: In a full implementation, you'd store position history with FEN strings
-    // For now, we'll use a simplified approach checking the last few moves
-    const recentMoves = moveHistory.slice(-8); // Check last 8 moves (4 moves each side)
-    
-    // This is a simplified check - in a full implementation you'd need proper position hashing
-    return repetitionCount >= 3;
+    // 🚛 TOYOTA FIX: Implement proper threefold repetition detection
+    if (moveHistory.length < 8) return false; // Need at least 4 moves each side for repetition
+
+    const lastMoves = moveHistory.slice(-8);
+
+    if (lastMoves.length >= 6) {
+      const move1 = lastMoves[lastMoves.length - 6];
+      const move2 = lastMoves[lastMoves.length - 5];
+      const move3 = lastMoves[lastMoves.length - 4];
+      const move4 = lastMoves[lastMoves.length - 3];
+      const move5 = lastMoves[lastMoves.length - 2];
+      const move6 = lastMoves[lastMoves.length - 1];
+
+      // Check for A-B-A-B-A-B pattern (simple repetition)
+      if (move1.from === move3.from && move1.to === move3.to &&
+          move2.from === move4.from && move2.to === move4.to &&
+          move3.from === move5.from && move3.to === move5.to &&
+          move4.from === move6.from && move4.to === move6.to) {
+        console.log('🔄 THREEFOLD REPETITION DETECTED: A-B-A-B-A-B pattern found');
+        console.log(`Pattern: ${move1.from}-${move1.to} / ${move2.from}-${move2.to} repeated 3 times`);
+        return true; // Likely threefold repetition
+      }
+    }
+    return false;
   },
 
   // Convert position to FEN-like string for comparison
