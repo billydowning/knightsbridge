@@ -191,6 +191,7 @@ export const useSolanaWallet = (): SolanaWalletHook => {
         let lastError;
         for (let attempt = 1; attempt <= 2; attempt++) {
           try {
+            console.log(`🔄 Chain fetch attempt ${attempt}: Starting Program.at call...`);
             const program = await Program.at(CHESS_PROGRAM_ID, provider);
             console.log(`✅ Successfully fetched IDL from chain (attempt ${attempt})`);
             
@@ -210,16 +211,26 @@ export const useSolanaWallet = (): SolanaWalletHook => {
             }
           
           } catch (chainError) {
+            console.log(`❌ Chain fetch attempt ${attempt} failed:`, chainError.message);
+            console.log('🔍 Chain fetch error details:', {
+              name: chainError.name,
+              stack: chainError.stack?.split('\n')[0],
+              cause: chainError.cause
+            });
             lastError = chainError;
             if (attempt === 1) {
-              console.log('Chain fetch attempt 1 failed, retrying...');
+              console.log('Chain fetch attempt 1 failed, retrying in 500ms...');
               await new Promise(resolve => setTimeout(resolve, 500)); // Short delay
             }
           }
         }
         console.log('❌ Chain IDL fetch failed after retries:', lastError?.message);
-      } catch (chainError) {
-        console.log('❌ Chain IDL fetch failed:', chainError?.message);
+      } catch (outerChainError) {
+        console.log('❌ Chain IDL fetch outer catch failed:', outerChainError?.message);
+        console.log('🔍 Outer error details:', {
+          name: outerChainError.name,
+          stack: outerChainError.stack?.split('\n')[0]
+        });
       }
       
       // 🛟 ULTIMATE: Simplified minimal IDL (basic functionality, always works)
