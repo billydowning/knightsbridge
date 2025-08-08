@@ -4,6 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../App';
+import { useIsMobile, useIsDesktopLayout } from '../utils/responsive';
 
 interface GameHistoryEntry {
   roomId: string;
@@ -35,6 +37,10 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
   onReconnectToGame,
   onClaimWinnings
 }) => {
+  const { theme } = useTheme();
+  const isMobile = useIsMobile();
+  const isDesktopLayout = useIsDesktopLayout();
+  
   const [gameHistory, setGameHistory] = useState<GameHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [claimingGame, setClaimingGame] = useState<string | null>(null);
@@ -144,46 +150,38 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
   };
 
   const getGameStatusBadge = (game: GameHistoryEntry) => {
+    const badgeStyle = {
+      color: 'white', 
+      padding: '2px 8px', 
+      borderRadius: '12px', 
+      fontSize: '11px',
+      fontWeight: 'bold' as const
+    };
+
     if (game.gameActive) {
       return <span style={{ 
-        backgroundColor: '#28a745', 
-        color: 'white', 
-        padding: '2px 8px', 
-        borderRadius: '12px', 
-        fontSize: '11px',
-        fontWeight: 'bold'
+        ...badgeStyle,
+        backgroundColor: theme.success
       }}>ACTIVE</span>;
     }
     
     if (game.winner === game.playerRole) {
       return <span style={{ 
-        backgroundColor: '#007bff', 
-        color: 'white', 
-        padding: '2px 8px', 
-        borderRadius: '12px', 
-        fontSize: '11px',
-        fontWeight: 'bold'
+        ...badgeStyle,
+        backgroundColor: theme.primary
       }}>WON</span>;
     }
     
     if (game.winner === 'draw') {
       return <span style={{ 
-        backgroundColor: '#6c757d', 
-        color: 'white', 
-        padding: '2px 8px', 
-        borderRadius: '12px', 
-        fontSize: '11px',
-        fontWeight: 'bold'
+        ...badgeStyle,
+        backgroundColor: theme.warning
       }}>DRAW</span>;
     }
     
     return <span style={{ 
-      backgroundColor: '#dc3545', 
-      color: 'white', 
-      padding: '2px 8px', 
-      borderRadius: '12px', 
-      fontSize: '11px',
-      fontWeight: 'bold'
+      ...badgeStyle,
+      backgroundColor: theme.error
     }}>LOST</span>;
   };
 
@@ -216,14 +214,15 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
       zIndex: 1000
     }}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: theme.background,
         borderRadius: '12px',
-        padding: '24px',
+        padding: isDesktopLayout ? '24px' : '16px',
         maxWidth: '900px',
         width: '90%',
         maxHeight: '80%',
         overflow: 'auto',
-        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)'
+        boxShadow: theme.shadow,
+        border: `1px solid ${theme.border}`
       }}>
         {/* Header */}
         <div style={{
@@ -232,13 +231,22 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
           justifyContent: 'space-between',
           marginBottom: '20px',
           paddingBottom: '16px',
-          borderBottom: '1px solid #e9ecef'
+          borderBottom: `1px solid ${theme.border}`
         }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#212529' }}>
+            <h2 style={{ 
+              margin: 0, 
+              fontSize: isDesktopLayout ? '24px' : '20px', 
+              fontWeight: 'bold', 
+              color: theme.text 
+            }}>
               Game History
             </h2>
-            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6c757d' }}>
+            <p style={{ 
+              margin: '4px 0 0 0', 
+              fontSize: '14px', 
+              color: theme.textSecondary 
+            }}>
               {shortenWallet(playerWallet)}
             </p>
           </div>
@@ -249,8 +257,15 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
               border: 'none',
               fontSize: '24px',
               cursor: 'pointer',
-              color: '#6c757d',
-              padding: '4px'
+              color: theme.textSecondary,
+              padding: '4px',
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = theme.text;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = theme.textSecondary;
             }}
           >
             ×
@@ -260,12 +275,12 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
         {/* Error Message */}
         {error && (
           <div style={{
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
+            backgroundColor: `${theme.error}20`,
+            color: theme.error,
             padding: '12px',
             borderRadius: '6px',
             marginBottom: '16px',
-            border: '1px solid #f5c6cb'
+            border: `1px solid ${theme.error}40`
           }}>
             {error}
           </div>
@@ -276,7 +291,7 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
           <div style={{
             textAlign: 'center',
             padding: '40px',
-            color: '#6c757d'
+            color: theme.textSecondary
           }}>
             Loading game history...
           </div>
@@ -284,7 +299,7 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
           <div style={{
             textAlign: 'center',
             padding: '40px',
-            color: '#6c757d'
+            color: theme.textSecondary
           }}>
             No games found. Start playing to see your history!
           </div>
@@ -298,52 +313,52 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
                 fontSize: '14px'
               }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f8f9fa' }}>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#495057' }}>Status</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#495057' }}>Room</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#495057' }}>Opponent</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#495057' }}>Bet</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#495057' }}>Moves</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#495057' }}>Date</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#495057' }}>Winnings</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#495057' }}>Actions</th>
+                  <tr style={{ backgroundColor: theme.surface }}>
+                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Status</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Room</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Opponent</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Bet</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Moves</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Date</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Winnings</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {gameHistory.map((game) => (
-                    <tr key={game.roomId} style={{ borderBottom: '1px solid #e9ecef' }}>
+                    <tr key={game.roomId} style={{ borderBottom: `1px solid ${theme.border}` }}>
                       <td style={{ padding: '12px 8px' }}>
                         {getGameStatusBadge(game)}
                       </td>
-                      <td style={{ padding: '12px 8px', fontFamily: 'monospace', fontSize: '12px' }}>
+                      <td style={{ padding: '12px 8px', fontFamily: 'monospace', fontSize: '12px', color: theme.text }}>
                         {game.roomId}
                       </td>
-                      <td style={{ padding: '12px 8px', fontFamily: 'monospace', fontSize: '12px' }}>
+                      <td style={{ padding: '12px 8px', fontFamily: 'monospace', fontSize: '12px', color: theme.text }}>
                         {shortenWallet(game.opponentWallet)}
                       </td>
-                      <td style={{ padding: '12px 8px', fontWeight: '600' }}>
+                      <td style={{ padding: '12px 8px', fontWeight: '600', color: theme.text }}>
                         {game.betAmount} SOL
                       </td>
-                      <td style={{ padding: '12px 8px' }}>
+                      <td style={{ padding: '12px 8px', color: theme.text }}>
                         {game.moveCount}
                       </td>
-                      <td style={{ padding: '12px 8px', fontSize: '12px', color: '#6c757d' }}>
+                      <td style={{ padding: '12px 8px', fontSize: '12px', color: theme.textSecondary }}>
                         {formatDate(game.gameStarted)}
                       </td>
                       <td style={{ padding: '12px 8px' }}>
                         {game.winnings ? (
                           <div style={{ fontSize: '12px' }}>
-                            <div style={{ fontWeight: '600', color: '#28a745' }}>
+                            <div style={{ fontWeight: '600', color: theme.success }}>
                               +{game.winnings} SOL
                             </div>
                             {game.winningsClaimed && (
-                              <div style={{ color: '#6c757d', fontSize: '10px' }}>
+                              <div style={{ color: theme.textSecondary, fontSize: '10px' }}>
                                 Claimed ✓
                               </div>
                             )}
                           </div>
                         ) : (
-                          <span style={{ color: '#6c757d', fontSize: '12px' }}>-</span>
+                          <span style={{ color: theme.textSecondary, fontSize: '12px' }}>-</span>
                         )}
                       </td>
                       <td style={{ padding: '12px 8px' }}>
@@ -351,14 +366,21 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
                           <button
                             onClick={() => handleReconnect(game.roomId)}
                             style={{
-                              backgroundColor: '#007bff',
+                              backgroundColor: theme.primary,
                               color: 'white',
                               border: 'none',
                               padding: '6px 12px',
                               borderRadius: '4px',
                               fontSize: '12px',
                               cursor: 'pointer',
-                              fontWeight: '600'
+                              fontWeight: '600',
+                              transition: 'background-color 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.primaryDark || theme.primary;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.primary;
                             }}
                           >
                             Reconnect
@@ -368,20 +390,31 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
                             onClick={() => handleClaimWinnings(game.roomId, game.winnings)}
                             disabled={claimingGame === game.roomId}
                             style={{
-                              backgroundColor: claimingGame === game.roomId ? '#6c757d' : '#28a745',
+                              backgroundColor: claimingGame === game.roomId ? theme.textSecondary : theme.success,
                               color: 'white',
                               border: 'none',
                               padding: '6px 12px',
                               borderRadius: '4px',
                               fontSize: '12px',
                               cursor: claimingGame === game.roomId ? 'not-allowed' : 'pointer',
-                              fontWeight: '600'
+                              fontWeight: '600',
+                              transition: 'background-color 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (claimingGame !== game.roomId) {
+                                e.currentTarget.style.backgroundColor = theme.successDark || theme.success;
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (claimingGame !== game.roomId) {
+                                e.currentTarget.style.backgroundColor = theme.success;
+                              }
                             }}
                           >
                             {claimingGame === game.roomId ? 'Claiming...' : 'Claim'}
                           </button>
                         ) : (
-                          <span style={{ color: '#6c757d', fontSize: '12px' }}>-</span>
+                          <span style={{ color: theme.textSecondary, fontSize: '12px' }}>-</span>
                         )}
                       </td>
                     </tr>

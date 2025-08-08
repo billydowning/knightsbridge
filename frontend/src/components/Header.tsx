@@ -3,7 +3,7 @@
  * App branding, navigation, and wallet connection
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useTheme } from '../App';
@@ -46,6 +46,194 @@ const DarkModeToggle: React.FC = () => {
     >
       {isDarkMode ? '☀️' : '🌙'}
     </button>
+  );
+};
+
+// Custom Wallet Dropdown Component
+interface CustomWalletDropdownProps {
+  publicKey: any;
+  onGameHistory: () => void;
+  theme: any;
+  isDesktopLayout: boolean;
+  isMobile: boolean;
+}
+
+const CustomWalletDropdown: React.FC<CustomWalletDropdownProps> = ({
+  publicKey,
+  onGameHistory,
+  theme,
+  isDesktopLayout,
+  isMobile
+}) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const { disconnect } = useWallet();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const copyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(publicKey.toString());
+      setShowDropdown(false);
+      // Could add a toast notification here
+    } catch (err) {
+      console.error('Failed to copy address:', err);
+    }
+  };
+
+  const handleDisconnect = () => {
+    disconnect();
+    setShowDropdown(false);
+  };
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative' }}>
+      {/* Wallet Button */}
+      <button
+        onClick={() => setShowDropdown(!showDropdown)}
+        style={{
+          backgroundColor: theme.success,
+          color: 'white',
+          borderRadius: '8px',
+          height: isDesktopLayout ? '40px' : '32px',
+          fontSize: isDesktopLayout ? '14px' : '11px',
+          fontWeight: 'bold',
+          border: 'none',
+          transition: 'all 0.2s ease',
+          padding: isMobile ? '6px 8px' : '8px 12px',
+          maxWidth: isMobile ? '120px' : 'none',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = theme.successDark || '#1e7e34';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = theme.success;
+        }}
+      >
+        <span>
+          {publicKey.toString().slice(0, 4)}...{publicKey.toString().slice(-4)}
+        </span>
+        <span style={{ fontSize: '10px' }}>▼</span>
+      </button>
+
+      {/* Dropdown Menu */}
+      {showDropdown && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          right: 0,
+          marginTop: '4px',
+          backgroundColor: theme.surface,
+          border: `1px solid ${theme.border}`,
+          borderRadius: '8px',
+          boxShadow: theme.shadow,
+          minWidth: '180px',
+          zIndex: 1000
+        }}>
+          {/* Game History Option */}
+          <button
+            onClick={() => {
+              onGameHistory();
+              setShowDropdown(false);
+            }}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              backgroundColor: 'transparent',
+              color: theme.text,
+              border: 'none',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              borderBottom: `1px solid ${theme.border}`
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = `${theme.primary}20`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <span>📊</span>
+            <span>Game History</span>
+          </button>
+
+          {/* Copy Address Option */}
+          <button
+            onClick={copyAddress}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              backgroundColor: 'transparent',
+              color: theme.text,
+              border: 'none',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              borderBottom: `1px solid ${theme.border}`
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = `${theme.primary}20`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <span>📋</span>
+            <span>Copy Address</span>
+          </button>
+
+          {/* Disconnect Option */}
+          <button
+            onClick={handleDisconnect}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              backgroundColor: 'transparent',
+              color: theme.error,
+              border: 'none',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = `${theme.error}20`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <span>🔌</span>
+            <span>Disconnect</span>
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -236,47 +424,21 @@ export const Header: React.FC<HeaderProps> = ({
 
           <DarkModeToggle />
           
-          {/* Wallet Display/Button */}
+          {/* Custom Wallet Dropdown */}
           <div style={{
             fontSize: isDesktopLayout ? '14px' : '11px',
             flexShrink: 0,
-            maxWidth: isMobile ? '120px' : 'none'
+            maxWidth: isMobile ? '120px' : 'none',
+            position: 'relative'
           }}>
             {walletConnected && publicKey ? (
-              <button
-                onClick={() => setShowGameHistory(true)}
-                style={{
-                  backgroundColor: theme.success,
-                  color: 'white',
-                  borderRadius: '8px',
-                  height: isDesktopLayout ? '40px' : '32px',
-                  fontSize: isDesktopLayout ? '14px' : '11px',
-                  fontWeight: 'bold',
-                  border: 'none',
-                  transition: 'all 0.2s ease',
-                  padding: isMobile ? '6px 8px' : '8px 12px',
-                  maxWidth: isMobile ? '120px' : 'none',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.successDark || '#1e7e34';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.success;
-                }}
-                title="Click to view game history"
-              >
-                <span>📊</span>
-                <span>
-                  {publicKey.toString().slice(0, 4)}...{publicKey.toString().slice(-4)}
-                </span>
-              </button>
+              <CustomWalletDropdown 
+                publicKey={publicKey}
+                onGameHistory={() => setShowGameHistory(true)}
+                theme={theme}
+                isDesktopLayout={isDesktopLayout}
+                isMobile={isMobile}
+              />
             ) : (
               <WalletMultiButton style={{
                 backgroundColor: theme.primary,
