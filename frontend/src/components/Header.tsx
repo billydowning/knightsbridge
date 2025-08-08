@@ -8,7 +8,6 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useTheme } from '../App';
 import { useTextSizes, useIsMobile, useIsDesktopLayout } from '../utils/responsive';
-import GameHistory from './GameHistory';
 
 export interface HeaderProps {
   currentView: 'menu' | 'lobby' | 'game';
@@ -16,8 +15,7 @@ export interface HeaderProps {
   balance?: number;
   connected?: boolean;
   onLogoClick?: () => void;
-  onReconnectToGame?: (roomId: string) => void;
-  onClaimWinnings?: (roomId: string, winnings: number) => Promise<string>;
+  onGameHistoryClick?: () => void;
 }
 
 const DarkModeToggle: React.FC = () => {
@@ -49,57 +47,51 @@ const DarkModeToggle: React.FC = () => {
   );
 };
 
-// Custom Wallet Dropdown Component
-interface CustomWalletDropdownProps {
-  publicKey: any;
-  onGameHistory: () => void;
-  theme: any;
-  isDesktopLayout: boolean;
-  isMobile: boolean;
-}
-
-const CustomWalletDropdown: React.FC<CustomWalletDropdownProps> = ({
-  publicKey,
-  onGameHistory,
-  theme,
-  isDesktopLayout,
-  isMobile
-}) => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const { disconnect } = useWallet();
+const WalletDropdown: React.FC<{
+  connected: boolean;
+  publicKey: string;
+  balance?: number;
+  onGameHistoryClick?: () => void;
+}> = ({ connected, publicKey, balance, onGameHistoryClick }) => {
+  const { theme } = useTheme();
+  const isDesktopLayout = useIsDesktopLayout();
+  const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
+        setIsOpen(false);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const copyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(publicKey.toString());
-      setShowDropdown(false);
-      // Could add a toast notification here
-    } catch (err) {
-      console.error('Failed to copy address:', err);
-    }
+  const formatWallet = (wallet: string) => {
+    return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
   };
 
-  const handleDisconnect = () => {
-    disconnect();
-    setShowDropdown(false);
-  };
+  if (!connected || !publicKey) {
+    return <WalletMultiButton style={{
+      backgroundColor: theme.primary,
+      borderRadius: '8px',
+      height: isDesktopLayout ? '40px' : '32px',
+      fontSize: isDesktopLayout ? '14px' : '11px',
+      fontWeight: 'bold',
+      border: 'none',
+      transition: 'all 0.2s ease',
+      padding: isDesktopLayout ? '8px 12px' : '6px 8px'
+    }} />;
+  }
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       {/* Wallet Button */}
       <button
-        onClick={() => setShowDropdown(!showDropdown)}
+        onClick={() => setIsOpen(!isOpen)}
         style={{
           backgroundColor: theme.success,
           color: 'white',
@@ -108,32 +100,55 @@ const CustomWalletDropdown: React.FC<CustomWalletDropdownProps> = ({
           fontSize: isDesktopLayout ? '14px' : '11px',
           fontWeight: 'bold',
           border: 'none',
-          transition: 'all 0.2s ease',
-          padding: isMobile ? '6px 8px' : '8px 12px',
-          maxWidth: isMobile ? '120px' : 'none',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          padding: isDesktopLayout ? '8px 12px' : '6px 8px',
           cursor: 'pointer',
+          transition: 'all 0.2s ease',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px'
+          gap: '6px',
+          minWidth: 0,
+          maxWidth: isDesktopLayout ? 'none' : '120px',
+          overflow: 'hidden'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = theme.successDark || '#1e7e34';
+          e.currentTarget.style.backgroundColor = theme.successDark || theme.success;
+          e.currentTarget.style.transform = 'translateY(-1px)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.backgroundColor = theme.success;
+          e.currentTarget.style.transform = 'translateY(0)';
         }}
       >
-        <span>
-          {publicKey.toString().slice(0, 4)}...{publicKey.toString().slice(-4)}
+        <span style={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          minWidth: 0
+        }}>
+          {formatWallet(publicKey)}
         </span>
-        <span style={{ fontSize: '10px' }}>▼</span>
+        {balance !== undefined && (
+          <span style={{
+            fontSize: isDesktopLayout ? '12px' : '10px',
+            opacity: 0.9,
+            flexShrink: 0
+          }}>
+            {balance.toFixed(3)} SOL
+          </span>
+        )}
+        <span style={{
+          fontSize: '12px',
+          opacity: 0.8,
+          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.2s ease',
+          flexShrink: 0
+        }}>
+          ▼
+        </span>
       </button>
 
       {/* Dropdown Menu */}
-      {showDropdown && (
+      {isOpen && (
         <div style={{
           position: 'absolute',
           top: '100%',
@@ -143,94 +158,147 @@ const CustomWalletDropdown: React.FC<CustomWalletDropdownProps> = ({
           border: `1px solid ${theme.border}`,
           borderRadius: '8px',
           boxShadow: theme.shadow,
-          minWidth: '180px',
-          zIndex: 1000
+          zIndex: 1000,
+          minWidth: '200px',
+          overflow: 'hidden'
         }}>
-          {/* Game History Option */}
-          <button
-            onClick={() => {
-              onGameHistory();
-              setShowDropdown(false);
-            }}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              backgroundColor: 'transparent',
+          {/* Wallet Info Header */}
+          <div style={{
+            padding: '12px 16px',
+            borderBottom: `1px solid ${theme.border}`,
+            backgroundColor: `${theme.primary}10`
+          }}>
+            <div style={{
               color: theme.text,
-              border: 'none',
-              textAlign: 'left',
-              cursor: 'pointer',
               fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              borderBottom: `1px solid ${theme.border}`
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = `${theme.primary}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <span>📊</span>
-            <span>Game History</span>
-          </button>
+              fontWeight: '600',
+              marginBottom: '4px'
+            }}>
+              Connected Wallet
+            </div>
+            <div style={{
+              color: theme.textSecondary,
+              fontSize: '12px',
+              fontFamily: 'monospace',
+              wordBreak: 'break-all' as const
+            }}>
+              {publicKey}
+            </div>
+            {balance !== undefined && (
+              <div style={{
+                color: theme.success,
+                fontSize: '14px',
+                fontWeight: '600',
+                marginTop: '4px'
+              }}>
+                Balance: {balance.toFixed(4)} SOL
+              </div>
+            )}
+          </div>
 
-          {/* Copy Address Option */}
-          <button
-            onClick={copyAddress}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              backgroundColor: 'transparent',
-              color: theme.text,
-              border: 'none',
-              textAlign: 'left',
-              cursor: 'pointer',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              borderBottom: `1px solid ${theme.border}`
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = `${theme.primary}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <span>📋</span>
-            <span>Copy Address</span>
-          </button>
+          {/* Menu Items */}
+          <div style={{ padding: '8px 0' }}>
+            {/* Game History */}
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onGameHistoryClick?.();
+              }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: theme.text,
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                transition: 'background-color 0.2s ease',
+                textAlign: 'left' as const
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = `${theme.primary}15`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <span style={{ fontSize: '16px' }}>🎮</span>
+              <div>
+                <div>Game History</div>
+                <div style={{
+                  fontSize: '12px',
+                  color: theme.textSecondary,
+                  marginTop: '2px'
+                }}>
+                  View your past games and claim winnings
+                </div>
+              </div>
+            </button>
 
-          {/* Disconnect Option */}
-          <button
-            onClick={handleDisconnect}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              backgroundColor: 'transparent',
-              color: theme.error,
-              border: 'none',
-              textAlign: 'left',
-              cursor: 'pointer',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = `${theme.error}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <span>🔌</span>
-            <span>Disconnect</span>
-          </button>
+            {/* Copy Wallet Address */}
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(publicKey);
+                setIsOpen(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: theme.text,
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                transition: 'background-color 0.2s ease',
+                textAlign: 'left' as const
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = `${theme.primary}15`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <span style={{ fontSize: '16px' }}>📋</span>
+              <div>
+                <div>Copy Address</div>
+                <div style={{
+                  fontSize: '12px',
+                  color: theme.textSecondary,
+                  marginTop: '2px'
+                }}>
+                  Copy wallet address to clipboard
+                </div>
+              </div>
+            </button>
+
+            {/* Disconnect */}
+            <div style={{
+              borderTop: `1px solid ${theme.border}`,
+              marginTop: '8px',
+              paddingTop: '8px'
+            }}>
+              <WalletMultiButton style={{
+                width: '100%',
+                backgroundColor: 'transparent',
+                color: theme.error,
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: '500',
+                padding: '12px 16px',
+                textAlign: 'left',
+                borderRadius: '0'
+              }} />
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -243,15 +311,13 @@ export const Header: React.FC<HeaderProps> = ({
   balance,
   connected,
   onLogoClick,
-  onReconnectToGame,
-  onClaimWinnings
+  onGameHistoryClick
 }) => {
   const { theme } = useTheme();
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
   const isDesktopLayout = useIsDesktopLayout();
-  const { publicKey, connected: walletConnected } = useWallet();
-  const [showGameHistory, setShowGameHistory] = useState(false);
+  const { publicKey } = useWallet();
 
   const getBreadcrumbs = () => {
     const crumbs = [];
@@ -424,62 +490,23 @@ export const Header: React.FC<HeaderProps> = ({
 
           <DarkModeToggle />
           
-          {/* Custom Wallet Dropdown */}
+          {/* Wallet Button with Dropdown */}
           <div style={{
             fontSize: isDesktopLayout ? '14px' : '11px',
             flexShrink: 0,
-            maxWidth: isMobile ? '120px' : 'none',
-            position: 'relative'
+            maxWidth: isMobile ? '140px' : 'none' // Limit width on mobile
           }}>
-            {walletConnected && publicKey ? (
-              <CustomWalletDropdown 
-                publicKey={publicKey}
-                onGameHistory={() => setShowGameHistory(true)}
-                theme={theme}
-                isDesktopLayout={isDesktopLayout}
-                isMobile={isMobile}
-              />
-            ) : (
-              <WalletMultiButton style={{
-                backgroundColor: theme.primary,
-                borderRadius: '8px',
-                height: isDesktopLayout ? '40px' : '32px',
-                fontSize: isDesktopLayout ? '14px' : '11px',
-                fontWeight: 'bold',
-                border: 'none',
-                transition: 'all 0.2s ease',
-                padding: isMobile ? '6px 8px' : '8px 12px',
-                maxWidth: isMobile ? '120px' : 'none',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }} />
-            )}
+            <WalletDropdown
+              connected={connected || false}
+              publicKey={publicKey?.toString() || ''}
+              balance={balance}
+              onGameHistoryClick={onGameHistoryClick}
+            />
           </div>
         </div>
       </div>
-      
-      {/* Game History Dashboard */}
-      {showGameHistory && walletConnected && publicKey && (
-        <GameHistory
-          playerWallet={publicKey.toString()}
-          isOpen={showGameHistory}
-          onClose={() => setShowGameHistory(false)}
-          onReconnectToGame={(roomId) => {
-            if (onReconnectToGame) {
-              onReconnectToGame(roomId);
-            }
-          }}
-          onClaimWinnings={async (roomId, winnings) => {
-            if (onClaimWinnings) {
-              return await onClaimWinnings(roomId, winnings);
-            }
-            throw new Error('Claim winnings function not provided');
-          }}
-        />
-      )}
     </header>
   );
 };
 
-export default Header; 
+export default Header;

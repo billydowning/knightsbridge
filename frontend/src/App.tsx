@@ -15,6 +15,7 @@ import { GameView } from './components/GameView';
 import { Header } from './components/Header';
 import { NotificationSystem, useNotifications } from './components/NotificationSystem';
 import { TermsPage } from './components/TermsPage';
+import GameHistory from './components/GameHistory';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -463,6 +464,7 @@ function ChessApp() {
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [showGameHistory, setShowGameHistory] = useState(false);
 
   // HYBRID TIMER SYNC: Track current timer values for move synchronization
   const [currentTimerValues, setCurrentTimerValues] = useState<{
@@ -3362,21 +3364,10 @@ function ChessApp() {
             setRoomId('');
             setGameState(null);
           }}
-          onReconnectToGame={(roomId) => {
-            // 🚛 TOYOTA RECONNECTION: Navigate back to active game
-            console.log('🔄 Reconnecting to game:', roomId);
-            setRoomId(roomId);
-            setGameMode('game');
-            setGameStatus('Reconnecting to game...');
-          }}
-          onClaimWinnings={async (roomId, winnings) => {
-            // 🚛 TOYOTA DELAYED CLAIM: Claim winnings from dashboard
-            console.log('💰 Claiming winnings from dashboard:', roomId, winnings);
-            if (!publicKey) {
-              throw new Error('Wallet not connected');
-            }
-            // Use existing claimWinnings function
-            return await claimWinnings(roomId, playerRole, 'draw', true); // Assuming draw for winnings
+          onGameHistoryClick={() => {
+            // 🚛 TOYOTA GAME HISTORY: Open the comprehensive dashboard
+            console.log('🎮 Opening Game History dashboard');
+            setShowGameHistory(true);
           }}
         />
 
@@ -3588,6 +3579,27 @@ function ChessApp() {
 
         {/* Notification System */}
         <NotificationSystem notifications={notifications} onRemove={removeNotification} />
+
+        {/* Game History Dashboard */}
+        {showGameHistory && publicKey && (
+          <GameHistory
+            walletAddress={publicKey.toString()}
+            onClaimWinnings={async (roomId: string, stakeAmount: number) => {
+              // 🚛 TOYOTA DELAYED CLAIM: Use existing claimWinnings function
+              console.log('💰 Claiming winnings from dashboard:', roomId, stakeAmount);
+              await claimWinnings(roomId, playerRole, 'win', false);
+            }}
+            onReconnectGame={(roomId: string) => {
+              // 🚛 TOYOTA RECONNECTION: Navigate back to active game
+              console.log('🔄 Reconnecting to game:', roomId);
+              setRoomId(roomId);
+              setGameMode('game');
+              setGameStatus('Reconnecting to game...');
+              setShowGameHistory(false);
+            }}
+            onClose={() => setShowGameHistory(false)}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );
