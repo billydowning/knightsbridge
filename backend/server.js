@@ -2328,10 +2328,15 @@ io.on('connection', (socket) => {
   socket.on('getGameState', async (gameId) => {
     try {
       const poolInstance = getPool();
-      const result = await poolInstance.query('SELECT game_state FROM games WHERE room_id = $1', [gameId]);
+      // 🚛 TOYOTA FIX: Read from correct game_states table, not games table
+      const result = await poolInstance.query('SELECT game_state FROM game_states WHERE room_id = $1', [gameId]);
       const gameState = result.rows[0];
       if (gameState) {
-        socket.emit('gameState', gameState.game_state);
+        // Parse JSON if it's a string, otherwise return as-is
+        const parsedState = typeof gameState.game_state === 'string' 
+          ? JSON.parse(gameState.game_state) 
+          : gameState.game_state;
+        socket.emit('gameState', parsedState);
       } else {
         socket.emit('gameState', 'waiting');
       }
