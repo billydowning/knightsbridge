@@ -2820,7 +2820,8 @@ function ChessApp() {
                     // Handle any game endings that happened while backgrounded
                     if (gameState.winner && !gameState.gameActive) {
                       const isWinner = gameState.winner === playerRole;
-                      const statusMessage = isWinner ? 'You won! 🎉' : 'You lost 😞';
+                      const isDraw = gameState.winner === 'draw';
+                      const statusMessage = isDraw ? '🤝 Draw Declared' : (isWinner ? 'You won! 🎉' : 'You lost 😞');
                       addDebugMessage(`🏆 Game ended while backgrounded: ${statusMessage}`);
                       setGameStatus(statusMessage);
                     }
@@ -3029,7 +3030,8 @@ function ChessApp() {
             // CRITICAL FIX: Handle game ending scenarios (resignations, checkmates, etc.)
             if (data.gameState.winner) {
               const isWinner = data.gameState.winner === playerRole;
-              const statusMessage = isWinner ? `You won! 🎉` : `You lost 😞`;
+              const isDraw = data.gameState.winner === 'draw';
+              const statusMessage = isDraw ? '🤝 Draw Declared' : (isWinner ? `You won! 🎉` : `You lost 😞`);
               addDebugMessage(`🏆 Game ended: ${statusMessage} (winner: ${data.gameState.winner})`);
               setGameStatus(statusMessage);
             } else if (data.gameState.draw) {
