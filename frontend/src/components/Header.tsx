@@ -127,15 +127,7 @@ const WalletDropdown: React.FC<{
         }}>
           {formatWallet(publicKey)}
         </span>
-        {balance !== undefined && (
-          <span style={{
-            fontSize: isDesktopLayout ? '12px' : '10px',
-            opacity: 0.9,
-            flexShrink: 0
-          }}>
-            {balance.toFixed(3)} SOL
-          </span>
-        )}
+        
         <span style={{
           fontSize: '12px',
           opacity: 0.8,

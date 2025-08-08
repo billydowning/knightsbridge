@@ -86,26 +86,110 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await fetch(
-        `${process.env.NODE_ENV === 'production' 
-          ? 'https://knightsbridge-app-35xls.ondigitalocean.app/api'
-          : 'https://knightsbridge-app-35xls.ondigitalocean.app/api'
-        }/users/${walletAddress}/games?page=${pageNum}&limit=10&status=${statusFilter}`
-      );
+      // 🚛 TOYOTA MOCK DATA: Use sample games for testing
+      console.log('🎮 Loading game history for:', walletAddress);
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockGames: GameHistoryItem[] = [
+        {
+          id: '1',
+          roomId: 'ROOM-SAMPLE123',
+          playerWhite: walletAddress,
+          playerBlack: 'DemoOpponentWallet123',
+          opponentWallet: 'DemoOpponentWallet123',
+          stakeAmount: 0.1,
+          platformFee: 0.002,
+          winner: walletAddress,
+          gameResult: 'Checkmate',
+          timeControl: 'Blitz',
+          gameState: 'finished',
+          moveCount: 45,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+          finishedAt: new Date(Date.now() - 1000 * 60 * 60 * 1.5).toISOString(), // 1.5 hours ago
+          userColor: 'white',
+          userResult: 'win',
+          escrowStatus: 'completed',
+          canClaimWinnings: true,
+          canReconnect: false,
+          totalMoves: 45,
+          moves: [
+            {
+              move_number: 1,
+              player: 'white',
+              from_square: 'e2',
+              to_square: 'e4',
+              piece: 'pawn',
+              move_notation: 'e4',
+              created_at: new Date().toISOString()
+            },
+            {
+              move_number: 1,
+              player: 'black',
+              from_square: 'e7',
+              to_square: 'e5',
+              piece: 'pawn',
+              move_notation: 'e5',
+              created_at: new Date().toISOString()
+            }
+          ]
+        },
+        {
+          id: '2',
+          roomId: 'ROOM-ACTIVE456',
+          playerWhite: 'OpponentWallet456',
+          playerBlack: walletAddress,
+          opponentWallet: 'OpponentWallet456',
+          stakeAmount: 0.05,
+          platformFee: 0.001,
+          timeControl: 'Rapid',
+          gameState: 'active',
+          moveCount: 12,
+          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+          userColor: 'black',
+          escrowStatus: 'locked',
+          canClaimWinnings: false,
+          canReconnect: true,
+          totalMoves: 12,
+          moves: []
+        },
+        {
+          id: '3',
+          roomId: 'ROOM-DRAW789',
+          playerWhite: walletAddress,
+          playerBlack: 'DrawOpponent789',
+          opponentWallet: 'DrawOpponent789',
+          stakeAmount: 0.2,
+          platformFee: 0.004,
+          winner: 'draw',
+          gameResult: 'Threefold Repetition',
+          timeControl: 'Classical',
+          gameState: 'finished',
+          moveCount: 67,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+          finishedAt: new Date(Date.now() - 1000 * 60 * 60 * 23.5).toISOString(),
+          userColor: 'white',
+          userResult: 'draw',
+          escrowStatus: 'completed',
+          canClaimWinnings: true,
+          canReconnect: false,
+          totalMoves: 67,
+          moves: []
+        }
+      ];
+      
+      // Filter games based on status
+      let filteredGames = mockGames;
+      if (statusFilter === 'active') {
+        filteredGames = mockGames.filter(game => game.gameState === 'active');
+      } else if (statusFilter === 'finished') {
+        filteredGames = mockGames.filter(game => game.gameState === 'finished');
       }
       
-      const data = await response.json();
-      
-      if (data.success) {
-        setGames(data.games);
-        setTotalPages(data.pagination.totalPages);
-        console.log(`✅ Loaded ${data.games.length} games for user`);
-      } else {
-        throw new Error(data.error || 'Failed to fetch game history');
-      }
+      setGames(filteredGames);
+      setTotalPages(1);
+      console.log(`✅ Loaded ${filteredGames.length} mock games for testing`);
     } catch (error) {
       console.error('❌ Error fetching game history:', error);
       setError(error instanceof Error ? error.message : 'Failed to load game history');
