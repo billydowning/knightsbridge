@@ -1517,4 +1517,151 @@ router.post('/games/:roomId/complete', async (req, res) => {
   }
 });
 
+// ========================================
+// GAME HISTORY
+// ========================================
+
+// Get game history for a specific user
+router.get('/users/:walletAddress/games', async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    const { page = 1, limit = 10, status = 'all' } = req.query;
+    
+    console.log('🎮 Fetching game history for:', walletAddress, { page, limit, status });
+    
+    const pool = getPool();
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Build status filter
+    let statusFilter = '';
+    if (status === 'active') {
+      statusFilter = "AND g.status = 'active'";
+    } else if (status === 'finished') {
+      statusFilter = "AND g.status IN ('completed', 'resigned', 'timeout', 'draw')";
+    }
+    
+    // Get games for the user
+    const gamesQuery = `
+      SELECT 
+        g.id,
+        g.room_id as "roomId",
+        g.player_white as "playerWhite",
+        g.player_black as "playerBlack",
+        CASE 
+          WHEN g.player_white = $1 THEN g.player_black
+          ELSE g.player_white 
+        END as "opponentWallet",
+        g.stake_amount as "stakeAmount",
+        g.platform_fee as "platformFee",
+        g.winner,
+        g.game_result as "gameResult",
+        g.time_control as "timeControl",
+        g.status as "gameState",
+        g.move_count as "moveCount",
+        g.created_at as "createdAt",
+        g.finished_at as "finishedAt",
+        CASE 
+          WHEN g.player_white = $1 THEN 'white'
+          ELSE 'black'
+        END as "userColor",
+        CASE 
+          WHEN g.winner = $1 THEN 'win'
+          WHEN g.winner = 'draw' THEN 'draw'
+          WHEN g.winner IS NULL THEN NULL
+          ELSE 'loss'
+        END as "userResult",
+        g.escrow_status as "escrowStatus",
+        CASE 
+          WHEN g.winner = $1 AND g.escrow_status != 'completed' THEN true
+          WHEN g.winner = 'draw' AND g.escrow_status != 'completed' THEN true
+          ELSE false
+        END as "canClaimWinnings",
+        CASE 
+          WHEN g.status = 'active' THEN true
+          ELSE false
+        END as "canReconnect",
+        COALESCE(move_stats.total_moves, 0) as "totalMoves"
+      FROM games g
+      LEFT JOIN (
+        SELECT 
+          game_id,
+          COUNT(*) as total_moves
+        FROM game_moves 
+        GROUP BY game_id
+      ) move_stats ON g.id = move_stats.game_id
+      WHERE (g.player_white = $1 OR g.player_black = $1)
+      ${statusFilter}
+      ORDER BY g.created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
+    
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM games g
+      WHERE (g.player_white = $1 OR g.player_black = $1)
+      ${statusFilter}
+    `;
+    
+    const [gamesResult, countResult] = await Promise.all([
+      pool.query(gamesQuery, [walletAddress, parseInt(limit), offset]),
+      pool.query(countQuery, [walletAddress])
+    ]);
+    
+    const games = gamesResult.rows;
+    const totalGames = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(totalGames / parseInt(limit));
+    
+    // Get moves for each game (optional - could be loaded on demand)
+    for (const game of games) {
+      const movesResult = await pool.query(`
+        SELECT 
+          move_number,
+          player,
+          from_square,
+          to_square,
+          piece,
+          captured_piece,
+          move_notation,
+          time_spent,
+          is_check,
+          is_checkmate,
+          is_castle,
+          is_en_passant,
+          is_promotion,
+          promotion_piece,
+          created_at
+        FROM game_moves 
+        WHERE game_id = $1 
+        ORDER BY move_number ASC, created_at ASC
+      `, [game.id]);
+      
+      game.moves = movesResult.rows;
+    }
+    
+    console.log(`✅ Found ${games.length} games for user ${walletAddress}`);
+    
+    res.json({
+      success: true,
+      games,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalGames,
+        limit: parseInt(limit),
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching game history:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch game history',
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router; 
