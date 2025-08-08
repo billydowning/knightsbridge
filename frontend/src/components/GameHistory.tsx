@@ -149,7 +149,9 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
   };
 
   // Format wallet address for display
-  const formatWallet = (wallet: string) => {
+  const formatWallet = (wallet: string | null | undefined) => {
+    if (!wallet) return 'Unknown';
+    if (wallet.length <= 10) return wallet;
     return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
   };
 
@@ -427,7 +429,7 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
                             fontWeight: '600',
                             color: theme.text
                           }}>
-                            {game.stakeAmount} SOL
+                            {game.stakeAmount || 0} SOL
                           </span>
                           
                           <span style={{
@@ -449,7 +451,7 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
                         color: theme.textSecondary
                       }}>
                         <span>
-                          vs {formatWallet(game.opponentWallet)} • {game.totalMoves} moves
+                          vs {formatWallet(game.opponentWallet)} • {game.totalMoves || 0} moves
                         </span>
                         <span>
                           {formatDate(game.createdAt)}
