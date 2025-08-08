@@ -1556,7 +1556,7 @@ router.get('/users/:walletAddress/games', async (req, res) => {
         g.winner,
         g.game_result as "gameResult",
         g.time_control as "timeControl",
-        g.status as "gameState",
+        g.game_state as "gameState",
         g.move_count as "moveCount",
         g.created_at as "createdAt",
         g.finished_at as "finishedAt",
