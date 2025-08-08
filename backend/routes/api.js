@@ -1565,14 +1565,15 @@ router.get('/users/:walletAddress/games', async (req, res) => {
           ELSE 'black'
         END as "userColor",
         CASE 
-          WHEN g.winner = $1 THEN 'win'
           WHEN g.winner = 'draw' THEN 'draw'
           WHEN g.winner IS NULL THEN NULL
+          WHEN (g.winner = 'white' AND g.player_white_wallet = $1) THEN 'win'
+          WHEN (g.winner = 'black' AND g.player_black_wallet = $1) THEN 'win'
           ELSE 'loss'
         END as "userResult",
         COALESCE(e.status, 'none') as "escrowStatus",
         CASE 
-          WHEN g.winner = $1 AND COALESCE(e.status, 'none') = 'active' THEN true
+          WHEN ((g.winner = 'white' AND g.player_white_wallet = $1) OR (g.winner = 'black' AND g.player_black_wallet = $1)) AND COALESCE(e.status, 'none') = 'active' THEN true
           WHEN g.winner = 'draw' AND COALESCE(e.status, 'none') = 'active' THEN true
           ELSE false
         END as "canClaimWinnings",
