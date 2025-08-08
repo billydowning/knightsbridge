@@ -152,9 +152,9 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
   const getGameStatusBadge = (game: GameHistoryEntry) => {
     const badgeStyle = {
       color: 'white', 
-      padding: '2px 8px', 
+      padding: isDesktopLayout ? '4px 12px' : '2px 8px', 
       borderRadius: '12px', 
-      fontSize: '11px',
+      fontSize: isDesktopLayout ? '13px' : '11px',
       fontWeight: 'bold' as const
     };
 
@@ -216,10 +216,11 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
       <div style={{
         backgroundColor: theme.background,
         borderRadius: '12px',
-        padding: isDesktopLayout ? '24px' : '16px',
-        maxWidth: '900px',
-        width: '90%',
-        maxHeight: '80%',
+        padding: isDesktopLayout ? '32px' : '20px',
+        maxWidth: isDesktopLayout ? '1200px' : '95%',
+        width: isDesktopLayout ? '95%' : '95%',
+        maxHeight: isDesktopLayout ? '90%' : '95%',
+        minHeight: isDesktopLayout ? '600px' : '500px',
         overflow: 'auto',
         boxShadow: theme.shadow,
         border: `1px solid ${theme.border}`
@@ -310,58 +311,58 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
               <table style={{ 
                 width: '100%', 
                 borderCollapse: 'collapse',
-                fontSize: '14px'
+                fontSize: isDesktopLayout ? '16px' : '14px'
               }}>
                 <thead>
                   <tr style={{ backgroundColor: theme.surface }}>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Status</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Room</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Opponent</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Bet</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Moves</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Date</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Winnings</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Actions</th>
+                    <th style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Status</th>
+                    <th style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Room</th>
+                    <th style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Opponent</th>
+                    <th style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Bet</th>
+                    <th style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Moves</th>
+                    <th style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Date</th>
+                    <th style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Winnings</th>
+                    <th style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', textAlign: 'left', fontWeight: '600', color: theme.text }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {gameHistory.map((game) => (
                     <tr key={game.roomId} style={{ borderBottom: `1px solid ${theme.border}` }}>
-                      <td style={{ padding: '12px 8px' }}>
+                      <td style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px' }}>
                         {getGameStatusBadge(game)}
                       </td>
-                      <td style={{ padding: '12px 8px', fontFamily: 'monospace', fontSize: '12px', color: theme.text }}>
+                      <td style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', fontFamily: 'monospace', fontSize: isDesktopLayout ? '14px' : '12px', color: theme.text }}>
                         {game.roomId}
                       </td>
-                      <td style={{ padding: '12px 8px', fontFamily: 'monospace', fontSize: '12px', color: theme.text }}>
+                      <td style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', fontFamily: 'monospace', fontSize: isDesktopLayout ? '14px' : '12px', color: theme.text }}>
                         {shortenWallet(game.opponentWallet)}
                       </td>
-                      <td style={{ padding: '12px 8px', fontWeight: '600', color: theme.text }}>
+                      <td style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', fontWeight: '600', color: theme.text }}>
                         {game.betAmount} SOL
                       </td>
-                      <td style={{ padding: '12px 8px', color: theme.text }}>
+                      <td style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', color: theme.text }}>
                         {game.moveCount}
                       </td>
-                      <td style={{ padding: '12px 8px', fontSize: '12px', color: theme.textSecondary }}>
+                      <td style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px', fontSize: isDesktopLayout ? '14px' : '12px', color: theme.textSecondary }}>
                         {formatDate(game.gameStarted)}
                       </td>
-                      <td style={{ padding: '12px 8px' }}>
+                      <td style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px' }}>
                         {game.winnings ? (
-                          <div style={{ fontSize: '12px' }}>
+                          <div style={{ fontSize: isDesktopLayout ? '14px' : '12px' }}>
                             <div style={{ fontWeight: '600', color: theme.success }}>
                               +{game.winnings} SOL
                             </div>
                             {game.winningsClaimed && (
-                              <div style={{ color: theme.textSecondary, fontSize: '10px' }}>
+                              <div style={{ color: theme.textSecondary, fontSize: isDesktopLayout ? '12px' : '10px' }}>
                                 Claimed ✓
                               </div>
                             )}
                           </div>
                         ) : (
-                          <span style={{ color: theme.textSecondary, fontSize: '12px' }}>-</span>
+                          <span style={{ color: theme.textSecondary, fontSize: isDesktopLayout ? '14px' : '12px' }}>-</span>
                         )}
                       </td>
-                      <td style={{ padding: '12px 8px' }}>
+                      <td style={{ padding: isDesktopLayout ? '16px 12px' : '12px 8px' }}>
                         {game.gameActive ? (
                           <button
                             onClick={() => handleReconnect(game.roomId)}
@@ -369,9 +370,9 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
                               backgroundColor: theme.primary,
                               color: 'white',
                               border: 'none',
-                              padding: '6px 12px',
-                              borderRadius: '4px',
-                              fontSize: '12px',
+                              padding: isDesktopLayout ? '8px 16px' : '6px 12px',
+                              borderRadius: '6px',
+                              fontSize: isDesktopLayout ? '14px' : '12px',
                               cursor: 'pointer',
                               fontWeight: '600',
                               transition: 'background-color 0.2s ease'
@@ -393,9 +394,9 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
                               backgroundColor: claimingGame === game.roomId ? theme.textSecondary : theme.success,
                               color: 'white',
                               border: 'none',
-                              padding: '6px 12px',
-                              borderRadius: '4px',
-                              fontSize: '12px',
+                              padding: isDesktopLayout ? '8px 16px' : '6px 12px',
+                              borderRadius: '6px',
+                              fontSize: isDesktopLayout ? '14px' : '12px',
                               cursor: claimingGame === game.roomId ? 'not-allowed' : 'pointer',
                               fontWeight: '600',
                               transition: 'background-color 0.2s ease'
