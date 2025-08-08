@@ -671,7 +671,19 @@ function ChessApp() {
           
           if (savedGameState) {
             console.log('✅ Found existing game state:', savedGameState);
-            setGameState(savedGameState);
+            // Ensure critical chess fields exist for reliability (e.g., castling)
+            const ensuredGameState = {
+              ...savedGameState,
+              castlingRights: savedGameState.castlingRights ?? 'KQkq',
+              enPassantTarget: savedGameState.enPassantTarget ?? null,
+              halfmoveClock: savedGameState.halfmoveClock ?? 0,
+              fullmoveNumber: savedGameState.fullmoveNumber ?? 1,
+              inCheck: savedGameState.inCheck ?? false,
+              inCheckmate: savedGameState.inCheckmate ?? false,
+              moveHistory: Array.isArray(savedGameState.moveHistory) ? savedGameState.moveHistory : [],
+              lastMove: savedGameState.lastMove ?? null
+            } as any;
+            setGameState(ensuredGameState);
             setGameStatus('Game state loaded successfully');
           } else {
             console.log('⚠️ No saved game state found, using fresh state');

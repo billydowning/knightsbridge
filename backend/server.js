@@ -1667,7 +1667,20 @@ io.on('connection', (socket) => {
           try {
             // Check if the stored data is valid JSON
             if (typeof gameStateRow.game_state === 'string' && gameStateRow.game_state.startsWith('{')) {
-              const gameState = JSON.parse(gameStateRow.game_state);
+              const parsed = JSON.parse(gameStateRow.game_state);
+              const gameState = {
+                ...parsed,
+                // Ensure critical chess fields for reliability
+                castlingRights: parsed.castlingRights ?? 'KQkq',
+                enPassantTarget: parsed.enPassantTarget ?? null,
+                halfmoveClock: parsed.halfmoveClock ?? 0,
+                fullmoveNumber: parsed.fullmoveNumber ?? 1,
+                inCheck: parsed.inCheck ?? false,
+                inCheckmate: parsed.inCheckmate ?? false,
+                moveHistory: Array.isArray(parsed.moveHistory) ? parsed.moveHistory : [],
+                lastMove: parsed.lastMove ?? null
+              };
+              console.log('🚛 CASTLING DEBUG: Parsed game state, castlingRights:', gameState.castlingRights);
               if (typeof callback === 'function') callback({ success: true, gameState });
             } else if (typeof gameStateRow.game_state === 'object' && gameStateRow.game_state !== null) {
               // Handle case where it's already an object (shouldn't happen but just in case)
