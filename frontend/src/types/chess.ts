@@ -22,7 +22,7 @@ export interface GameState {
   currentPlayer: 'white' | 'black';
   selectedSquare: string | null;
   gameActive: boolean;
-  winner: 'white' | 'black' | null;
+  winner: 'white' | 'black' | 'draw' | null;
   draw: boolean;
   moveHistory: Move[];
   lastUpdated: number;
