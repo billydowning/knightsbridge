@@ -377,7 +377,7 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
                               transition: 'background-color 0.2s ease'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = theme.primaryDark || theme.primary;
+                              e.currentTarget.style.backgroundColor = theme.secondary;
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.backgroundColor = theme.primary;
@@ -402,7 +402,7 @@ export const GameHistory: React.FC<GameHistoryProps> = ({
                             }}
                             onMouseEnter={(e) => {
                               if (claimingGame !== game.roomId) {
-                                e.currentTarget.style.backgroundColor = theme.successDark || theme.success;
+                                e.currentTarget.style.backgroundColor = theme.successDark;
                               }
                             }}
                             onMouseLeave={(e) => {
