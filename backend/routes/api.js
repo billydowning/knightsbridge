@@ -1570,14 +1570,14 @@ router.get('/users/:walletAddress/games', async (req, res) => {
           WHEN g.winner IS NULL THEN NULL
           ELSE 'loss'
         END as "userResult",
-        g.escrow_status as "escrowStatus",
+        COALESCE(e.status, 'none') as "escrowStatus",
         CASE 
-          WHEN g.winner = $1 AND g.escrow_status != 'completed' THEN true
-          WHEN g.winner = 'draw' AND g.escrow_status != 'completed' THEN true
+          WHEN g.winner = $1 AND COALESCE(e.status, 'none') = 'active' THEN true
+          WHEN g.winner = 'draw' AND COALESCE(e.status, 'none') = 'active' THEN true
           ELSE false
         END as "canClaimWinnings",
         CASE 
-          WHEN g.status = 'active' THEN true
+          WHEN g.game_state = 'active' THEN true
           ELSE false
         END as "canReconnect",
         COALESCE(move_stats.total_moves, 0) as "totalMoves"
@@ -1589,6 +1589,7 @@ router.get('/users/:walletAddress/games', async (req, res) => {
         FROM game_moves 
         GROUP BY game_id
       ) move_stats ON g.id = move_stats.game_id
+      LEFT JOIN escrows e ON g.room_id = e.room_id AND e.player_wallet = $1
       WHERE (g.player_white_wallet = $1 OR g.player_black_wallet = $1)
       ${statusFilter}
       ORDER BY g.created_at DESC
