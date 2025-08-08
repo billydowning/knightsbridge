@@ -1535,9 +1535,9 @@ router.get('/users/:walletAddress/games', async (req, res) => {
     // Build status filter
     let statusFilter = '';
     if (status === 'active') {
-      statusFilter = "AND g.status = 'active'";
+      statusFilter = "AND g.game_state = 'active'";
     } else if (status === 'finished') {
-      statusFilter = "AND g.status IN ('completed', 'resigned', 'timeout', 'draw')";
+      statusFilter = "AND g.game_state = 'finished'";
     }
     
     // Get games for the user
@@ -1545,11 +1545,11 @@ router.get('/users/:walletAddress/games', async (req, res) => {
       SELECT 
         g.id,
         g.room_id as "roomId",
-        g.player_white as "playerWhite",
-        g.player_black as "playerBlack",
+        g.player_white_wallet as "playerWhite",
+        g.player_black_wallet as "playerBlack",
         CASE 
-          WHEN g.player_white = $1 THEN g.player_black
-          ELSE g.player_white 
+          WHEN g.player_white_wallet = $1 THEN g.player_black_wallet
+          ELSE g.player_white_wallet 
         END as "opponentWallet",
         g.stake_amount as "stakeAmount",
         g.platform_fee as "platformFee",
@@ -1561,7 +1561,7 @@ router.get('/users/:walletAddress/games', async (req, res) => {
         g.created_at as "createdAt",
         g.finished_at as "finishedAt",
         CASE 
-          WHEN g.player_white = $1 THEN 'white'
+          WHEN g.player_white_wallet = $1 THEN 'white'
           ELSE 'black'
         END as "userColor",
         CASE 
@@ -1570,14 +1570,14 @@ router.get('/users/:walletAddress/games', async (req, res) => {
           WHEN g.winner IS NULL THEN NULL
           ELSE 'loss'
         END as "userResult",
-        g.escrow_status as "escrowStatus",
+        COALESCE(e.status, 'none') as "escrowStatus",
         CASE 
-          WHEN g.winner = $1 AND g.escrow_status != 'completed' THEN true
-          WHEN g.winner = 'draw' AND g.escrow_status != 'completed' THEN true
+          WHEN g.winner = $1 AND COALESCE(e.status, 'none') != 'claimed' THEN true
+          WHEN g.winner = 'draw' AND COALESCE(e.status, 'none') != 'claimed' THEN true
           ELSE false
         END as "canClaimWinnings",
         CASE 
-          WHEN g.status = 'active' THEN true
+          WHEN g.game_state = 'active' THEN true
           ELSE false
         END as "canReconnect",
         COALESCE(move_stats.total_moves, 0) as "totalMoves"
@@ -1589,7 +1589,8 @@ router.get('/users/:walletAddress/games', async (req, res) => {
         FROM game_moves 
         GROUP BY game_id
       ) move_stats ON g.id = move_stats.game_id
-      WHERE (g.player_white = $1 OR g.player_black = $1)
+      LEFT JOIN escrows e ON g.room_id = e.room_id AND e.player_wallet = $1
+      WHERE (g.player_white_wallet = $1 OR g.player_black_wallet = $1)
       ${statusFilter}
       ORDER BY g.created_at DESC
       LIMIT $2 OFFSET $3
@@ -1599,7 +1600,7 @@ router.get('/users/:walletAddress/games', async (req, res) => {
     const countQuery = `
       SELECT COUNT(*) as total
       FROM games g
-      WHERE (g.player_white = $1 OR g.player_black = $1)
+      WHERE (g.player_white_wallet = $1 OR g.player_black_wallet = $1)
       ${statusFilter}
     `;
     
