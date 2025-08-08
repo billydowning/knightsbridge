@@ -4,6 +4,7 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import { GameState } from '../types/chess';
 
 // Types
 interface PlayerInfo {
@@ -33,14 +34,7 @@ interface RoomStatus {
   timeLimit?: number; // Time limit in seconds set by room creator
 }
 
-interface GameState {
-  position: Record<string, string>;
-  currentPlayer: 'white' | 'black';
-  moveHistory: any[];
-  gameActive: boolean;
-  winner?: 'white' | 'black' | null;
-  draw: boolean;
-}
+
 
 interface DatabaseMultiplayerStateHook {
   // Room management
