@@ -1249,8 +1249,7 @@ function ChessApp() {
       const nextPlayerInCheck = isKingInCheck(newPosition, nextPlayer);
       const nextPlayerInCheckmate = detectCheckmate(newPosition, nextPlayer);
       
-      // Determine winner if checkmate occurs
-      const winner = nextPlayerInCheckmate ? gameState.currentPlayer : null;
+      // Winner determination moved to after threefold repetition check
       
       // 50-move rule logic
       const capturedPiece = gameState.position[toSquare];
@@ -1263,6 +1262,35 @@ function ChessApp() {
       // Check for 50-move rule draw (100 half-moves = 50 full moves)
       const canClaimFiftyMoveRule = newHalfmoveClock >= 100;
       
+      // Check for threefold repetition (with updated move history)
+      const updatedMoveHistory = [...gameState.moveHistory, {
+        from: fromSquare,
+        to: toSquare,
+        piece: gameState.position[fromSquare],
+        capturedPiece: gameState.position[toSquare] || null,
+        isCastle: getPieceTypeFromAnyFormat(gameState.position[fromSquare]) === 'king' && 
+                   Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0)) === 2,
+        isEnPassant: pieceType === 'pawn' && fileDiff === 1 && !gameState.position[toSquare] && gameState.enPassantTarget === toSquare,
+        timestamp: Date.now()
+      }];
+      
+      // 🚛 TOYOTA DEBUG: Always log threefold repetition check
+      console.log('🔄 CHECKING THREEFOLD REPETITION:', updatedMoveHistory.length, 'moves');
+      const isThreefoldRepetition = ChessEngine.isThreefoldRepetition(newPosition, updatedMoveHistory);
+      console.log('🔄 THREEFOLD RESULT:', isThreefoldRepetition);
+      
+      // Determine winner considering all draw conditions
+      const winner = nextPlayerInCheckmate ? gameState.currentPlayer : 
+                    (isThreefoldRepetition || canClaimFiftyMoveRule) ? 'draw' : null;
+      
+      // 🚛 TOYOTA DEBUG: Log draw conditions
+      if (isThreefoldRepetition) {
+        console.log('🔄 THREEFOLD REPETITION DETECTED - Game ending as draw');
+      }
+      if (canClaimFiftyMoveRule) {
+        console.log('⏱️ 50-MOVE RULE - Game ending as draw');
+      }
+      
       // Create updated game state
       const updatedGameState = {
         ...gameState,
@@ -1270,16 +1298,7 @@ function ChessApp() {
         currentPlayer: nextPlayer,
         selectedSquare: null,
         enPassantTarget: newEnPassantTarget, // Add en passant target tracking
-        moveHistory: [...gameState.moveHistory, { 
-          from: fromSquare, 
-          to: toSquare, 
-          piece: gameState.position[fromSquare],
-          capturedPiece: gameState.position[toSquare] || null,
-          isCastling: getPieceTypeFromAnyFormat(gameState.position[fromSquare]) === 'king' && 
-                     Math.abs(fromSquare[0].charCodeAt(0) - toSquare[0].charCodeAt(0)) === 2,
-          isEnPassant: pieceType === 'pawn' && fileDiff === 1 && !gameState.position[toSquare] && gameState.enPassantTarget === toSquare,
-          timestamp: Date.now()
-        }],
+        moveHistory: updatedMoveHistory,
         lastMove: { from: fromSquare, to: toSquare },
         inCheck: nextPlayerInCheck,
         inCheckmate: nextPlayerInCheckmate,

@@ -455,16 +455,73 @@ export const ChessEngine = {
 
   // Check for threefold repetition (FIDE Article 5.2.2)
   isThreefoldRepetition: (position: Position, moveHistory: Move[]): boolean => {
-    const currentFEN = ChessEngine.positionToFEN(position);
-    let repetitionCount = 1; // Current position counts as 1
+    // 🚛 TOYOTA FIX: Proper position-based threefold repetition detection
+    if (moveHistory.length < 8) return false; // Need at least 4 moves each side
+
+    // Convert current position to canonical form
+    const currentPositionKey = ChessEngine.positionToKey(position);
     
-    // Check if this position occurred before
-    // Note: In a full implementation, you'd store position history with FEN strings
-    // For now, we'll use a simplified approach checking the last few moves
-    const recentMoves = moveHistory.slice(-8); // Check last 8 moves (4 moves each side)
+    // Reconstruct all positions from move history
+    const initialPosition = ChessEngine.getInitialPosition();
+    let checkPosition = { ...initialPosition };
+    const positionCounts = new Map<string, number>();
     
-    // This is a simplified check - in a full implementation you'd need proper position hashing
-    return repetitionCount >= 3;
+    // Count initial position
+    const initialKey = ChessEngine.positionToKey(initialPosition);
+    positionCounts.set(initialKey, 1);
+    
+    // Apply each move and count positions
+    for (const move of moveHistory) {
+      // Apply the move
+      checkPosition[move.to] = checkPosition[move.from];
+      checkPosition[move.from] = '';
+      
+      // Handle castling rook movement
+      if (move.isCastle) {
+        const isKingside = move.to.charCodeAt(0) > move.from.charCodeAt(0);
+        const rank = move.from[1];
+        const rookFrom = (isKingside ? 'h' : 'a') + rank;
+        const rookTo = String.fromCharCode(move.to.charCodeAt(0) + (isKingside ? -1 : 1)) + rank;
+        checkPosition[rookTo] = checkPosition[rookFrom];
+        checkPosition[rookFrom] = '';
+      }
+      
+      // Handle en passant capture
+      if (move.isEnPassant) {
+        const capturedPawnRank = move.to[1] === '6' ? '5' : '4';
+        const capturedPawnSquare = move.to[0] + capturedPawnRank;
+        checkPosition[capturedPawnSquare] = '';
+      }
+      
+      // Convert position to key and count
+      const positionKey = ChessEngine.positionToKey(checkPosition);
+      const count = positionCounts.get(positionKey) || 0;
+      positionCounts.set(positionKey, count + 1);
+      
+      // If current position has occurred 3 times, it's threefold repetition
+      if (positionKey === currentPositionKey && count + 1 >= 3) {
+        console.log('🔄 THREEFOLD REPETITION DETECTED: Position occurred 3+ times');
+        console.log(`Current position key: ${currentPositionKey.substring(0, 50)}...`);
+        console.log(`Occurrence count: ${count + 1}`);
+        return true;
+      }
+    }
+    
+    return false;
+  },
+
+  // Convert position to a canonical key for comparison
+  positionToKey: (position: Position): string => {
+    // Create a deterministic string representation of the position
+    const squares = [];
+    for (let rank = 1; rank <= 8; rank++) {
+      for (let file = 'a'; file <= 'h'; file = String.fromCharCode(file.charCodeAt(0) + 1)) {
+        const square = file + rank;
+        const piece = position[square] || '';
+        squares.push(`${square}:${piece}`);
+      }
+    }
+    return squares.join('|');
   },
 
   // Convert position to FEN-like string for comparison
