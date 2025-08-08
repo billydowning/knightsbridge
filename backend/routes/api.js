@@ -1545,23 +1545,23 @@ router.get('/users/:walletAddress/games', async (req, res) => {
       SELECT 
         g.id,
         g.room_id as "roomId",
-        g.player_white as "playerWhite",
-        g.player_black as "playerBlack",
+        g.player_white_wallet as "playerWhite",
+        g.player_black_wallet as "playerBlack",
         CASE 
-          WHEN g.player_white = $1 THEN g.player_black
-          ELSE g.player_white 
+          WHEN g.player_white_wallet = $1 THEN g.player_black_wallet
+          ELSE g.player_white_wallet 
         END as "opponentWallet",
         g.stake_amount as "stakeAmount",
         g.platform_fee as "platformFee",
         g.winner,
         g.game_result as "gameResult",
         g.time_control as "timeControl",
-        g.status as "gameState",
+        g.game_state as "gameState",
         g.move_count as "moveCount",
         g.created_at as "createdAt",
         g.finished_at as "finishedAt",
         CASE 
-          WHEN g.player_white = $1 THEN 'white'
+          WHEN g.player_white_wallet = $1 THEN 'white'
           ELSE 'black'
         END as "userColor",
         CASE 
@@ -1589,7 +1589,7 @@ router.get('/users/:walletAddress/games', async (req, res) => {
         FROM game_moves 
         GROUP BY game_id
       ) move_stats ON g.id = move_stats.game_id
-      WHERE (g.player_white = $1 OR g.player_black = $1)
+      WHERE (g.player_white_wallet = $1 OR g.player_black_wallet = $1)
       ${statusFilter}
       ORDER BY g.created_at DESC
       LIMIT $2 OFFSET $3
@@ -1599,7 +1599,7 @@ router.get('/users/:walletAddress/games', async (req, res) => {
     const countQuery = `
       SELECT COUNT(*) as total
       FROM games g
-      WHERE (g.player_white = $1 OR g.player_black = $1)
+      WHERE (g.player_white_wallet = $1 OR g.player_black_wallet = $1)
       ${statusFilter}
     `;
     
