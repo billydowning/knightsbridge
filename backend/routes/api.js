@@ -1572,8 +1572,8 @@ router.get('/users/:walletAddress/games', async (req, res) => {
         END as "userResult",
         COALESCE(e.status, 'none') as "escrowStatus",
         CASE 
-          WHEN g.winner = $1 AND COALESCE(e.status, 'none') != 'claimed' THEN true
-          WHEN g.winner = 'draw' AND COALESCE(e.status, 'none') != 'claimed' THEN true
+          WHEN g.winner = $1 AND COALESCE(e.status, 'none') = 'active' THEN true
+          WHEN g.winner = 'draw' AND COALESCE(e.status, 'none') = 'active' THEN true
           ELSE false
         END as "canClaimWinnings",
         CASE 
