@@ -3,10 +3,12 @@
  * App branding, navigation, and wallet connection
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { useTheme } from '../App';
 import { useTextSizes, useIsMobile, useIsDesktopLayout } from '../utils/responsive';
+import GameHistory from './GameHistory';
 
 export interface HeaderProps {
   currentView: 'menu' | 'lobby' | 'game';
@@ -14,6 +16,8 @@ export interface HeaderProps {
   balance?: number;
   connected?: boolean;
   onLogoClick?: () => void;
+  onReconnectToGame?: (roomId: string) => void;
+  onClaimWinnings?: (roomId: string, winnings: number) => Promise<string>;
 }
 
 const DarkModeToggle: React.FC = () => {
@@ -50,12 +54,16 @@ export const Header: React.FC<HeaderProps> = ({
   roomId,
   balance,
   connected,
-  onLogoClick
+  onLogoClick,
+  onReconnectToGame,
+  onClaimWinnings
 }) => {
   const { theme } = useTheme();
   const textSizes = useTextSizes();
   const isMobile = useIsMobile();
   const isDesktopLayout = useIsDesktopLayout();
+  const { publicKey, connected: walletConnected } = useWallet();
+  const [showGameHistory, setShowGameHistory] = useState(false);
 
   const getBreadcrumbs = () => {
     const crumbs = [];
@@ -228,29 +236,86 @@ export const Header: React.FC<HeaderProps> = ({
 
           <DarkModeToggle />
           
-          {/* Wallet Button */}
+          {/* Wallet Display/Button */}
           <div style={{
             fontSize: isDesktopLayout ? '14px' : '11px',
             flexShrink: 0,
-            maxWidth: isMobile ? '120px' : 'none' // Limit width on mobile
+            maxWidth: isMobile ? '120px' : 'none'
           }}>
-            <WalletMultiButton style={{
-              backgroundColor: connected ? theme.success : theme.primary,
-              borderRadius: '8px',
-              height: isDesktopLayout ? '40px' : '32px',
-              fontSize: isDesktopLayout ? '14px' : '11px',
-              fontWeight: 'bold',
-              border: 'none',
-              transition: 'all 0.2s ease',
-              padding: isMobile ? '6px 8px' : '8px 12px',
-              maxWidth: isMobile ? '120px' : 'none',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }} />
+            {walletConnected && publicKey ? (
+              <button
+                onClick={() => setShowGameHistory(true)}
+                style={{
+                  backgroundColor: theme.success,
+                  color: 'white',
+                  borderRadius: '8px',
+                  height: isDesktopLayout ? '40px' : '32px',
+                  fontSize: isDesktopLayout ? '14px' : '11px',
+                  fontWeight: 'bold',
+                  border: 'none',
+                  transition: 'all 0.2s ease',
+                  padding: isMobile ? '6px 8px' : '8px 12px',
+                  maxWidth: isMobile ? '120px' : 'none',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.successDark || '#1e7e34';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.success;
+                }}
+                title="Click to view game history"
+              >
+                <span>📊</span>
+                <span>
+                  {publicKey.toString().slice(0, 4)}...{publicKey.toString().slice(-4)}
+                </span>
+              </button>
+            ) : (
+              <WalletMultiButton style={{
+                backgroundColor: theme.primary,
+                borderRadius: '8px',
+                height: isDesktopLayout ? '40px' : '32px',
+                fontSize: isDesktopLayout ? '14px' : '11px',
+                fontWeight: 'bold',
+                border: 'none',
+                transition: 'all 0.2s ease',
+                padding: isMobile ? '6px 8px' : '8px 12px',
+                maxWidth: isMobile ? '120px' : 'none',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }} />
+            )}
           </div>
         </div>
       </div>
+      
+      {/* Game History Dashboard */}
+      {showGameHistory && walletConnected && publicKey && (
+        <GameHistory
+          playerWallet={publicKey.toString()}
+          isOpen={showGameHistory}
+          onClose={() => setShowGameHistory(false)}
+          onReconnectToGame={(roomId) => {
+            if (onReconnectToGame) {
+              onReconnectToGame(roomId);
+            }
+          }}
+          onClaimWinnings={async (roomId, winnings) => {
+            if (onClaimWinnings) {
+              return await onClaimWinnings(roomId, winnings);
+            }
+            throw new Error('Claim winnings function not provided');
+          }}
+        />
+      )}
     </header>
   );
 };

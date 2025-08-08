@@ -1412,10 +1412,16 @@ function ChessApp() {
       
       // Determine if it's a draw
       const isDraw = gameState.winner === 'draw';
-  
+      
+      // 🚛 TOYOTA DEBUG: Log draw parameters for Solana claim
+      console.log('🚛 SOLANA CLAIM DEBUG:', {
+        gameStateWinner: gameState.winner,
+        playerRole: playerRole,
+        isDraw: isDraw,
+        roomId: roomId
+      });
       
       // Claim winnings on Solana
-
       const result = await claimWinnings(roomId, playerRole, gameState.winner, isDraw);
       
 
@@ -3355,6 +3361,22 @@ function ChessApp() {
             setGameMode('menu');
             setRoomId('');
             setGameState(null);
+          }}
+          onReconnectToGame={(roomId) => {
+            // 🚛 TOYOTA RECONNECTION: Navigate back to active game
+            console.log('🔄 Reconnecting to game:', roomId);
+            setRoomId(roomId);
+            setGameMode('game');
+            setGameStatus('Reconnecting to game...');
+          }}
+          onClaimWinnings={async (roomId, winnings) => {
+            // 🚛 TOYOTA DELAYED CLAIM: Claim winnings from dashboard
+            console.log('💰 Claiming winnings from dashboard:', roomId, winnings);
+            if (!publicKey) {
+              throw new Error('Wallet not connected');
+            }
+            // Use existing claimWinnings function
+            return await claimWinnings(roomId, playerRole, 'draw', true); // Assuming draw for winnings
           }}
         />
 
