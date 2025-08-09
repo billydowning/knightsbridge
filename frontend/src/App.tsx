@@ -1331,12 +1331,16 @@ function ChessApp() {
           if (publicKey && playerRole) {
             try {
               console.log(`🎯 Sending move to backend for storage: ${fromSquare}->${toSquare} by ${playerRole} in ${roomId}`);
+              console.log(`🔌 WebSocket service connected: ${websocketService.isConnected()}`);
+              
               websocketService.makeMove(
                 roomId, 
                 { from: fromSquare, to: toSquare, piece: movingPiece }, 
                 publicKey.toString(), 
                 playerRole
               );
+              
+              console.log(`✅ Move sent to websocketService successfully`);
             } catch (error) {
               console.error('❌ Failed to send move to backend for storage:', error);
             }
