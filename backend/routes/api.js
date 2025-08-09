@@ -1535,9 +1535,9 @@ router.get('/users/:walletAddress/games', async (req, res) => {
     // Build status filter
     let statusFilter = '';
     if (status === 'active') {
-      statusFilter = "AND g.status = 'active'";
+      statusFilter = "AND g.game_state = 'active'";
     } else if (status === 'finished') {
-      statusFilter = "AND g.status IN ('completed', 'resigned', 'timeout', 'draw')";
+      statusFilter = "AND g.game_state = 'finished'";
     }
     
     // Get games for the user
