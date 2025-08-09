@@ -1864,32 +1864,42 @@ io.on('connection', (socket) => {
     console.log(`🎯 makeMove event received: room=${gameId}, move=${move?.from}-${move?.to}, player=${playerId}, color=${color}`);
     try {
       // Basic move format validation
+      console.log(`🔧 Move validation: move=${JSON.stringify(move)}`);
       if (!move || !move.from || !move.to) {
+        console.log(`❌ Invalid move format detected`);
         socket.emit('moveError', { error: 'Invalid move format' });
         return;
       }
+      console.log(`✅ Move format valid: ${move.from}-${move.to}`);
 
       const poolInstance = getPool();
 
       // Get current game state from database
+      console.log(`🔧 Querying database for room: ${gameId}`);
       const result = await poolInstance.query('SELECT game_state, move_count FROM games WHERE room_id = $1', [gameId]);
+      console.log(`🔧 Database query result: ${result.rows.length} rows`);
       const gameState = result.rows[0];
 
       if (!gameState) {
+        console.log(`❌ Game state not found for room: ${gameId}`);
         socket.emit('moveError', { error: 'Game state not found' });
         return;
       }
+      console.log(`✅ Game state found: move_count=${gameState.move_count}`);
 
       // Note: Turn validation is handled by frontend, backend just stores moves
 
       // Enhanced server-side move validation
       const position = gameState.game_state?.position || {};
+      console.log(`🔧 Checking piece at ${move.from} in position with ${Object.keys(position).length} squares`);
       const piece = position[move.from];
       
       if (!piece) {
+        console.log(`❌ No piece found at source square: ${move.from}`);
         socket.emit('moveError', { error: 'No piece at source square' });
         return;
       }
+      console.log(`✅ Piece found at ${move.from}: ${piece}`);
 
       // Validate move using security module
       const validation = security.validateMove(move.from, move.to, piece, position, color);
