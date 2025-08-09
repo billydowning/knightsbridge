@@ -535,6 +535,53 @@ app.get('/test-migration-system', (req, res) => {
   });
 });
 
+// 🧪 Test validation system deployment
+app.get('/test-validation-system', async (req, res) => {
+  try {
+    console.log('🧪 Testing validation system...');
+    
+    // Test if we can load the validation classes
+    const GameValidator = require('./game-validator');
+    const PayoutValidator = require('./payout-validator');
+    
+    console.log('✅ Validation classes loaded successfully');
+    
+    // Test basic instantiation with mock chess engine
+    const mockChessEngine = {
+      resetToStartingPosition: () => {},
+      isMoveLegal: () => true,
+      makeMove: () => {},
+      getCurrentPositionFEN: () => 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      getCurrentGameState: () => ({ checkmate: false, stalemate: false, draw: false, currentPlayer: 'white' })
+    };
+    
+    const gameValidator = new GameValidator(getPool(), mockChessEngine);
+    const payoutValidator = new PayoutValidator(getPool(), mockChessEngine);
+    
+    console.log('✅ Validation instances created successfully');
+    
+    res.json({
+      success: true,
+      message: 'Validation system is operational',
+      components: {
+        gameValidator: 'loaded',
+        payoutValidator: 'loaded',
+        chessEngine: 'mock_loaded'
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Validation system test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Validation system not available',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // ⚠️ DESTRUCTIVE: Deploy database schema (drops all data)
 app.get('/deploy-schema', async (req, res) => {
   try {
