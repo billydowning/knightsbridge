@@ -89,6 +89,8 @@ class GameValidator {
    */
   async validateMoveReplay(gameId, gameData) {
     const moves = await this.getGameMoves(gameId);
+    console.log(`🔍 Retrieved ${moves.length} moves for replay validation:`, moves);
+    
     const validation = {
       type: 'move_replay',
       status: 'passed',

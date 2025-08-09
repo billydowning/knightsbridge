@@ -165,7 +165,11 @@ class BackendChessEngine {
     try {
       const { from, to, piece } = moveData;
       
+      console.log(`🔍 Chess Engine makeMove: ${from}->${to} (${piece})`);
+      console.log(`🔍 Position before:`, Object.keys(this.position).filter(k => this.position[k]).length, 'pieces');
+      
       if (!this.isMoveLegal(from, to, piece)) {
+        console.log(`❌ Move ${from}->${to} is illegal`);
         return false;
       }
 
@@ -173,6 +177,9 @@ class BackendChessEngine {
       const capturedPiece = this.position[to];
       this.position[to] = this.position[from];
       this.position[from] = '';
+      
+      console.log(`✅ Move executed: ${from}->${to}, captured: ${capturedPiece || 'none'}`);
+      console.log(`🔍 Position after:`, Object.keys(this.position).filter(k => this.position[k]).length, 'pieces');
       
       // Add to move history
       this.moveHistory.push({
