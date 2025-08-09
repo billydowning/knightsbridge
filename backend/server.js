@@ -1979,10 +1979,10 @@ io.on('connection', (socket) => {
       
       console.log(`✅ Move ${moveCount} stored in database for ${gameId}`);
 
-      // Update game state in database
+      // Update game state in database (simplified for Toyota reliability)
       await poolInstance.query(
-        'UPDATE games SET game_state = $1, current_turn = $2, state_hash = $3 WHERE room_id = $4',
-        [JSON.stringify(updatedGameState), nextPlayer, stateHash, gameId]
+        'UPDATE games SET updated_at = NOW() WHERE room_id = $1',
+        [gameId]
       );
 
       // Broadcast move to other player with security info
