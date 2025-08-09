@@ -447,10 +447,15 @@ class GameValidator {
   }
 
   async getGameMoves(gameId) {
+    console.log(`🔍 getGameMoves called with gameId: ${gameId}`);
     const result = await this.pool.query(
       'SELECT * FROM game_moves WHERE game_id = $1 ORDER BY move_number ASC',
       [gameId]
     );
+    console.log(`🔍 getGameMoves query result: ${result.rows.length} rows found`);
+    if (result.rows.length > 0) {
+      console.log(`🔍 First move:`, result.rows[0]);
+    }
     return result.rows;
   }
 
