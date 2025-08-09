@@ -1859,7 +1859,9 @@ io.on('connection', (socket) => {
   });
 
   // Handle chess moves with enhanced security validation
+  console.log(`✅ makeMove event handler registered for socket: ${socket.id}`);
   socket.on('makeMove', async ({ gameId, move, playerId, color }) => {
+    console.log(`🎯 makeMove event received: room=${gameId}, move=${move?.from}-${move?.to}, player=${playerId}, color=${color}`);
     try {
       // Basic move format validation
       if (!move || !move.from || !move.to) {
