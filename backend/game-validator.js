@@ -117,7 +117,7 @@ class GameValidator {
         };
 
         // Validate move is legal
-        const isLegal = this.chessEngine.isMoveLegal(moveData, move.player);
+        const isLegal = this.chessEngine.isMoveLegal(moveData.from, moveData.to, moveData.piece);
         
         if (!isLegal) {
           validation.details.invalidMoves.push({
@@ -130,7 +130,7 @@ class GameValidator {
           validation.score = Math.max(0, validation.score - 20);
         } else {
           // Apply the move
-          this.chessEngine.makeMove(moveData, move.player);
+          this.chessEngine.makeMove(moveData);
         }
 
         // Store per-move validation
