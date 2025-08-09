@@ -1585,11 +1585,12 @@ router.get('/users/:walletAddress/games', async (req, res) => {
       FROM games g
       LEFT JOIN (
         SELECT 
-          game_id,
-          COUNT(*) as total_moves
-        FROM game_moves 
-        GROUP BY game_id
-      ) move_stats ON g.id = move_stats.game_id
+          g2.id as game_uuid,
+          COUNT(gm.*) as total_moves
+        FROM games g2
+        LEFT JOIN game_moves gm ON g2.id = gm.game_id
+        GROUP BY g2.id
+      ) move_stats ON g.id = move_stats.game_uuid
       LEFT JOIN escrows e ON g.room_id = e.room_id AND e.player_wallet = $1
       WHERE (g.player_white_wallet = $1 OR g.player_black_wallet = $1)
       ${statusFilter}
@@ -1614,9 +1615,10 @@ router.get('/users/:walletAddress/games', async (req, res) => {
     const totalGames = parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(totalGames / parseInt(limit));
     
-    // Get moves for each game (optional - could be loaded on demand)
+    // Get moves for each game - try both game_id and room_id lookup
     for (const game of games) {
-      const movesResult = await pool.query(`
+      // First try by game_id (UUID)
+      let movesResult = await pool.query(`
         SELECT 
           move_number,
           player,
@@ -1637,6 +1639,32 @@ router.get('/users/:walletAddress/games', async (req, res) => {
         WHERE game_id = $1 
         ORDER BY move_number ASC, created_at ASC
       `, [game.id]);
+      
+      // If no moves found by game_id, try finding by room_id via JOIN
+      if (movesResult.rows.length === 0) {
+        movesResult = await pool.query(`
+          SELECT 
+            gm.move_number,
+            gm.player,
+            gm.from_square,
+            gm.to_square,
+            gm.piece,
+            gm.captured_piece,
+            gm.move_notation,
+            gm.time_spent,
+            gm.is_check,
+            gm.is_checkmate,
+            gm.is_castle,
+            gm.is_en_passant,
+            gm.is_promotion,
+            gm.promotion_piece,
+            gm.created_at
+          FROM game_moves gm
+          JOIN games g ON g.id = gm.game_id
+          WHERE g.room_id = $1
+          ORDER BY gm.move_number ASC, gm.created_at ASC
+        `, [game.roomId]);
+      }
       
       game.moves = movesResult.rows;
     }
