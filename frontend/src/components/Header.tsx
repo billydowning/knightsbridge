@@ -54,6 +54,7 @@ const WalletDropdown: React.FC<{
   onGameHistoryClick?: () => void;
 }> = ({ connected, publicKey, balance, onGameHistoryClick }) => {
   const { theme } = useTheme();
+  const { disconnect } = useWallet();
   const isDesktopLayout = useIsDesktopLayout();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -272,23 +273,51 @@ const WalletDropdown: React.FC<{
               </div>
             </button>
 
-            {/* Disconnect */}
+            {/* Disconnect Wallet */}
             <div style={{
               borderTop: `1px solid ${theme.border}`,
               marginTop: '8px',
               paddingTop: '8px'
             }}>
-              <WalletMultiButton style={{
-                width: '100%',
-                backgroundColor: 'transparent',
-                color: theme.error,
-                border: 'none',
-                fontSize: '14px',
-                fontWeight: '500',
-                padding: '12px 16px',
-                textAlign: 'left',
-                borderRadius: '0'
-              }} />
+              <button
+                onClick={() => {
+                  disconnect();
+                  setIsOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: theme.error,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'background-color 0.2s ease',
+                  textAlign: 'left' as const
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = `${theme.error}15`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <span style={{ fontSize: '16px' }}>🔌</span>
+                <div>
+                  <div>Disconnect Wallet</div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: theme.textSecondary,
+                    marginTop: '2px'
+                  }}>
+                    Sign out of your wallet
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
         </div>
