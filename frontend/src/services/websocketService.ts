@@ -212,12 +212,17 @@ class WebSocketService {
   }
 
   public makeMove(gameId: string, move: { from: string; to: string; piece: string }, playerId: string, color: 'white' | 'black') {
+    console.log(`🔍 makeMove called: gameId=${gameId}, move=${move.from}-${move.to}, connected=${this.socket?.connected}`);
+    
     if (!this.socket?.connected) {
-      console.error('Socket not connected');
+      console.error('❌ Socket not connected for makeMove');
       return;
     }
     
-    this.socket.emit('makeMove', { gameId, move, playerId, color });
+    const moveData = { gameId, move, playerId, color };
+    console.log(`🚀 Emitting makeMove event:`, moveData);
+    this.socket.emit('makeMove', moveData);
+    console.log(`✅ makeMove event emitted successfully`);
   }
 
   public sendMessage(gameId: string, message: string, playerId: string, playerName: string) {
