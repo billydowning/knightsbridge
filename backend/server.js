@@ -1953,6 +1953,7 @@ io.on('connection', (socket) => {
       const moveCount = currentMoveCount + 1;
       
       // Store in game_moves table with proper structure
+      console.log(`🔧 About to store move: gameUUID=${gameUUID}, moveCount=${moveCount}, color=${color}, piece=${piece}`);
       await poolInstance.query(`
         INSERT INTO game_moves (
           game_id, move_number, player, from_square, to_square, 
@@ -1974,6 +1975,7 @@ io.on('connection', (socket) => {
         move.isEnPassant || false,
         move.isPromotion || false
       ]);
+      console.log(`🎯 Move INSERT completed successfully`);
       
       // Update move_count in games table
       await poolInstance.query(
@@ -2026,7 +2028,9 @@ io.on('connection', (socket) => {
       console.log('📋 Move audit log saved to database');
 
     } catch (error) {
-      console.error('Error processing move:', error);
+      console.error('❌ Error processing move:', error);
+      console.error('❌ Error stack:', error.stack);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
       socket.emit('moveError', { error: 'Failed to process move' });
     }
   });
