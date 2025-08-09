@@ -2016,7 +2016,7 @@ io.on('connection', (socket) => {
       
       await poolInstance.query(
         'INSERT INTO security_audit_log (game_id, player_id, action, data, hash) VALUES ($1, $2, $3, $4, $5)',
-        [gameId, playerId, auditLog.action, JSON.stringify(auditLog.data), auditLog.hash]
+        [gameUUID, playerId, auditLog.action, JSON.stringify(auditLog.data), auditLog.hash]
       );
       
       console.log('📋 Move audit log saved to database');
