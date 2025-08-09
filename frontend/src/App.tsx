@@ -824,14 +824,14 @@ function ChessApp() {
         const shouldClaim = winner === 'draw' || winner === playerRole;
         
         if (shouldClaim) {
-          // Set flags immediately to prevent multiple attempts
+          // 🚛 TOYOTA SECURITY: Validate before payout instead of auto-claim
           setClaimingInProgress(true);
           setTimeoutClaimingDone(true);
           // Small delay to ensure game state is fully updated
           setTimeout(() => {
             // Double-check flags before calling (safety net)
             if (!winningsClaimed) {
-              handleClaimWinnings();
+              handleValidationBeforePayout();
             } else {
               setClaimingInProgress(false);
             }
@@ -1383,6 +1383,71 @@ function ChessApp() {
           setGameStatus('Invalid move to empty square - cleared selection');
         }
       }
+    }
+  };
+
+  // 🚛 TOYOTA SECURITY: Validate game before allowing payout
+  const handleValidationBeforePayout = async () => {
+    if (!roomId) {
+      setGameStatus('Cannot validate: missing room ID');
+      setClaimingInProgress(false);
+      return;
+    }
+
+    try {
+      setGameStatus('🔍 Validating game for payout...');
+      
+      // Call backend validation API
+      const response = await fetch(`https://knightsbridge-app-35xls.ondigitalocean.app/api/games/${roomId}/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+
+      if (!response.ok) {
+        throw new Error(`Validation failed: ${response.status}`);
+      }
+
+      const validationResult = await response.json();
+      
+      if (!validationResult.success) {
+        throw new Error(validationResult.error || 'Validation failed');
+      }
+
+      // Check validation results
+      const { validationResults, payoutReadiness } = validationResult;
+      
+      if (validationResults.overallStatus === 'failed') {
+        setGameStatus('❌ Game validation failed - contact support if you believe this is an error');
+        setClaimingInProgress(false);
+        console.error('🚛 Game validation failed:', validationResults);
+        return;
+      }
+
+      if (!payoutReadiness.ready) {
+        setGameStatus('⏳ Game requires manual review - check your Game History later to claim winnings');
+        setClaimingInProgress(false);
+        console.warn('🚛 Payout not ready (manual review):', payoutReadiness);
+        return;
+      }
+
+      // Validation passed - proceed with automatic payout
+      console.log('✅ Game validation passed:', {
+        score: payoutReadiness.score,
+        validations: payoutReadiness.validations
+      });
+      
+      setGameStatus(`✅ Validation passed (${payoutReadiness.score}/100) - claiming winnings...`);
+      
+      // Proceed immediately with payout for smooth UX
+      handleClaimWinnings();
+
+    } catch (error) {
+      console.error('❌ Validation before payout failed:', error);
+      setGameStatus(`❌ Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setClaimingInProgress(false);
     }
   };
 
