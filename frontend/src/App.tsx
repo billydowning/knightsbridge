@@ -1903,14 +1903,11 @@ function ChessApp() {
       
       await databaseMultiplayerState.saveGameState(roomId, updatedState);
       
-      // Notify backend about game completion
+      // 🚛 TOYOTA RELIABILITY: Notify backend about time control timeout specifically
       if (websocketService && websocketService.isConnected()) {
-    
-        websocketService.gameComplete({
-          roomId,
-          winner,
-          gameResult: 'timeout',
-          playerRole
+        websocketService.timeControlTimeout({
+          gameId: roomId,
+          timedOutPlayer
         });
       }
       

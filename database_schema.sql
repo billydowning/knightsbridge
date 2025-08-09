@@ -57,7 +57,7 @@ CREATE TABLE games (
     stake_amount DECIMAL(20, 9) NOT NULL, -- SOL amount
     platform_fee DECIMAL(20, 9) DEFAULT 0,
     winner VARCHAR(10) CHECK (winner IN ('white', 'black', 'draw', NULL)),
-    game_result VARCHAR(20) CHECK (game_result IN ('checkmate', 'stalemate', 'resignation', 'timeout', 'agreement', NULL)),
+    game_result VARCHAR(20) CHECK (game_result IN ('checkmate', 'stalemate', 'resignation', 'timeout', 'agreement', 'abandoned', NULL)),
     time_control VARCHAR(20) NOT NULL DEFAULT 'rapid', -- 'rapid', 'blitz', 'bullet', 'custom'
     time_limit INTEGER, -- in seconds
     increment INTEGER DEFAULT 0, -- in seconds

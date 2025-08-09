@@ -475,7 +475,46 @@ app.get('/clear-escrows', async (req, res) => {
   }
 });
 
-// Deploy database schema
+// 🚛 TOYOTA RELIABILITY: Safe database migrations
+app.get('/migrate-database', async (req, res) => {
+  try {
+    console.log('🚛 Starting safe database migrations...');
+    
+    const MigrationRunner = require('./migration-runner');
+    const runner = new MigrationRunner(process.env.DATABASE_URL);
+    
+    const result = await runner.runMigrations();
+    
+    if (result.success) {
+      console.log(`✅ Migrations completed: ${result.applied} applied, ${result.total} total`);
+      res.json({
+        success: true,
+        message: 'Database migrations completed successfully',
+        migrationsApplied: result.applied,
+        totalMigrations: result.total
+      });
+    } else {
+      console.error('❌ Migration failed:', result.error);
+      res.status(500).json({
+        success: false,
+        error: 'Migration failed',
+        details: result.error
+      });
+    }
+    
+    await runner.close();
+    
+  } catch (error) {
+    console.error('❌ Error running migrations:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to run migrations',
+      details: error.message
+    });
+  }
+});
+
+// ⚠️ DESTRUCTIVE: Deploy database schema (drops all data)
 app.get('/deploy-schema', async (req, res) => {
   try {
     console.log('🏗️ Deploying complete database schema...');
@@ -2141,12 +2180,25 @@ io.on('connection', (socket) => {
     }
   };
 
+  // 🚛 TOYOTA RELIABILITY: Dynamic timeout system based on time control
+  const getInactivityTimeoutMinutes = (timeControl) => {
+    switch(timeControl) {
+      case 'lightning': return 5;     // 5 minutes
+      case 'blitz': return 10;        // 10 minutes  
+      case 'rapid': return 30;        // 30 minutes (current)
+      case 'casual': return 60;       // 1 hour
+      case 'relaxed': return 180;     // 3 hours
+      case 'daily': return 1440;      // 24 hours
+      default: return 30;             // Default to 30 minutes
+    }
+  };
+
   // Handle game timeout and inactivity
   const handleGameTimeout = async (gameId) => {
     try {
       const poolInstance = getPool();
       
-      // Get game state
+      // Get game state including time control information
       const result = await poolInstance.query('SELECT * FROM games WHERE room_id = $1', [gameId]);
       const game = result.rows[0];
       
@@ -2154,45 +2206,46 @@ io.on('connection', (socket) => {
         return;
       }
       
-      // Check if game has been inactive for more than 30 minutes
+      // 🚛 TOYOTA: Get appropriate timeout based on time control
+      const timeoutMinutes = getInactivityTimeoutMinutes(game.time_control);
       const lastActivity = game.updated_at;
       const now = new Date();
       const timeDiff = now - lastActivity;
-      const timeoutMinutes = 30;
       
       if (timeDiff > timeoutMinutes * 60 * 1000) {
-        console.log(`⏰ Game ${gameId} timed out due to inactivity`);
+        console.log(`⏰ Game ${gameId} (${game.time_control}) timed out due to inactivity after ${timeoutMinutes} minutes`);
         
-        // For timeout due to inactivity, no winner is determined
-        // (game_state field contains status 'active'/'finished', not game position JSON)
+        // For timeout due to inactivity, mark as abandoned (no winner)
+        // This is different from time control timeout where a player runs out of time
         let winner = null;
+        let gameResult = 'abandoned'; // Use 'abandoned' instead of 'timeout' for inactivity
         
         // Update game state
         await poolInstance.query(
           'UPDATE games SET game_state = $1, winner = $2, game_result = $3, finished_at = $4 WHERE room_id = $5',
-          ['finished', winner, 'timeout', now, gameId]
+          ['finished', winner, gameResult, now, gameId]
         );
         
-        // Update user statistics for timeout
-        await updateUserStatisticsOnGameComplete(gameId, winner, 'timeout', game.stake_amount);
+        // Update user statistics for abandoned game
+        await updateUserStatisticsOnGameComplete(gameId, winner, gameResult, game.stake_amount);
         
         // Log timeout
-        const auditLog = security.createAuditLog(gameId, 'system', 'game_timeout', {
+        const auditLog = security.createAuditLog(gameId, 'system', 'game_abandoned', {
           winner,
           reason: 'inactivity',
           timeoutMinutes,
+          timeControl: game.time_control,
           timestamp: Date.now()
         });
         
         await poolInstance.query(
           'INSERT INTO security_audit_log (game_id, player_id, action, data, hash) VALUES ($1, $2, $3, $4, $5)',
-          [gameId, 'system', auditLog.action, JSON.stringify(auditLog.data), auditLog.hash]
+          [game.id, 'system', auditLog.action, JSON.stringify(auditLog.data), auditLog.hash]
         );
         
         // Notify players
-        io.to(gameId).emit('gameTimeout', {
-          winner,
-          reason: 'Game timed out due to inactivity'
+        io.to(gameId).emit('gameAbandoned', {
+          reason: `Game abandoned due to ${timeoutMinutes} minutes of inactivity`
         });
       }
     } catch (error) {
@@ -2470,6 +2523,64 @@ io.on('connection', (socket) => {
       
     } catch (error) {
       console.error('❌ Error processing game completion:', error);
+      if (typeof callback === 'function') callback({ success: false, error: error.message });
+    }
+  });
+
+  // 🚛 TOYOTA RELIABILITY: Handle time control timeout (player runs out of allocated time)
+  socket.on('timeControlTimeout', async (data, callback) => {
+    try {
+      const { gameId, timedOutPlayer } = data;
+      console.log(`⏰ Time control timeout received: ${timedOutPlayer} ran out of time in ${gameId}`);
+      
+      if (!gameId || !timedOutPlayer) {
+        console.error('❌ Missing gameId or timedOutPlayer for timeout');
+        if (typeof callback === 'function') callback({ success: false, error: 'Missing required data' });
+        return;
+      }
+      
+      // Determine winner (opposite of timed out player)
+      const winner = timedOutPlayer === 'white' ? 'black' : 'white';
+      
+      // Update game state in database
+      const poolInstance = getPool();
+      await poolInstance.query(
+        'UPDATE games SET game_state = $1, winner = $2, game_result = $3, finished_at = NOW() WHERE room_id = $4',
+        ['finished', winner, 'timeout', gameId]
+      );
+      
+      // Update user statistics for time control timeout
+      await updateUserStatisticsOnGameComplete(gameId, winner, 'timeout');
+      
+      // Log the timeout event
+      const auditLog = security.createAuditLog(gameId, 'system', 'time_control_timeout', {
+        winner,
+        timedOutPlayer,
+        reason: 'time_control',
+        timestamp: Date.now()
+      });
+      
+      const gameResult = await poolInstance.query('SELECT id FROM games WHERE room_id = $1', [gameId]);
+      if (gameResult.rows.length > 0) {
+        await poolInstance.query(
+          'INSERT INTO security_audit_log (game_id, player_id, action, data, hash) VALUES ($1, $2, $3, $4, $5)',
+          [gameResult.rows[0].id, 'system', auditLog.action, JSON.stringify(auditLog.data), auditLog.hash]
+        );
+      }
+      
+      // Broadcast timeout result to all players in room
+      io.to(gameId).emit('gameFinished', {
+        winner,
+        gameResult: 'timeout',
+        reason: `${timedOutPlayer} ran out of time`,
+        timestamp: Date.now()
+      });
+      
+      console.log(`✅ Time control timeout processed: ${winner} wins, ${timedOutPlayer} timed out`);
+      if (typeof callback === 'function') callback({ success: true, winner });
+      
+    } catch (error) {
+      console.error('❌ Error processing time control timeout:', error);
       if (typeof callback === 'function') callback({ success: false, error: error.message });
     }
   });

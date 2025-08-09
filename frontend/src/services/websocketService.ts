@@ -306,6 +306,17 @@ class WebSocketService {
     this.socket.emit('gameComplete', data);
   }
 
+  // 🚛 TOYOTA RELIABILITY: Handle time control timeout specifically
+  public timeControlTimeout(data: { gameId: string; timedOutPlayer: 'white' | 'black' }) {
+    if (!this.socket?.connected) {
+      console.error('❌ Socket not connected for timeControlTimeout');
+      return;
+    }
+    
+    console.log(`⏰ Emitting timeControlTimeout: ${data.timedOutPlayer} ran out of time in ${data.gameId}`);
+    this.socket.emit('timeControlTimeout', data);
+  }
+
   public disconnect() {
     if (this.socket) {
       this.socket.disconnect();
