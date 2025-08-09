@@ -480,9 +480,21 @@ app.get('/migrate-database', async (req, res) => {
   try {
     console.log('🚛 Starting safe database migrations...');
     
-    const MigrationRunner = require('./migration-runner');
-    const runner = new MigrationRunner(process.env.DATABASE_URL);
+    // Test if we can load the MigrationRunner
+    let MigrationRunner;
+    try {
+      MigrationRunner = require('./migration-runner');
+      console.log('✅ MigrationRunner loaded successfully');
+    } catch (requireError) {
+      console.error('❌ Failed to load MigrationRunner:', requireError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to load migration system',
+        details: requireError.message
+      });
+    }
     
+    const runner = new MigrationRunner(process.env.DATABASE_URL);
     const result = await runner.runMigrations();
     
     if (result.success) {
@@ -512,6 +524,15 @@ app.get('/migrate-database', async (req, res) => {
       details: error.message
     });
   }
+});
+
+// Simple test endpoint to verify deployment
+app.get('/test-migration-system', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Migration system endpoint is available',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // ⚠️ DESTRUCTIVE: Deploy database schema (drops all data)
