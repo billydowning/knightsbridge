@@ -1870,7 +1870,7 @@ io.on('connection', (socket) => {
       const poolInstance = getPool();
 
       // Get current game state from database
-      const result = await poolInstance.query('SELECT game_state, current_turn, move_history FROM games WHERE room_id = $1', [gameId]);
+      const result = await poolInstance.query('SELECT game_state, current_turn, move_count FROM games WHERE room_id = $1', [gameId]);
       const gameState = result.rows[0];
 
       if (!gameState) {
@@ -1900,9 +1900,9 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Anti-cheating analysis
-      const moveHistory = gameState.move_history || [];
-      const analysis = security.analyzeMoveQuality(move, position, moveHistory);
+      // Anti-cheating analysis  
+      const currentMoveCount = gameState.move_count || 0;
+      const analysis = security.analyzeMoveQuality(move, position, []);
       
       if (analysis.suspicious) {
         console.warn(`🚨 Suspicious move detected for player ${playerId}:`, analysis.reasons);
@@ -1952,7 +1952,7 @@ io.on('connection', (socket) => {
       }
       
       const gameUUID = gameResult.rows[0].id;
-      const moveCount = moveHistory.length + 1;
+      const moveCount = currentMoveCount + 1;
       
       // Store in game_moves table with proper structure
       await poolInstance.query(`
@@ -2013,6 +2013,7 @@ io.on('connection', (socket) => {
       // Log successful move to database
       const auditLog = security.createAuditLog(gameId, playerId, 'move_made', {
         move,
+        moveNumber: moveCount,
         validation: validation,
         analysis: analysis,
         stateHash,
