@@ -547,16 +547,11 @@ app.get('/test-validation-system', async (req, res) => {
     console.log('✅ Validation classes loaded successfully');
     
     // Test basic instantiation with mock chess engine
-    const mockChessEngine = {
-      resetToStartingPosition: () => {},
-      isMoveLegal: () => true,
-      makeMove: () => {},
-      getCurrentPositionFEN: () => 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-      getCurrentGameState: () => ({ checkmate: false, stalemate: false, draw: false, currentPlayer: 'white' })
-    };
+    const BackendChessEngine = require('./chess-engine');
+    const chessEngine = new BackendChessEngine();
     
-    const gameValidator = new GameValidator(getPool(), mockChessEngine);
-    const payoutValidator = new PayoutValidator(getPool(), mockChessEngine);
+    const gameValidator = new GameValidator(getPool(), chessEngine);
+    const payoutValidator = new PayoutValidator(getPool(), chessEngine);
     
     console.log('✅ Validation instances created successfully');
     
@@ -604,17 +599,12 @@ app.post('/api/games/:roomId/validate', async (req, res) => {
     const GameValidator = require('./game-validator');
     const PayoutValidator = require('./payout-validator');
     
-    // Create mock chess engine for testing
-    const mockChessEngine = {
-      resetToStartingPosition: () => {},
-      isMoveLegal: () => true,
-      makeMove: () => {},
-      getCurrentPositionFEN: () => 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-      getCurrentGameState: () => ({ checkmate: true, stalemate: false, draw: false, currentPlayer: 'black' })
-    };
+    // 🚛 TOYOTA FIX: Use real chess engine for accurate validation
+    const BackendChessEngine = require('./chess-engine');
+    const chessEngine = new BackendChessEngine();
     
     // Run validation
-    const gameValidator = new GameValidator(getPool(), mockChessEngine);
+    const gameValidator = new GameValidator(getPool(), chessEngine);
     const validationResults = await gameValidator.validateGame(gameId);
     
     // Check payout readiness
