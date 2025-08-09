@@ -467,7 +467,7 @@ class GameValidator {
 
   async storeValidationResults(gameId, results) {
     // Store overall validation results
-    for (const [type, validation] of Object.entries(results.validations)) {
+    for (const [key, validation] of Object.entries(results.validations)) {
       await this.pool.query(`
         INSERT INTO game_validations (game_id, validation_type, status, score, details, validator_version)
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -477,7 +477,7 @@ class GameValidator {
           score = EXCLUDED.score,
           details = EXCLUDED.details,
           validated_at = NOW()
-      `, [gameId, type, validation.status, validation.score, JSON.stringify(validation.details), this.version]);
+      `, [gameId, validation.type, validation.status, validation.score, JSON.stringify(validation.details), this.version]);
     }
   }
 
