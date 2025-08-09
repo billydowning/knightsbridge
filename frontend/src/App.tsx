@@ -1327,6 +1327,21 @@ function ChessApp() {
           // Update local state AFTER successful database save
           setGameState(updatedGameState);
           
+          // 🚛 TOYOTA MOVE STORAGE: Send move to backend for individual move tracking
+          if (publicKey && playerRole) {
+            try {
+              console.log(`🎯 Sending move to backend for storage: ${fromSquare}->${toSquare} by ${playerRole} in ${roomId}`);
+              websocketService.makeMove(
+                roomId, 
+                { from: fromSquare, to: toSquare, piece: movingPiece }, 
+                publicKey.toString(), 
+                playerRole
+              );
+            } catch (error) {
+              console.error('❌ Failed to send move to backend for storage:', error);
+            }
+          }
+          
           // Reset the receiving flag after a longer delay to ensure server broadcast is processed
           setTimeout(() => {
             setIsReceivingServerUpdate(false);
