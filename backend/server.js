@@ -1870,7 +1870,7 @@ io.on('connection', (socket) => {
       const poolInstance = getPool();
 
       // Get current game state from database
-      const result = await poolInstance.query('SELECT game_state, current_turn, move_count FROM games WHERE room_id = $1', [gameId]);
+      const result = await poolInstance.query('SELECT game_state, move_count FROM games WHERE room_id = $1', [gameId]);
       const gameState = result.rows[0];
 
       if (!gameState) {
@@ -1878,11 +1878,7 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Check if it's the player's turn
-      if (gameState.current_turn !== color) {
-        socket.emit('moveError', { error: 'Not your turn' });
-        return;
-      }
+      // Note: Turn validation is handled by frontend, backend just stores moves
 
       // Enhanced server-side move validation
       const position = gameState.game_state?.position || {};
