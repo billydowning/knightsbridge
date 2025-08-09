@@ -1943,11 +1943,47 @@ io.on('connection', (socket) => {
       // Generate integrity hash
       const stateHash = security.hashGameState(updatedGameState);
 
-      // Add move to database with enhanced logging
+      // Add move to database - first get game ID from room_id
+      const gameResult = await poolInstance.query('SELECT id FROM games WHERE room_id = $1', [gameId]);
+      if (gameResult.rows.length === 0) {
+        console.error('❌ Game not found for room:', gameId);
+        socket.emit('moveError', { error: 'Game not found' });
+        return;
+      }
+      
+      const gameUUID = gameResult.rows[0].id;
+      const moveCount = moveHistory.length + 1;
+      
+      // Store in game_moves table with proper structure
+      await poolInstance.query(`
+        INSERT INTO game_moves (
+          game_id, move_number, player, from_square, to_square, 
+          piece, move_notation, time_spent, is_check, is_checkmate, 
+          is_castle, is_en_passant, is_promotion
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `, [
+        gameUUID, 
+        moveCount, 
+        color, 
+        move.from, 
+        move.to, 
+        piece,
+        move.notation || `${move.from}-${move.to}`, // Basic notation
+        move.timeSpent || 0,
+        inCheck,
+        false, // TODO: Add checkmate detection
+        move.isCastling || false,
+        move.isEnPassant || false,
+        move.isPromotion || false
+      ]);
+      
+      // Update move_count in games table
       await poolInstance.query(
-        'INSERT INTO moves (room_id, move_data, player_id, color, timestamp, validation_hash) VALUES ($1, $2, $3, $4, $5, $6)',
-        [gameId, JSON.stringify(move), playerId, color, new Date(), stateHash]
+        'UPDATE games SET move_count = $1 WHERE room_id = $2',
+        [moveCount, gameId]
       );
+      
+      console.log(`✅ Move ${moveCount} stored in database for ${gameId}`);
 
       // Update game state in database
       await poolInstance.query(
