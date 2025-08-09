@@ -1001,11 +1001,27 @@ io.on('connection', (socket) => {
 
         // Insert new room into database
         const finalTimeLimit = timeLimit || 600;
+        
+        // Determine time control based on time limit
+        let timeControlType = 'rapid'; // default
+        if (finalTimeLimit <= 120) {
+          timeControlType = 'lightning'; // 2 mins
+        } else if (finalTimeLimit <= 300) {
+          timeControlType = 'blitz'; // 5 mins
+        } else if (finalTimeLimit <= 600) {
+          timeControlType = 'rapid'; // 10 mins
+        } else if (finalTimeLimit <= 900) {
+          timeControlType = 'casual'; // 15 mins
+        } else if (finalTimeLimit <= 1800) {
+          timeControlType = 'relaxed'; // 30 mins
+        } else {
+          timeControlType = 'daily'; // 24+ hrs
+        }
 
         // Create the game record
         const gameResult = await poolInstance.query(
-          'INSERT INTO games (room_id, player_white_wallet, game_state, stake_amount, time_limit, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-          [roomId, playerWallet, 'waiting', betAmount || 0, finalTimeLimit, new Date()]
+          'INSERT INTO games (room_id, player_white_wallet, game_state, stake_amount, time_control, time_limit, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+          [roomId, playerWallet, 'waiting', betAmount || 0, timeControlType, finalTimeLimit, new Date()]
         );
         const gameId = gameResult.rows[0].id;
         
