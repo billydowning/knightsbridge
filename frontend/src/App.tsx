@@ -15,6 +15,7 @@ import { GameView } from './components/GameView';
 import { Header } from './components/Header';
 import { NotificationSystem, useNotifications } from './components/NotificationSystem';
 import { TermsPage } from './components/TermsPage';
+import GameHistory from './components/GameHistory';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -463,6 +464,7 @@ function ChessApp() {
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [showGameHistory, setShowGameHistory] = useState(false);
 
   // HYBRID TIMER SYNC: Track current timer values for move synchronization
   const [currentTimerValues, setCurrentTimerValues] = useState<{
@@ -1325,6 +1327,25 @@ function ChessApp() {
           // Update local state AFTER successful database save
           setGameState(updatedGameState);
           
+          // 🚛 TOYOTA MOVE STORAGE: Send move to backend for individual move tracking
+          if (publicKey && playerRole) {
+            try {
+              console.log(`🎯 Sending move to backend for storage: ${fromSquare}->${toSquare} by ${playerRole} in ${roomId}`);
+              console.log(`🔌 WebSocket service connected: ${websocketService.isConnected()}`);
+              
+              websocketService.makeMove(
+                roomId, 
+                { from: fromSquare, to: toSquare, piece: movingPiece }, 
+                publicKey.toString(), 
+                playerRole
+              );
+              
+              console.log(`✅ Move sent to websocketService successfully`);
+            } catch (error) {
+              console.error('❌ Failed to send move to backend for storage:', error);
+            }
+          }
+          
           // Reset the receiving flag after a longer delay to ensure server broadcast is processed
           setTimeout(() => {
             setIsReceivingServerUpdate(false);
@@ -1412,10 +1433,16 @@ function ChessApp() {
       
       // Determine if it's a draw
       const isDraw = gameState.winner === 'draw';
-  
+      
+      // 🚛 TOYOTA DEBUG: Log draw parameters for Solana claim
+      console.log('🚛 SOLANA CLAIM DEBUG:', {
+        gameStateWinner: gameState.winner,
+        playerRole: playerRole,
+        isDraw: isDraw,
+        roomId: roomId
+      });
       
       // Claim winnings on Solana
-
       const result = await claimWinnings(roomId, playerRole, gameState.winner, isDraw);
       
 
@@ -3356,6 +3383,11 @@ function ChessApp() {
             setRoomId('');
             setGameState(null);
           }}
+          onGameHistoryClick={() => {
+            // 🚛 TOYOTA GAME HISTORY: Open the comprehensive dashboard
+            console.log('🎮 Opening Game History dashboard');
+            setShowGameHistory(true);
+          }}
         />
 
         {/* Debug Panel for Mobile Testing (Toggle with triple-tap on status) */}
@@ -3566,6 +3598,27 @@ function ChessApp() {
 
         {/* Notification System */}
         <NotificationSystem notifications={notifications} onRemove={removeNotification} />
+
+        {/* Game History Dashboard */}
+        {showGameHistory && publicKey && (
+          <GameHistory
+            walletAddress={publicKey.toString()}
+            onClaimWinnings={async (roomId: string, stakeAmount: number) => {
+              // 🚛 TOYOTA DELAYED CLAIM: Use existing claimWinnings function
+              console.log('💰 Claiming winnings from dashboard:', roomId, stakeAmount);
+              await claimWinnings(roomId, playerRole, 'win', false);
+            }}
+            onReconnectGame={(roomId: string) => {
+              // 🚛 TOYOTA RECONNECTION: Navigate back to active game
+              console.log('🔄 Reconnecting to game:', roomId);
+              setRoomId(roomId);
+              setGameMode('game');
+              setGameStatus('Reconnecting to game...');
+              setShowGameHistory(false);
+            }}
+            onClose={() => setShowGameHistory(false)}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );
