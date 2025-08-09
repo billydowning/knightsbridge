@@ -582,6 +582,133 @@ app.get('/test-validation-system', async (req, res) => {
   }
 });
 
+// 🔍 Manual game validation endpoint for testing
+app.post('/api/games/:roomId/validate', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    console.log(`🔍 Manual validation requested for room: ${roomId}`);
+    
+    // Get game ID from room ID
+    const gameResult = await getPool().query('SELECT id FROM games WHERE room_id = $1', [roomId]);
+    if (gameResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Game not found',
+        roomId
+      });
+    }
+    
+    const gameId = gameResult.rows[0].id;
+    
+    // Load validation classes
+    const GameValidator = require('./game-validator');
+    const PayoutValidator = require('./payout-validator');
+    
+    // Create mock chess engine for testing
+    const mockChessEngine = {
+      resetToStartingPosition: () => {},
+      isMoveLegal: () => true,
+      makeMove: () => {},
+      getCurrentPositionFEN: () => 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      getCurrentGameState: () => ({ checkmate: true, stalemate: false, draw: false, currentPlayer: 'black' })
+    };
+    
+    // Run validation
+    const gameValidator = new GameValidator(getPool(), mockChessEngine);
+    const validationResults = await gameValidator.validateGame(gameId);
+    
+    // Check payout readiness
+    const payoutReadiness = await gameValidator.isGameReadyForPayout(gameId);
+    
+    res.json({
+      success: true,
+      roomId,
+      gameId,
+      validationResults,
+      payoutReadiness,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error(`❌ Validation failed for room ${req.params.roomId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Validation failed',
+      details: error.message,
+      roomId: req.params.roomId
+    });
+  }
+});
+
+// 🔍 Get validation status for a game
+app.get('/api/games/:roomId/validation-status', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    console.log(`📊 Validation status requested for room: ${roomId}`);
+    
+    // Get game ID from room ID
+    const gameResult = await getPool().query('SELECT * FROM games WHERE room_id = $1', [roomId]);
+    if (gameResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Game not found',
+        roomId
+      });
+    }
+    
+    const game = gameResult.rows[0];
+    
+    // Get validation results
+    const validationResult = await getPool().query(`
+      SELECT validation_type, status, score, details, validated_at
+      FROM game_validations 
+      WHERE game_id = $1
+      ORDER BY validated_at DESC
+    `, [game.id]);
+    
+    // Get move validations
+    const moveValidationResult = await getPool().query(`
+      SELECT move_number, is_legal, position_after, time_used, is_suspicious
+      FROM move_validations 
+      WHERE game_id = $1
+      ORDER BY move_number ASC
+    `, [game.id]);
+    
+    // Get payout status
+    const payoutResult = await getPool().query(`
+      SELECT validation_status, validation_score, human_review_required, approved_by, approved_at
+      FROM payout_validations 
+      WHERE game_id = $1
+    `, [game.id]);
+    
+    res.json({
+      success: true,
+      roomId,
+      gameData: {
+        id: game.id,
+        gameState: game.game_state,
+        winner: game.winner,
+        gameResult: game.game_result,
+        moveCount: game.move_count,
+        finishedAt: game.finished_at
+      },
+      validations: validationResult.rows,
+      moveValidations: moveValidationResult.rows,
+      payoutStatus: payoutResult.rows[0] || null,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error(`❌ Failed to get validation status for room ${req.params.roomId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get validation status',
+      details: error.message,
+      roomId: req.params.roomId
+    });
+  }
+});
+
 // ⚠️ DESTRUCTIVE: Deploy database schema (drops all data)
 app.get('/deploy-schema', async (req, res) => {
   try {
