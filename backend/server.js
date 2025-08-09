@@ -535,6 +535,63 @@ app.get('/test-migration-system', (req, res) => {
   });
 });
 
+// 🔍 DEBUG: Check if moves are stored in database
+app.get('/debug/game-moves/:roomId', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const poolInstance = getPool();
+    
+    // Get game ID from room ID
+    const gameResult = await poolInstance.query('SELECT id, room_id, move_count, game_state FROM games WHERE room_id = $1', [roomId]);
+    
+    if (gameResult.rows.length === 0) {
+      return res.json({
+        success: false,
+        error: 'Game not found',
+        roomId
+      });
+    }
+    
+    const game = gameResult.rows[0];
+    const gameId = game.id;
+    
+    // Get all moves for this game
+    const movesResult = await poolInstance.query(
+      'SELECT * FROM game_moves WHERE game_id = $1 ORDER BY move_number ASC',
+      [gameId]
+    );
+    
+    // Get validation data
+    const validationsResult = await poolInstance.query(
+      'SELECT validation_type, status, score, details FROM game_validations WHERE game_id = $1',
+      [gameId]
+    );
+    
+    res.json({
+      success: true,
+      roomId,
+      gameData: {
+        gameId,
+        moveCountInGames: game.move_count,
+        gameState: game.game_state
+      },
+      movesStored: {
+        count: movesResult.rows.length,
+        moves: movesResult.rows
+      },
+      validations: validationsResult.rows,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Debug game moves error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // 🧪 Test validation system deployment
 app.get('/test-validation-system', async (req, res) => {
   try {
