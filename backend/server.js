@@ -2157,14 +2157,14 @@ io.on('connection', (socket) => {
 
   // Handle chess moves with enhanced security validation
   console.log(`✅ makeMove event handler registered for socket: ${socket.id}`);
-  socket.on('makeMove', async ({ gameId, move, playerId, color }) => {
-    console.log(`🎯 makeMove event received: room=${gameId}, move=${move?.from}-${move?.to}, player=${playerId}, color=${color}`);
+  socket.on('makeMove', async ({ gameId, move, playerId, color, moveId }) => {
+    console.log(`🎯 makeMove event received: room=${gameId}, move=${move?.from}-${move?.to}, player=${playerId}, color=${color}, moveId=${moveId}`);
     try {
       // Basic move format validation
       console.log(`🔧 Move validation: move=${JSON.stringify(move)}`);
       if (!move || !move.from || !move.to) {
         console.log(`❌ Invalid move format detected`);
-        socket.emit('moveError', { error: 'Invalid move format' });
+        socket.emit('moveError', { gameId, moveId, error: 'Invalid move format' });
         return;
       }
       console.log(`✅ Move format valid: ${move.from}-${move.to}`);
@@ -2179,7 +2179,7 @@ io.on('connection', (socket) => {
 
       if (!gameState) {
         console.log(`❌ Game state not found for room: ${gameId}`);
-        socket.emit('moveError', { error: 'Game state not found' });
+        socket.emit('moveError', { gameId, moveId, error: 'Game state not found' });
         return;
       }
       console.log(`✅ Game state found: move_count=${gameState.move_count}`);
@@ -2236,7 +2236,7 @@ io.on('connection', (socket) => {
       const gameResult = await poolInstance.query('SELECT id FROM games WHERE room_id = $1', [gameId]);
       if (gameResult.rows.length === 0) {
         console.error('❌ Game not found for room:', gameId);
-        socket.emit('moveError', { error: 'Game not found' });
+        socket.emit('moveError', { gameId, moveId, error: 'Game not found' });
         return;
       }
       
@@ -2275,6 +2275,18 @@ io.on('connection', (socket) => {
       );
       
       console.log(`✅ Move ${moveCount} stored in database for ${gameId}`);
+
+      // 🚛 TOYOTA MOVE PERSISTENCE: Confirm move to frontend
+      if (moveId) {
+        socket.emit('moveConfirmed', {
+          gameId,
+          moveId,
+          serverMoveNumber: moveCount,
+          move: move,
+          timestamp: Date.now()
+        });
+        console.log(`🚛 Move confirmation sent: ${moveId} -> server move #${moveCount}`);
+      }
 
       // Update game state in database (simplified for Toyota reliability)
       await poolInstance.query(
@@ -2322,7 +2334,7 @@ io.on('connection', (socket) => {
       console.error('❌ Error processing move:', error);
       console.error('❌ Error stack:', error.stack);
       console.error('❌ Error details:', JSON.stringify(error, null, 2));
-      socket.emit('moveError', { error: 'Failed to process move' });
+              socket.emit('moveError', { gameId, moveId, error: 'Failed to process move' });
     }
   });
 
