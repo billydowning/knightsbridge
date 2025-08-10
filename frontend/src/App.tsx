@@ -811,13 +811,28 @@ function ChessApp() {
         
         // Notify backend about game completion (only do this once per game)
         if (websocketService && websocketService.isConnected()) {
-      
           websocketService.gameComplete({
             roomId,
             winner,
             gameResult,
             playerRole
           });
+        }
+        
+        // 🚛 TOYOTA MOVE PERSISTENCE: Clear game data after completion
+        try {
+          const stats = websocketService.getMoveStats(roomId);
+          console.log(`🚛 Game completed - Final move stats:`, stats);
+          
+          // Only clear if we have no pending moves (all confirmed)
+          if (stats.pendingMoves === 0 && stats.failedMoves === 0) {
+            websocketService.clearGamePersistence(roomId);
+            console.log(`🚛 Game persistence data cleared for completed game: ${roomId}`);
+          } else {
+            console.warn(`🚛 Game completed but has pending/failed moves, keeping persistence data:`, stats);
+          }
+        } catch (error) {
+          console.error('🚛 Failed to clean up game persistence:', error);
         }
         
         // Only auto-claim if this player should claim
@@ -1327,20 +1342,25 @@ function ChessApp() {
           // Update local state AFTER successful database save
           setGameState(updatedGameState);
           
-          // 🚛 TOYOTA MOVE STORAGE: Send move to backend for individual move tracking
+          // 🚛 TOYOTA MOVE PERSISTENCE: Send move to backend with guaranteed delivery
           if (publicKey && playerRole) {
             try {
               console.log(`🎯 Sending move to backend for storage: ${fromSquare}->${toSquare} by ${playerRole} in ${roomId}`);
               console.log(`🔌 WebSocket service connected: ${websocketService.isConnected()}`);
               
-              websocketService.makeMove(
+              const moveId = websocketService.makeMove(
                 roomId, 
                 { from: fromSquare, to: toSquare, piece: movingPiece }, 
                 publicKey.toString(), 
                 playerRole
               );
               
-              console.log(`✅ Move sent to websocketService successfully`);
+              console.log(`✅ Move sent to websocketService successfully with ID: ${moveId}`);
+              
+              // Log move persistence stats for debugging
+              const stats = websocketService.getMoveStats(roomId);
+              console.log(`🚛 Move persistence stats:`, stats);
+              
             } catch (error) {
               console.error('❌ Failed to send move to backend for storage:', error);
             }
@@ -2989,6 +3009,49 @@ function ChessApp() {
       };
     }
   }, [gameMode, roomId, addDebugMessage]);
+
+  // 🚛 TOYOTA MOVE PERSISTENCE: Retry pending moves on reconnection
+  useEffect(() => {
+    if (gameMode === 'game' && roomId && websocketService.isConnected()) {
+      // Retry any pending moves when we reconnect to the game
+      const retryMoves = () => {
+        try {
+          websocketService.retryMovesForGame(roomId);
+          
+          // Sync with server state to ensure consistency
+          // We'll get the server move count from the game state API
+          fetch(`https://knightsbridge-app-35xls.ondigitalocean.app/debug/game-moves/${roomId}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                const serverMoveCount = data.gameData.moveCountInGames || 0;
+                websocketService.syncGameState(roomId, serverMoveCount);
+                
+                // Log sync status for debugging
+                const stats = websocketService.getMoveStats(roomId);
+                console.log(`🚛 Move sync complete: Server=${serverMoveCount}, Local=${stats.confirmedMoves}, Pending=${stats.pendingMoves}`);
+              }
+            })
+            .catch(error => {
+              console.warn('🚛 Failed to sync game state:', error);
+            });
+            
+        } catch (error) {
+          console.error('🚛 Failed to retry pending moves:', error);
+        }
+      };
+
+      // Retry moves immediately on game start/reconnection
+      retryMoves();
+
+      // Set up periodic retry for any failed moves (every 30 seconds)
+      const retryInterval = setInterval(retryMoves, 30000);
+
+      return () => {
+        clearInterval(retryInterval);
+      };
+    }
+  }, [gameMode, roomId, websocketService.isConnected()]);
 
   // Listen for real-time chat messages
   useEffect(() => {
