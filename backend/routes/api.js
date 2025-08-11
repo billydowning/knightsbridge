@@ -1764,20 +1764,14 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
     
     const movesResult = await pool.query(movesQuery, [game.id]);
     
-    // Get room status from database
-    const roomQuery = `
-      SELECT 
-        status,
-        player1_wallet,
-        player2_wallet,
-        created_at,
-        updated_at
-      FROM rooms 
-      WHERE room_id = $1
-    `;
-    
-    const roomResult = await pool.query(roomQuery, [roomId]);
-    const room = roomResult.rows[0] || {};
+    // Room status is derived from game state (no separate rooms table)
+    const room = {
+      status: game.gameState === 'active' ? 'active' : 'finished',
+      player1_wallet: game.playerWhite,
+      player2_wallet: game.playerBlack,
+      created_at: game.createdAt,
+      updated_at: game.createdAt
+    };
     
     // Calculate current game state based on moves
     const moves = movesResult.rows;
