@@ -14,6 +14,4 @@ ALTER COLUMN captured_piece TYPE VARCHAR(12);
 ALTER TABLE game_moves 
 ALTER COLUMN promotion_piece TYPE VARCHAR(12);
 
--- Record migration
-INSERT INTO migrations (version, name, applied_at) 
-VALUES (4, 'fix_piece_varchar_length', NOW());
+-- Migration will be recorded automatically by migration runner
