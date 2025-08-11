@@ -1578,7 +1578,11 @@ router.get('/users/:walletAddress/games', async (req, res) => {
           ELSE false
         END as "canClaimWinnings",
         CASE 
-          WHEN g.game_state = 'active' THEN true
+          WHEN g.game_state = 'active' 
+            AND (g.player_white_wallet = $1 OR g.player_black_wallet = $1)
+            AND g.created_at > NOW() - INTERVAL '24 hours'
+            AND COALESCE(move_stats.total_moves, 0) > 0
+          THEN true
           ELSE false
         END as "canReconnect",
         COALESCE(move_stats.total_moves, 0) as "totalMoves"
@@ -1661,6 +1665,192 @@ router.get('/users/:walletAddress/games', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch game history',
+      details: error.message 
+    });
+  }
+});
+
+// ========================================
+// GAME RECONNECTION
+// ========================================
+
+// Get complete game state for reconnection
+router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
+  try {
+    const { roomId, walletAddress } = req.params;
+    
+    console.log('🔄 Game reconnection requested:', { roomId, walletAddress });
+    
+    const pool = getPool();
+    
+    // Get game details with enhanced validation
+    const gameQuery = `
+      SELECT 
+        g.id,
+        g.room_id as "roomId",
+        g.player_white_wallet as "playerWhite",
+        g.player_black_wallet as "playerBlack",
+        g.stake_amount as "stakeAmount",
+        g.time_control as "timeControl",
+        g.time_limit as "timeLimit",
+        g.game_state as "gameState",
+        g.winner,
+        g.created_at as "createdAt",
+        g.started_at as "startedAt",
+        CASE 
+          WHEN g.player_white_wallet = $2 THEN 'white'
+          WHEN g.player_black_wallet = $2 THEN 'black'
+          ELSE null
+        END as "userColor",
+        CASE 
+          WHEN g.game_state = 'active' 
+            AND (g.player_white_wallet = $2 OR g.player_black_wallet = $2)
+            AND g.created_at > NOW() - INTERVAL '24 hours'
+          THEN true
+          ELSE false
+        END as "canReconnect"
+      FROM games g
+      WHERE g.room_id = $1
+    `;
+    
+    const gameResult = await pool.query(gameQuery, [roomId, walletAddress]);
+    
+    if (gameResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Game not found',
+        code: 'GAME_NOT_FOUND'
+      });
+    }
+    
+    const game = gameResult.rows[0];
+    
+    // Validate reconnection eligibility
+    if (!game.canReconnect) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot reconnect to this game',
+        code: 'RECONNECTION_NOT_ALLOWED',
+        details: {
+          gameState: game.gameState,
+          userColor: game.userColor,
+          isPlayer: game.userColor !== null
+        }
+      });
+    }
+    
+    // Get complete move history
+    const movesQuery = `
+      SELECT 
+        move_number,
+        player,
+        from_square,
+        to_square,
+        piece,
+        captured_piece,
+        move_notation,
+        time_spent,
+        is_check,
+        is_checkmate,
+        is_castle,
+        is_en_passant,
+        is_promotion,
+        promotion_piece,
+        created_at
+      FROM game_moves 
+      WHERE game_id = $1 
+      ORDER BY move_number ASC, created_at ASC
+    `;
+    
+    const movesResult = await pool.query(movesQuery, [game.id]);
+    
+    // Get room status from database
+    const roomQuery = `
+      SELECT 
+        status,
+        player1_wallet,
+        player2_wallet,
+        created_at,
+        updated_at
+      FROM rooms 
+      WHERE room_id = $1
+    `;
+    
+    const roomResult = await pool.query(roomQuery, [roomId]);
+    const room = roomResult.rows[0] || {};
+    
+    // Calculate current game state based on moves
+    const moves = movesResult.rows;
+    const lastMove = moves.length > 0 ? moves[moves.length - 1] : null;
+    const currentPlayer = moves.length % 2 === 0 ? 'white' : 'black';
+    
+    // Build FEN position by replaying moves (simplified for now)
+    const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    
+    // Calculate estimated time remaining (simplified)
+    const timeLimit = game.timeLimit || 1800; // Default 30 minutes
+    const gameStartTime = new Date(game.startedAt || game.createdAt).getTime();
+    const now = Date.now();
+    const elapsedTime = Math.floor((now - gameStartTime) / 1000);
+    
+    // Estimate time per player (rough calculation)
+    const whiteTime = Math.max(0, timeLimit - Math.floor(elapsedTime / 2));
+    const blackTime = Math.max(0, timeLimit - Math.floor(elapsedTime / 2));
+    
+    const gameStateResponse = {
+      // Game metadata
+      roomId: game.roomId,
+      gameId: game.id,
+      userColor: game.userColor,
+      playerRole: game.userColor,
+      betAmount: parseFloat(game.stakeAmount),
+      timeLimit: game.timeLimit,
+      
+      // Game state
+      gameActive: true,
+      currentPlayer,
+      winner: game.winner,
+      inCheck: lastMove?.is_check || false,
+      checkmate: lastMove?.is_checkmate || false,
+      draw: false,
+      
+      // Position and moves
+      position: startingFEN, // Frontend will need to reconstruct from moves
+      moveHistory: moves,
+      lastMove: lastMove ? {
+        from: lastMove.from_square,
+        to: lastMove.to_square,
+        piece: lastMove.piece,
+        capturedPiece: lastMove.captured_piece
+      } : null,
+      
+      // Timing
+      whiteTimeRemaining: whiteTime,
+      blackTimeRemaining: blackTime,
+      timerLastSync: now,
+      
+      // Room info
+      roomStatus: room.status || 'active',
+      createdAt: game.createdAt,
+      startedAt: game.startedAt
+    };
+    
+    console.log(`✅ Game reconnection data prepared for ${walletAddress} in ${roomId}`);
+    console.log(`🎯 User role: ${game.userColor}, Current player: ${currentPlayer}, Moves: ${moves.length}`);
+    
+    res.json({
+      success: true,
+      gameState: gameStateResponse,
+      canReconnect: true,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error preparing game reconnection:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to prepare game reconnection',
+      code: 'RECONNECTION_ERROR',
       details: error.message 
     });
   }

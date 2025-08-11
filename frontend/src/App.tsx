@@ -16,6 +16,7 @@ import { Header } from './components/Header';
 import { NotificationSystem, useNotifications } from './components/NotificationSystem';
 import { TermsPage } from './components/TermsPage';
 import GameHistory from './components/GameHistory';
+import { gameReconnectionService } from './services/gameReconnectionService';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -3733,13 +3734,168 @@ function ChessApp() {
               console.log('💰 Claiming winnings from dashboard:', roomId, stakeAmount);
               await claimWinnings(roomId, playerRole, 'win', false);
             }}
-            onReconnectGame={(roomId: string) => {
-              // 🚛 TOYOTA RECONNECTION: Navigate back to active game
-              console.log('🔄 Reconnecting to game:', roomId);
-              setRoomId(roomId);
-              setGameMode('game');
-              setGameStatus('Reconnecting to game...');
+            onReconnectGame={async (roomId: string) => {
+              // 🚛 TOYOTA RECONNECTION: Comprehensive game state restoration
+              console.log('🔄 Starting Toyota-level reconnection to game:', roomId);
+              
+              if (!publicKey) {
+                showError('Wallet not connected', 'Please connect your wallet to reconnect to games');
+                return;
+              }
+              
+              setGameStatus('🔄 Reconnecting to game...');
               setShowGameHistory(false);
+              
+              try {
+                // Step 1: Get complete game state from backend
+                const reconnectionResult = await gameReconnectionService.reconnectToGame(
+                  roomId, 
+                  publicKey.toString()
+                );
+                
+                if (!reconnectionResult.success) {
+                  console.error('❌ Reconnection failed:', reconnectionResult.error);
+                  
+                  // Show specific error messages
+                  if (reconnectionResult.code === 'GAME_NOT_FOUND') {
+                    showError('Game Not Found', 'This game no longer exists or has expired');
+                  } else if (reconnectionResult.code === 'RECONNECTION_NOT_ALLOWED') {
+                    showError('Cannot Reconnect', 'This game cannot be reconnected to (finished or inactive)');
+                  } else {
+                    showError('Reconnection Failed', reconnectionResult.error || 'Unknown error occurred');
+                  }
+                  
+                  setGameStatus('❌ Reconnection failed');
+                  return;
+                }
+                
+                const { gameState: restoredGameState, playerRole } = reconnectionResult;
+                
+                if (!restoredGameState || !playerRole) {
+                  showError('Invalid Game State', 'Received invalid game state from server');
+                  setGameStatus('❌ Invalid game state received');
+                  return;
+                }
+                
+                console.log('✅ Game state restored successfully!');
+                console.log(`🎯 Reconnecting as ${playerRole} to room ${roomId}`);
+                console.log(`📊 Position: ${restoredGameState.moveHistory.length} moves, Current: ${restoredGameState.currentPlayer}`);
+                
+                // Step 2: Restore complete game state
+                setRoomId(roomId);
+                setPlayerRole(playerRole as 'white' | 'black');
+                setBetAmount(restoredGameState.betAmount);
+                setTimeLimit(restoredGameState.timeLimit);
+                
+                // Step 3: Reconstruct game state from database moves
+                const frontendGameState = {
+                  position: {}, // Will be built from FEN
+                  currentPlayer: restoredGameState.currentPlayer,
+                  gameActive: restoredGameState.gameActive,
+                  winner: restoredGameState.winner,
+                  draw: restoredGameState.draw,
+                  inCheck: restoredGameState.inCheck,
+                  checkmate: restoredGameState.checkmate,
+                  selectedSquare: null,
+                  lastMove: restoredGameState.lastMove,
+                  moveHistory: restoredGameState.moveHistory.map(move => ({
+                    from: move.from_square,
+                    to: move.to_square,
+                    piece: move.piece,
+                    capturedPiece: move.captured_piece || undefined,
+                    moveNumber: move.move_number,
+                    player: move.player,
+                    notation: move.move_notation,
+                    timeSpent: move.time_spent || 0,
+                    isCheck: move.is_check || false,
+                    isCheckmate: move.is_checkmate || false,
+                    isCastle: move.is_castle || false,
+                    isEnPassant: move.is_en_passant || false,
+                    isPromotion: move.is_promotion || false,
+                    promotionPiece: move.promotion_piece || undefined,
+                    timestamp: new Date(move.created_at)
+                  })),
+                  whiteTimeRemaining: restoredGameState.whiteTimeRemaining,
+                  blackTimeRemaining: restoredGameState.blackTimeRemaining,
+                  timerLastSync: restoredGameState.timerLastSync,
+                  castlingRights: 'KQkq', // Will be updated from move replay
+                  enPassantTarget: null, // TODO: Reconstruct from moves
+                  halfmoveClock: 0, // TODO: Reconstruct from moves
+                  fullmoveNumber: Math.floor(restoredGameState.moveHistory.length / 2) + 1,
+                  lastUpdated: Date.now()
+                };
+                
+                // Step 4: Reconstruct position by replaying moves
+                try {
+                  // Start with initial position
+                  let reconstructedPosition = ChessEngine.getInitialPosition();
+                  let tempGameState = {
+                    currentPlayer: 'white' as 'white' | 'black',
+                    castlingRights: 'KQkq',
+                    enPassantTarget: null,
+                    halfmoveClock: 0,
+                    fullmoveNumber: 1,
+                    moveHistory: []
+                  };
+                  
+                  // Replay each move to reconstruct exact position
+                  for (const move of restoredGameState.moveHistory) {
+                    const moveResult = ChessEngine.makeMove(
+                      move.from_square, 
+                      move.to_square, 
+                      reconstructedPosition, 
+                      tempGameState
+                    );
+                    
+                    if (moveResult) {
+                      reconstructedPosition = moveResult.position;
+                      tempGameState = {
+                        ...tempGameState,
+                        ...moveResult.gameState,
+                        currentPlayer: tempGameState.currentPlayer === 'white' ? 'black' : 'white'
+                      };
+                    }
+                  }
+                  
+                  frontendGameState.position = reconstructedPosition;
+                  frontendGameState.castlingRights = tempGameState.castlingRights;
+                  frontendGameState.enPassantTarget = tempGameState.enPassantTarget;
+                  frontendGameState.halfmoveClock = tempGameState.halfmoveClock;
+                  
+                  console.log('✅ Chess position reconstructed from move replay');
+                } catch (replayError) {
+                  console.error('❌ Failed to reconstruct position from moves:', replayError);
+                  showError('Position Error', 'Failed to reconstruct board position from moves');
+                  setGameStatus('❌ Position reconstruction failed');
+                  return;
+                }
+                
+                // Step 5: Set the restored game state
+                setGameState(frontendGameState);
+                
+                // Step 6: Switch to game mode
+                setGameMode('game');
+                
+                // Step 7: WebSocket will reconnect automatically when moves are made
+                // The existing WebSocket service will handle reconnection as needed
+                console.log('🔌 WebSocket will reconnect automatically for real-time sync');
+                
+                // Step 8: Success notification and status
+                showSuccess('Reconnected Successfully!', 
+                  `Rejoined game as ${playerRole}. ${restoredGameState.moveHistory.length} moves restored.`
+                );
+                
+                setGameStatus(`🔄 Reconnected as ${playerRole}! Game resumed.`);
+                
+                console.log('🚛 Toyota-level reconnection complete! Game fully restored.');
+                
+              } catch (error) {
+                console.error('❌ Unexpected reconnection error:', error);
+                showError('Reconnection Error', 
+                  error instanceof Error ? error.message : 'An unexpected error occurred'
+                );
+                setGameStatus('❌ Reconnection failed');
+              }
             }}
             onClose={() => setShowGameHistory(false)}
           />

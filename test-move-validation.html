@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Move Validation</title>
+</head>
+<body>
+    <h1>Test Move Validation</h1>
+    <div id="status">Testing...</div>
+    <div id="results"></div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        const socket = io('https://knightsbridge-app-35xls.ondigitalocean.app');
+        const status = document.getElementById('status');
+        const results = document.getElementById('results');
+
+        function log(message) {
+            console.log(message);
+            results.innerHTML += `<div>${message}</div>`;
+        }
+
+        socket.on('connect', () => {
+            log('✅ Connected to backend');
+            status.textContent = 'Connected - Testing moves...';
+
+            // Test the failing moves from your game
+            const testRoomId = 'ROOM-A854L6S6R'; // Your game room
+            
+            // Test 1: Knight move b1-c3 (should be legal)
+            setTimeout(() => {
+                log('🧪 Testing b1-c3 (knight move)...');
+                socket.emit('makeMove', {
+                    gameId: testRoomId,
+                    move: {
+                        from: 'b1',
+                        to: 'c3',
+                        piece: 'white-knight'
+                    },
+                    playerId: 'test-player-1',
+                    color: 'white',
+                    moveId: 'test-move-1'
+                });
+            }, 1000);
+
+            // Test 2: Queen move d1-h5 (should be legal)
+            setTimeout(() => {
+                log('🧪 Testing d1-h5 (queen move)...');
+                socket.emit('makeMove', {
+                    gameId: testRoomId,
+                    move: {
+                        from: 'd1',
+                        to: 'h5',
+                        piece: 'white-queen'
+                    },
+                    playerId: 'test-player-2',
+                    color: 'white',
+                    moveId: 'test-move-2'
+                });
+            }, 2000);
+        });
+
+        socket.on('moveConfirmed', (data) => {
+            log(`✅ Move confirmed: ${JSON.stringify(data)}`);
+        });
+
+        socket.on('moveError', (data) => {
+            log(`❌ Move error: ${JSON.stringify(data)}`);
+        });
+
+        socket.on('disconnect', () => {
+            log('❌ Disconnected from backend');
+            status.textContent = 'Disconnected';
+        });
+
+        socket.on('connect_error', (error) => {
+            log(`❌ Connection error: ${error.message}`);
+            status.textContent = 'Connection failed';
+        });
+    </script>
+</body>
+</html>
