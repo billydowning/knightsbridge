@@ -197,7 +197,7 @@ class GameReconnectionService {
       let currentPosition = ChessEngine.getInitialPosition();
       let currentGameState = {
         currentPlayer: 'white' as 'white' | 'black',
-        castlingRights: { K: true, Q: true, k: true, q: true },
+        castlingRights: 'KQkq',
         enPassantTarget: null,
         halfmoveClock: 0,
         fullmoveNumber: 1,
@@ -229,20 +229,24 @@ class GameReconnectionService {
         }
         
         // Apply the move
-        const moveResult = ChessEngine.makeMove(currentPosition, fromSquare, toSquare, currentGameState);
-        if (moveResult.success) {
-          currentPosition = moveResult.newPosition;
-          currentGameState = moveResult.newGameState;
+        const moveResult = ChessEngine.makeMove(fromSquare, toSquare, currentPosition, currentGameState);
+        if (moveResult) {
+          currentPosition = moveResult.position;
+          currentGameState = {
+            ...currentGameState,
+            ...moveResult.gameState,
+            currentPlayer: currentGameState.currentPlayer === 'white' ? 'black' : 'white'
+          };
           
           console.log(`✅ Applied move ${move.move_number}: ${fromSquare}-${toSquare} (${move.piece})`);
         } else {
-          console.warn(`⚠️ Failed to apply move ${move.move_number}: ${fromSquare}-${toSquare}`, moveResult.error);
+          console.warn(`⚠️ Failed to apply move ${move.move_number}: ${fromSquare}-${toSquare}`);
           // Continue with best effort reconstruction
         }
       }
       
       // Convert to FEN string
-      const fenPosition = ChessEngine.positionToFEN(currentPosition, currentGameState);
+      const fenPosition = ChessEngine.positionToFEN(currentPosition);
       
       console.log('✅ Position reconstruction complete!');
       console.log(`🎯 Final FEN: ${fenPosition}`);
