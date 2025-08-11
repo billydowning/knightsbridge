@@ -313,14 +313,17 @@ class BackendChessEngine {
     }
   }
 
-  // Check if color has any legal moves (simplified)
+  // Check if color has any legal moves (comprehensive)
   hasLegalMoves(color) {
     for (const [square, piece] of Object.entries(this.position)) {
       if (piece && piece.startsWith(color)) {
-        // Check a few random squares for legal moves (simplified)
-        for (const targetSquare of ['a1', 'a8', 'h1', 'h8', 'e4', 'd4']) {
-          if (this.isMoveLegal(square, targetSquare, piece)) {
-            return true;
+        // Check ALL squares on the board for legal moves
+        for (let file = 0; file < 8; file++) {
+          for (let rank = 1; rank <= 8; rank++) {
+            const targetSquare = String.fromCharCode(97 + file) + rank;
+            if (this.isMoveLegal(square, targetSquare, piece)) {
+              return true;
+            }
           }
         }
       }
