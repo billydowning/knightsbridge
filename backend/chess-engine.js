@@ -126,7 +126,7 @@ class BackendChessEngine {
     return fen;
   }
 
-  // Check if a move is legal
+  // Check if a move is legal (with proper piece movement validation)
   isMoveLegal(from, to, piece) {
     try {
       // Basic validation
@@ -136,6 +136,11 @@ class BackendChessEngine {
 
       const pieceColor = piece.split('-')[0];
       if (pieceColor !== this.gameState.currentPlayer) {
+        return false;
+      }
+
+      // CRITICAL: Check if the piece can actually make this move geometrically
+      if (!this.canPieceMoveToSquare(from, to, piece)) {
         return false;
       }
 
@@ -158,6 +163,115 @@ class BackendChessEngine {
       console.error('❌ Error checking move legality:', error);
       return false;
     }
+  }
+
+  // Check if a piece can geometrically move to a target square
+  canPieceMoveToSquare(from, to, piece) {
+    if (from === to) return false;
+    
+    const [fromFile, fromRank] = this.squareToCoords(from);
+    const [toFile, toRank] = this.squareToCoords(to);
+    const pieceType = piece.split('-')[1];
+    const pieceColor = piece.split('-')[0];
+    
+    switch (pieceType) {
+      case 'pawn':
+        return this.canPawnMove(fromFile, fromRank, toFile, toRank, pieceColor);
+      case 'rook':
+        return this.canRookMove(fromFile, fromRank, toFile, toRank);
+      case 'bishop':
+        return this.canBishopMove(fromFile, fromRank, toFile, toRank);
+      case 'knight':
+        return this.canKnightMove(fromFile, fromRank, toFile, toRank);
+      case 'queen':
+        return this.canQueenMove(fromFile, fromRank, toFile, toRank);
+      case 'king':
+        return this.canKingMove(fromFile, fromRank, toFile, toRank);
+      default:
+        return false;
+    }
+  }
+
+  // Helper functions for piece movement validation
+  squareToCoords(square) {
+    const file = square.charCodeAt(0) - 97; // a=0, b=1, etc.
+    const rank = parseInt(square[1]) - 1;   // 1=0, 2=1, etc.
+    return [file, rank];
+  }
+
+  canPawnMove(fromFile, fromRank, toFile, toRank, color) {
+    const direction = color === 'white' ? 1 : -1;
+    const startRank = color === 'white' ? 1 : 6;
+    
+    // Forward moves
+    if (fromFile === toFile) {
+      // Single move forward
+      if (toRank === fromRank + direction) {
+        return !this.position[this.coordsToSquare(toFile, toRank)];
+      }
+      // Double move from start
+      if (fromRank === startRank && toRank === fromRank + 2 * direction) {
+        return !this.position[this.coordsToSquare(toFile, toRank)];
+      }
+    }
+    // Diagonal captures
+    else if (Math.abs(fromFile - toFile) === 1 && toRank === fromRank + direction) {
+      const targetSquare = this.coordsToSquare(toFile, toRank);
+      const targetPiece = this.position[targetSquare];
+      return targetPiece && targetPiece.split('-')[0] !== color;
+    }
+    
+    return false;
+  }
+
+  canRookMove(fromFile, fromRank, toFile, toRank) {
+    if (fromFile !== toFile && fromRank !== toRank) return false;
+    return this.isPathClear(fromFile, fromRank, toFile, toRank);
+  }
+
+  canBishopMove(fromFile, fromRank, toFile, toRank) {
+    if (Math.abs(fromFile - toFile) !== Math.abs(fromRank - toRank)) return false;
+    return this.isPathClear(fromFile, fromRank, toFile, toRank);
+  }
+
+  canKnightMove(fromFile, fromRank, toFile, toRank) {
+    const fileDiff = Math.abs(fromFile - toFile);
+    const rankDiff = Math.abs(fromRank - toRank);
+    return (fileDiff === 2 && rankDiff === 1) || (fileDiff === 1 && rankDiff === 2);
+  }
+
+  canQueenMove(fromFile, fromRank, toFile, toRank) {
+    return this.canRookMove(fromFile, fromRank, toFile, toRank) || 
+           this.canBishopMove(fromFile, fromRank, toFile, toRank);
+  }
+
+  canKingMove(fromFile, fromRank, toFile, toRank) {
+    const fileDiff = Math.abs(fromFile - toFile);
+    const rankDiff = Math.abs(fromRank - toRank);
+    return fileDiff <= 1 && rankDiff <= 1;
+  }
+
+  coordsToSquare(file, rank) {
+    if (file < 0 || file > 7 || rank < 0 || rank > 7) return null;
+    return String.fromCharCode(97 + file) + (rank + 1);
+  }
+
+  isPathClear(fromFile, fromRank, toFile, toRank) {
+    const fileStep = Math.sign(toFile - fromFile);
+    const rankStep = Math.sign(toRank - fromRank);
+    
+    let currentFile = fromFile + fileStep;
+    let currentRank = fromRank + rankStep;
+    
+    while (currentFile !== toFile || currentRank !== toRank) {
+      const square = this.coordsToSquare(currentFile, currentRank);
+      if (square && this.position[square]) return false;
+      
+      currentFile += fileStep;
+      currentRank += rankStep;
+    }
+    
+    return true;
   }
 
   // Make a move and update position
@@ -269,13 +383,21 @@ class BackendChessEngine {
   }
 
   canRookAttack(from, to) {
-    return from[0] === to[0] || from[1] === to[1];
+    if (from[0] !== to[0] && from[1] !== to[1]) return false;
+    // Check if path is clear
+    const [fromFile, fromRank] = this.squareToCoords(from);
+    const [toFile, toRank] = this.squareToCoords(to);
+    return this.isPathClear(fromFile, fromRank, toFile, toRank);
   }
 
   canBishopAttack(from, to) {
-    const fileDiff = Math.abs(from.charCodeAt(0) - to.charCodeAt(0));
-    const rankDiff = Math.abs(parseInt(from[1]) - parseInt(to[1]));
-    return fileDiff === rankDiff;
+    const [fromFile, fromRank] = this.squareToCoords(from);
+    const [toFile, toRank] = this.squareToCoords(to);
+    const fileDiff = Math.abs(fromFile - toFile);
+    const rankDiff = Math.abs(fromRank - toRank);
+    if (fileDiff !== rankDiff) return false;
+    // Check if path is clear
+    return this.isPathClear(fromFile, fromRank, toFile, toRank);
   }
 
   canQueenAttack(from, to) {
@@ -313,7 +435,7 @@ class BackendChessEngine {
     }
   }
 
-  // Check if color has any legal moves (comprehensive)
+  // Check if color has any legal moves (comprehensive with check constraint)
   hasLegalMoves(color) {
     for (const [square, piece] of Object.entries(this.position)) {
       if (piece && piece.startsWith(color)) {
@@ -321,8 +443,28 @@ class BackendChessEngine {
         for (let file = 0; file < 8; file++) {
           for (let rank = 1; rank <= 8; rank++) {
             const targetSquare = String.fromCharCode(97 + file) + rank;
+            
+            // Basic move legality check
             if (this.isMoveLegal(square, targetSquare, piece)) {
-              return true;
+              // CRITICAL: Simulate the move and check if king is still in check
+              // This matches the frontend's getLegalMoves logic
+              const originalPosition = { ...this.position };
+              const capturedPiece = this.position[targetSquare];
+              
+              // Simulate the move
+              this.position[targetSquare] = piece;
+              delete this.position[square];
+              
+              // Check if this move leaves own king in check (illegal move)
+              const stillInCheck = this.isInCheck(color);
+              
+              // Restore original position
+              this.position = originalPosition;
+              
+              // If the move gets the king out of check, it's a legal move
+              if (!stillInCheck) {
+                return true;
+              }
             }
           }
         }

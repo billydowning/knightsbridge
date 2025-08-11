@@ -4,12 +4,14 @@
  */
 
 const crypto = require('crypto');
+const FrontendChessEngineAdapter = require('./frontend-chess-engine-adapter');
 
 class GameValidator {
-  constructor(pool, chessEngine) {
+  constructor(pool, chessEngine = null) {
     this.pool = pool;
-    this.chessEngine = chessEngine;
-    this.version = '1.0';
+    // Use the frontend chess engine adapter for reliable validation
+    this.chessEngine = new FrontendChessEngineAdapter();
+    this.version = '1.1'; // Updated to use frontend engine
   }
 
   /**
