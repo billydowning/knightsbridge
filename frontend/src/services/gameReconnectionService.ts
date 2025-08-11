@@ -161,8 +161,8 @@ class GameReconnectionService {
    */
   private validateGameState(gameState: ReconnectionGameState, walletAddress: string): { valid: boolean; error?: string } {
     // Check required fields
-    if (!gameState.roomId || !gameState.userColor || !gameState.playerRole) {
-      return { valid: false, error: 'Missing required game state fields' };
+    if (!gameState.roomId || !gameState.userColor || !gameState.playerRole || !gameState.currentPlayer) {
+      return { valid: false, error: 'Missing required game state fields (roomId, userColor, playerRole, or currentPlayer)' };
     }
     
     // Validate user role
