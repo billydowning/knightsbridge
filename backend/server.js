@@ -2196,7 +2196,6 @@ io.on('connection', (socket) => {
       const validation = { valid: true, reason: 'Frontend validated' };
 
       // Anti-cheating analysis (simplified for reliability)
-      const currentMoveCount = gameState.move_count || 0;
       const analysis = security.analyzeMoveQuality(move, {}, []); // Empty position for now, TODO: post-game analysis
       
       if (analysis.suspicious) {
@@ -2241,7 +2240,13 @@ io.on('connection', (socket) => {
       }
       
       const gameUUID = gameResult.rows[0].id;
-      const moveCount = currentMoveCount + 1;
+      
+      // 🚛 TOYOTA FIX: Use database to atomically get next move number to prevent race conditions
+      const moveCountResult = await poolInstance.query(
+        'SELECT COALESCE(MAX(move_number), 0) + 1 as next_move_number FROM game_moves WHERE game_id = $1',
+        [gameUUID]
+      );
+      const moveCount = moveCountResult.rows[0].next_move_number;
       
       // Store in game_moves table with proper structure
       console.log(`🔧 About to store move: gameUUID=${gameUUID}, moveCount=${moveCount}, color=${color}, piece=${piece}`);
@@ -2334,7 +2339,22 @@ io.on('connection', (socket) => {
       console.error('❌ Error processing move:', error);
       console.error('❌ Error stack:', error.stack);
       console.error('❌ Error details:', JSON.stringify(error, null, 2));
-              socket.emit('moveError', { gameId, moveId, error: 'Failed to process move' });
+      console.error('❌ Move data that failed:', JSON.stringify({ gameId, move, playerId, color, moveId }, null, 2));
+      
+      // 🚛 TOYOTA: Detailed database error logging for debugging move failures
+      if (error.code) {
+        console.error(`❌ Database error code: ${error.code}`);
+        console.error(`❌ Database error detail: ${error.detail}`);
+        console.error(`❌ Database constraint: ${error.constraint}`);
+      }
+      
+      socket.emit('moveError', { 
+        gameId, 
+        moveId, 
+        error: 'Failed to process move',
+        details: error.message,
+        code: error.code 
+      });
     }
   });
 
