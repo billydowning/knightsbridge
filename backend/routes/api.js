@@ -1582,6 +1582,13 @@ router.get('/users/:walletAddress/games', async (req, res) => {
             AND (g.player_white_wallet = $1 OR g.player_black_wallet = $1)
             AND g.created_at > NOW() - INTERVAL '24 hours'
             AND COALESCE(move_stats.total_moves, 0) > 0
+            AND g.created_at = (
+              SELECT MAX(g2.created_at) 
+              FROM games g2 
+              WHERE g2.game_state = 'active' 
+                AND (g2.player_white_wallet = $1 OR g2.player_black_wallet = $1)
+                AND g2.created_at > NOW() - INTERVAL '24 hours'
+            )
           THEN true
           ELSE false
         END as "canReconnect",
