@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚛 Toyota Move Persistence Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #cccccc; cursor: not-allowed; }
+        #logs {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .move-stat {
+            display: inline-block;
+            margin: 5px 10px;
+            padding: 5px 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚛 Toyota Move Persistence Test</h1>
+        <p>This page tests the move persistence system to ensure NO MOVES ARE LOST during disconnections.</p>
+        
+        <div class="status info">
+            <strong>Test Game Room:</strong> <span id="roomId">ROOM-PERSISTENCE-TEST</span>
+        </div>
+        
+        <div id="stats">
+            <h3>Move Persistence Stats:</h3>
+            <div class="move-stat">Confirmed: <span id="confirmedMoves">0</span></div>
+            <div class="move-stat">Pending: <span id="pendingMoves">0</span></div>
+            <div class="move-stat">Failed: <span id="failedMoves">0</span></div>
+            <div class="move-stat">Connected: <span id="connected">❌</span></div>
+        </div>
+        
+        <div>
+            <h3>Test Actions:</h3>
+            <button onclick="simulateMove()">📝 Simulate Move</button>
+            <button onclick="simulateDisconnection()">🔌 Simulate Disconnection</button>
+            <button onclick="reconnect()">🔄 Reconnect</button>
+            <button onclick="clearLogs()">🗑️ Clear Logs</button>
+            <button onclick="clearPersistence()">💀 Clear Persistence Data</button>
+        </div>
+        
+        <div id="logs"></div>
+    </div>
+
+    <script type="module">
+        // Import the move persistence service
+        import { movePersistenceService } from './frontend/src/services/movePersistence.js';
+        
+        const roomId = 'ROOM-PERSISTENCE-TEST';
+        const playerId = 'test-player-12345';
+        let moveCounter = 1;
+        let disconnected = false;
+        
+        // Mock WebSocket service for testing
+        class MockWebSocketService {
+            constructor() {
+                this.connected = true;
+                this.moveHandlers = [];
+            }
+            
+            isConnected() {
+                return this.connected;
+            }
+            
+            makeMove(gameId, move, playerId, color) {
+                const moveId = movePersistenceService.recordPendingMove(gameId, move, playerId, color);
+                
+                if (!this.connected) {
+                    log(`🔌 Move queued (disconnected): ${move.from}-${move.to} (ID: ${moveId})`);
+                    return moveId;
+                }
+                
+                // Simulate network delay
+                setTimeout(() => {
+                    if (Math.random() > 0.1) { // 90% success rate
+                        // Simulate successful move
+                        movePersistenceService.confirmMove(gameId, moveId, moveCounter);
+                        log(`✅ Move confirmed: ${move.from}-${move.to} (ID: ${moveId})`);
+                    } else {
+                        // Simulate failed move
+                        movePersistenceService.markMoveFailed(gameId, moveId, 'Network error');
+                        log(`❌ Move failed: ${move.from}-${move.to} (ID: ${moveId})`);
+                    }
+                    updateStats();
+                }, Math.random() * 1000 + 500);
+                
+                log(`🚀 Move sent: ${move.from}-${move.to} (ID: ${moveId})`);
+                return moveId;
+            }
+            
+            disconnect() {
+                this.connected = false;
+                log(`🔌 WebSocket disconnected`);
+                updateStats();
+            }
+            
+            connect() {
+                this.connected = true;
+                log(`🔌 WebSocket connected`);
+                
+                // Retry pending moves
+                const pendingMoves = movePersistenceService.getPendingMoves(roomId);
+                log(`🔄 Retrying ${pendingMoves.length} pending moves`);
+                
+                pendingMoves.forEach(pendingMove => {
+                    setTimeout(() => {
+                        if (Math.random() > 0.2) { // 80% success rate on retry
+                            movePersistenceService.confirmMove(roomId, pendingMove.id, moveCounter++);
+                            log(`✅ Retry successful: ${pendingMove.move.from}-${pendingMove.move.to}`);
+                        } else {
+                            movePersistenceService.markMoveFailed(roomId, pendingMove.id, 'Retry failed');
+                            log(`❌ Retry failed: ${pendingMove.move.from}-${pendingMove.move.to}`);
+                        }
+                        updateStats();
+                    }, Math.random() * 2000 + 500);
+                });
+                
+                updateStats();
+            }
+        }
+        
+        const webSocketService = new MockWebSocketService();
+        
+        // Helper functions
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('logs');
+            logElement.innerHTML += `${timestamp}: ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function updateStats() {
+            const stats = movePersistenceService.getGameStats(roomId);
+            document.getElementById('confirmedMoves').textContent = stats.confirmedMoves;
+            document.getElementById('pendingMoves').textContent = stats.pendingMoves;
+            document.getElementById('failedMoves').textContent = stats.failedMoves;
+            document.getElementById('connected').textContent = webSocketService.isConnected() ? '✅' : '❌';
+        }
+        
+        // Test functions
+        window.simulateMove = function() {
+            const squares = ['a1', 'a2', 'a3', 'b1', 'b2', 'b3', 'c1', 'c2', 'c3'];
+            const from = squares[Math.floor(Math.random() * squares.length)];
+            const to = squares[Math.floor(Math.random() * squares.length)];
+            const piece = ['white-pawn', 'white-knight', 'white-bishop', 'white-rook', 'white-queen'][Math.floor(Math.random() * 5)];
+            
+            const move = { from, to, piece };
+            const color = moveCounter % 2 === 1 ? 'white' : 'black';
+            
+            webSocketService.makeMove(roomId, move, playerId, color);
+            moveCounter++;
+            updateStats();
+        };
+        
+        window.simulateDisconnection = function() {
+            webSocketService.disconnect();
+        };
+        
+        window.reconnect = function() {
+            webSocketService.connect();
+        };
+        
+        window.clearLogs = function() {
+            document.getElementById('logs').innerHTML = '';
+        };
+        
+        window.clearPersistence = function() {
+            movePersistenceService.clearGameData(roomId);
+            log(`💀 Persistence data cleared for ${roomId}`);
+            updateStats();
+        };
+        
+        // Initialize
+        log(`🚛 Toyota Move Persistence Test initialized`);
+        log(`📋 Room ID: ${roomId}`);
+        log(`👤 Player ID: ${playerId}`);
+        updateStats();
+    </script>
+</body>
+</html>
