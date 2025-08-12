@@ -3849,6 +3849,16 @@ function ChessApp() {
                         castlingRights: currentGameState.castlingRights
                       });
                       
+                      // Debug: Check color derivation methods
+                      const pieceAtSquare = currentPosition[move.from_square];
+                      const colorFromPiece = ChessEngine.getPieceColor(pieceAtSquare);
+                      const colorFromMoveData = move.piece.includes('white') ? 'white' : 'black';
+                      console.log(`🔍 Piece at square: "${pieceAtSquare}"`);
+                      console.log(`🔍 Color from piece: "${colorFromPiece}"`);
+                      console.log(`🔍 Color from move data: "${colorFromMoveData}"`);
+                      console.log(`🔍 Move data piece: "${move.piece}"`);
+                      console.log(`🔍 Current player in gameState: "${currentGameState.currentPlayer}"`);
+                      
                       const moveResult = ChessEngine.makeMove(
                         move.from_square, 
                         move.to_square, 
