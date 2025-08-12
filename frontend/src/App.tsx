@@ -716,19 +716,53 @@ function ChessApp() {
                 draw: savedGameState.draw ?? prev.draw
               }));
             } else {
-              // Normal case: use server state including position
-              const ensuredGameState = {
-                ...savedGameState,
-                castlingRights: savedGameState.castlingRights ?? 'KQkq',
-                enPassantTarget: savedGameState.enPassantTarget ?? null,
-                halfmoveClock: savedGameState.halfmoveClock ?? 0,
-                fullmoveNumber: savedGameState.fullmoveNumber ?? 1,
-                inCheck: savedGameState.inCheck ?? false,
-                inCheckmate: savedGameState.inCheckmate ?? false,
-                moveHistory: Array.isArray(savedGameState.moveHistory) ? savedGameState.moveHistory : [],
-                lastMove: savedGameState.lastMove ?? null
-              } as any;
-              setGameState(ensuredGameState);
+              // Check if incoming position is empty (64 squares with empty strings)
+              const incomingPositionIsEmpty = savedGameState.position && 
+                Object.keys(savedGameState.position).length === 64 &&
+                Object.values(savedGameState.position).every((piece: any) => piece === '' || piece === null || piece === undefined);
+              
+              console.log('🔍 Server state analysis:', {
+                incomingPositionIsEmpty,
+                incomingPositionKeys: savedGameState.position ? Object.keys(savedGameState.position).length : 0,
+                sampleIncoming: savedGameState.position ? {
+                  e4: savedGameState.position.e4,
+                  e5: savedGameState.position.e5,
+                  d4: savedGameState.position.d4,
+                  d5: savedGameState.position.d5
+                } : null
+              });
+              
+              if (incomingPositionIsEmpty && hasPosition) {
+                console.log('🚛 Toyota Protection: Server sent empty position, keeping current position');
+                // Don't overwrite with empty position - use server data but keep current position
+                const ensuredGameState = {
+                  ...savedGameState,
+                  position: currentGameState.position,  // Keep current position
+                  castlingRights: savedGameState.castlingRights ?? 'KQkq',
+                  enPassantTarget: savedGameState.enPassantTarget ?? null,
+                  halfmoveClock: savedGameState.halfmoveClock ?? 0,
+                  fullmoveNumber: savedGameState.fullmoveNumber ?? 1,
+                  inCheck: savedGameState.inCheck ?? false,
+                  inCheckmate: savedGameState.inCheckmate ?? false,
+                  moveHistory: Array.isArray(savedGameState.moveHistory) ? savedGameState.moveHistory : [],
+                  lastMove: savedGameState.lastMove ?? null
+                } as any;
+                setGameState(ensuredGameState);
+              } else {
+                // Normal case: use server state including position
+                const ensuredGameState = {
+                  ...savedGameState,
+                  castlingRights: savedGameState.castlingRights ?? 'KQkq',
+                  enPassantTarget: savedGameState.enPassantTarget ?? null,
+                  halfmoveClock: savedGameState.halfmoveClock ?? 0,
+                  fullmoveNumber: savedGameState.fullmoveNumber ?? 1,
+                  inCheck: savedGameState.inCheck ?? false,
+                  inCheckmate: savedGameState.inCheckmate ?? false,
+                  moveHistory: Array.isArray(savedGameState.moveHistory) ? savedGameState.moveHistory : [],
+                  lastMove: savedGameState.lastMove ?? null
+                } as any;
+                setGameState(ensuredGameState);
+              }
             }
             setGameStatus('Game state loaded successfully');
           } else {
