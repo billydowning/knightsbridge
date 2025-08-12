@@ -522,7 +522,8 @@ function ChessApp() {
       return {
         ...newGameState,
         position: currentGameState.position,  // Keep our reconstructed position
-        currentPlayer: currentGameState.currentPlayer  // Keep our reconstructed currentPlayer
+        currentPlayer: currentGameState.currentPlayer,  // Keep our reconstructed currentPlayer
+        moveHistory: currentGameState.moveHistory  // Keep our reconstructed moveHistory
       };
     }
     
@@ -531,7 +532,8 @@ function ChessApp() {
       console.log('🚛 PROTECTED Toyota Protection: Preserving reconstructed currentPlayer');
       return {
         ...newGameState,
-        currentPlayer: currentGameState.currentPlayer  // Keep our reconstructed currentPlayer
+        currentPlayer: currentGameState.currentPlayer,  // Keep our reconstructed currentPlayer
+        moveHistory: currentGameState.moveHistory  // Keep our reconstructed moveHistory
       };
     }
     
