@@ -214,6 +214,14 @@ class WebSocketService {
   // Public methods
   public on<T extends keyof WebSocketEvents>(event: T, handler: WebSocketEvents[T]) {
     this.eventHandlers[event] = handler;
+    
+    // 🚛 CRITICAL FIX: Actually register the handler with the socket
+    if (this.socket && this.socket.connected) {
+      console.log(`🔌 Registering ${event} handler with socket`);
+      this.socket.on(event as string, handler as any);
+    } else {
+      console.warn(`⚠️ Cannot register ${event} handler - socket not connected`);
+    }
   }
 
   public off<T extends keyof WebSocketEvents>(event: T) {
