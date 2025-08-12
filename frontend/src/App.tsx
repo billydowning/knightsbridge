@@ -677,8 +677,24 @@ function ChessApp() {
             
             // Toyota reliability: Don't overwrite position if we just reconstructed it from reconnection
             const currentGameState = gameState;
-            const hasReconstructedPosition = currentGameState.position && 
-              Object.keys(currentGameState.position).length > 32; // More than just starting position
+            const hasPosition = currentGameState.position && typeof currentGameState.position === 'object';
+            const positionKeys = hasPosition ? Object.keys(currentGameState.position) : [];
+            const positionKeyCount = positionKeys.length;
+            
+            // Check if we have a reconstructed position (should have pieces at e4, e5, d4, d5 but not e2, e7, d2, d7)
+            const hasReconstructedPosition = hasPosition && 
+              (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' || 
+               currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
+            
+            console.log('🔍 Toyota protection check:', {
+              hasPosition, 
+              positionKeyCount, 
+              hasReconstructedPosition,
+              e4: currentGameState.position?.e4,
+              e5: currentGameState.position?.e5,
+              d4: currentGameState.position?.d4,
+              d5: currentGameState.position?.d5
+            });
             
             if (hasReconstructedPosition) {
               console.log('🚛 Toyota protection: Preserving reconstructed position, only updating other fields');
