@@ -525,7 +525,11 @@ function ChessApp() {
         ...newGameState,
         position: currentGameState.position,  // Keep our reconstructed position
         currentPlayer: currentGameState.currentPlayer,  // Keep our reconstructed currentPlayer
-        moveHistory: currentGameState.moveHistory  // Keep our reconstructed moveHistory
+        moveHistory: currentGameState.moveHistory,  // Keep our reconstructed moveHistory
+        fullmoveNumber: currentGameState.fullmoveNumber,  // Keep our reconstructed fullmoveNumber
+        halfmoveClock: currentGameState.halfmoveClock,  // Keep our reconstructed halfmoveClock
+        castlingRights: currentGameState.castlingRights,  // Keep our reconstructed castlingRights
+        enPassantTarget: currentGameState.enPassantTarget  // Keep our reconstructed enPassantTarget
       };
     }
     
@@ -539,7 +543,11 @@ function ChessApp() {
       return {
         ...newGameState,
         currentPlayer: currentGameState.currentPlayer,  // Keep our reconstructed currentPlayer
-        moveHistory: currentGameState.moveHistory  // Keep our reconstructed moveHistory
+        moveHistory: currentGameState.moveHistory,  // Keep our reconstructed moveHistory
+        fullmoveNumber: currentGameState.fullmoveNumber,  // Keep our reconstructed fullmoveNumber
+        halfmoveClock: currentGameState.halfmoveClock,  // Keep our reconstructed halfmoveClock
+        castlingRights: currentGameState.castlingRights,  // Keep our reconstructed castlingRights
+        enPassantTarget: currentGameState.enPassantTarget  // Keep our reconstructed enPassantTarget
       };
     }
     
