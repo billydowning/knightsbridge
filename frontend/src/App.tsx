@@ -481,20 +481,26 @@ function ChessApp() {
   const setGameState = protectedSetGameState;
   const gameState = gameStateInternal;
 
-  // Toyota protection: prevent any empty position from overwriting reconstructed position
+  // Toyota protection: prevent any position from overwriting reconstructed position
   const protectReconstructedPosition = (newGameState: any, currentGameState: any): any => {
-    // If we have a reconstructed position, don't let empty positions overwrite it
+    // If we have a reconstructed position, don't let any 64-square position overwrite it
     const hasReconstructedPosition = currentGameState.position &&
+      Object.keys(currentGameState.position).length === 32 &&
       (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' ||
        currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
        
-    const incomingPositionIsEmpty = newGameState.position && 
-      Object.keys(newGameState.position).length === 64 &&
-      Object.values(newGameState.position).every((piece: any) => piece === '' || piece === null || piece === undefined);
+    const incomingPositionIs64Square = newGameState.position && 
+      Object.keys(newGameState.position).length === 64;
+      
+    // Check if incoming position would overwrite our moves
+    const incomingPositionLosesMoves = incomingPositionIs64Square && hasReconstructedPosition &&
+      (newGameState.position.e4 !== 'white-pawn' || newGameState.position.e5 !== 'black-pawn' ||
+       newGameState.position.d4 !== 'white-pawn' || newGameState.position.d5 !== 'black-pawn');
     
     console.log('🔍 PROTECTED Toyota Protection Check:', {
       hasReconstructedPosition,
-      incomingPositionIsEmpty,
+      incomingPositionIs64Square,
+      incomingPositionLosesMoves,
       incomingPositionKeys: newGameState.position ? Object.keys(newGameState.position).length : 0,
       currentPositionKeys: currentGameState.position ? Object.keys(currentGameState.position).length : 0,
       sampleIncoming: newGameState.position ? {
@@ -502,11 +508,17 @@ function ChessApp() {
         e5: newGameState.position.e5,
         d4: newGameState.position.d4,
         d5: newGameState.position.d5
+      } : null,
+      sampleCurrent: currentGameState.position ? {
+        e4: currentGameState.position.e4,
+        e5: currentGameState.position.e5,
+        d4: currentGameState.position.d4,
+        d5: currentGameState.position.d5
       } : null
     });
     
-    if (hasReconstructedPosition && incomingPositionIsEmpty) {
-      console.log('🚛 PROTECTED Toyota Protection: Blocking empty position overwrite of reconstructed position');
+    if (hasReconstructedPosition && incomingPositionLosesMoves) {
+      console.log('🚛 PROTECTED Toyota Protection: Blocking 64-square position that would lose our reconstructed moves');
       return {
         ...newGameState,
         position: currentGameState.position  // Keep our reconstructed position
