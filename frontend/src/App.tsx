@@ -3852,36 +3852,19 @@ function ChessApp() {
                 try {
                   console.log('🚛 Forcing WebSocket reconnection for room:', roomId);
                   
-                  // Clear any existing connection state
-                  if (webSocketRef.current) {
-                    console.log('🔌 Disconnecting existing WebSocket connection');
-                    webSocketRef.current.disconnect();
-                    webSocketRef.current = null;
-                  }
+                  // Disconnect existing WebSocket connection
+                  console.log('🔌 Disconnecting existing WebSocket connection');
+                  websocketService.disconnect();
                   
                   // Small delay to ensure clean disconnection
                   await new Promise(resolve => setTimeout(resolve, 100));
                   
-                  // Re-establish fresh WebSocket connection
+                  // Re-establish connection by joining the game (this auto-connects)
                   console.log('🔌 Establishing fresh WebSocket connection');
-                  const { connectToGame } = await import('./services/websocketService');
-                  webSocketRef.current = connectToGame(
-                    roomId,
-                    publicKey.toString(),
-                    (newGameState) => {
-                      console.log('🔄 WebSocket game state update received:', newGameState);
-                      if (newGameState && typeof newGameState === 'object') {
-                        setGameState(prev => ({
-                          ...prev,
-                          ...newGameState,
-                          lastUpdated: Date.now()
-                        }));
-                      }
-                    },
-                    (error) => {
-                      console.error('❌ WebSocket error after reconnection:', error);
-                    }
-                  );
+                  websocketService.joinGame(roomId, { 
+                    playerId: publicKey.toString(),
+                    playerName: `Player ${restoredGameState.userColor}`
+                  });
                   
                   console.log('✅ WebSocket reconnection complete');
                 } catch (wsError) {
