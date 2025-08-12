@@ -674,19 +674,46 @@ function ChessApp() {
           
           if (savedGameState) {
             console.log('✅ Found existing game state:', savedGameState);
-            // Ensure critical chess fields exist for reliability (e.g., castling)
-            const ensuredGameState = {
-              ...savedGameState,
-              castlingRights: savedGameState.castlingRights ?? 'KQkq',
-              enPassantTarget: savedGameState.enPassantTarget ?? null,
-              halfmoveClock: savedGameState.halfmoveClock ?? 0,
-              fullmoveNumber: savedGameState.fullmoveNumber ?? 1,
-              inCheck: savedGameState.inCheck ?? false,
-              inCheckmate: savedGameState.inCheckmate ?? false,
-              moveHistory: Array.isArray(savedGameState.moveHistory) ? savedGameState.moveHistory : [],
-              lastMove: savedGameState.lastMove ?? null
-            } as any;
-            setGameState(ensuredGameState);
+            
+            // Toyota reliability: Don't overwrite position if we just reconstructed it from reconnection
+            const currentGameState = gameState;
+            const hasReconstructedPosition = currentGameState.position && 
+              Object.keys(currentGameState.position).length > 32; // More than just starting position
+            
+            if (hasReconstructedPosition) {
+              console.log('🚛 Toyota protection: Preserving reconstructed position, only updating other fields');
+              // Only update non-position fields to preserve our reconstructed position
+              setGameState(prev => ({
+                ...prev,
+                // Keep our reconstructed position!
+                castlingRights: savedGameState.castlingRights ?? prev.castlingRights,
+                enPassantTarget: savedGameState.enPassantTarget ?? prev.enPassantTarget,
+                halfmoveClock: savedGameState.halfmoveClock ?? prev.halfmoveClock,
+                fullmoveNumber: savedGameState.fullmoveNumber ?? prev.fullmoveNumber,
+                inCheck: savedGameState.inCheck ?? prev.inCheck,
+                inCheckmate: savedGameState.inCheckmate ?? prev.inCheckmate,
+                lastMove: savedGameState.lastMove ?? prev.lastMove,
+                // Update other server-side fields but keep our position
+                currentPlayer: savedGameState.currentPlayer ?? prev.currentPlayer,
+                gameActive: savedGameState.gameActive ?? prev.gameActive,
+                winner: savedGameState.winner ?? prev.winner,
+                draw: savedGameState.draw ?? prev.draw
+              }));
+            } else {
+              // Normal case: use server state including position
+              const ensuredGameState = {
+                ...savedGameState,
+                castlingRights: savedGameState.castlingRights ?? 'KQkq',
+                enPassantTarget: savedGameState.enPassantTarget ?? null,
+                halfmoveClock: savedGameState.halfmoveClock ?? 0,
+                fullmoveNumber: savedGameState.fullmoveNumber ?? 1,
+                inCheck: savedGameState.inCheck ?? false,
+                inCheckmate: savedGameState.inCheckmate ?? false,
+                moveHistory: Array.isArray(savedGameState.moveHistory) ? savedGameState.moveHistory : [],
+                lastMove: savedGameState.lastMove ?? null
+              } as any;
+              setGameState(ensuredGameState);
+            }
             setGameStatus('Game state loaded successfully');
           } else {
             console.log('⚠️ No saved game state found, using fresh state');
@@ -3899,6 +3926,12 @@ function ChessApp() {
                   frontendGameState.position = currentPosition;
                   console.log('✅ Position reconstructed from move history');
                   console.log(`🎯 Final position after ${restoredGameState.moveHistory.length} moves applied`);
+                  console.log('🔍 Reconstructed position sample:', {
+                    e2: currentPosition.e2 || 'empty',
+                    e4: currentPosition.e4 || 'empty', 
+                    e7: currentPosition.e7 || 'empty',
+                    e5: currentPosition.e5 || 'empty'
+                  });
                 } catch (positionError) {
                   console.error('❌ Failed to reconstruct position from moves:', positionError);
                   // Fallback to starting position if reconstruction fails
