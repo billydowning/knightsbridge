@@ -221,16 +221,22 @@ class WebSocketService {
   }
 
   public joinGame(gameId: string, playerInfo?: { playerId: string; playerName?: string }) {
+    console.log(`🔍 joinGame called: gameId=${gameId}, connected=${this.socket?.connected}, playerId=${playerInfo?.playerId}`);
+    
     if (!this.socket?.connected) {
-      console.error('Socket not connected');
+      console.error('❌ Socket not connected when joinGame called');
       return;
     }
     
     // Backend expects: { roomId, playerWallet }
-    this.socket.emit('joinRoom', {
+    const joinData = {
       roomId: gameId,
       playerWallet: playerInfo?.playerId || 'unknown'
-    });
+    };
+    
+    console.log(`🚀 Emitting joinRoom event:`, joinData);
+    this.socket.emit('joinRoom', joinData);
+    console.log(`✅ joinRoom event emitted successfully`);
   }
 
   public makeMove(gameId: string, move: { from: string; to: string; piece: string }, playerId: string, color: 'white' | 'black'): string {
