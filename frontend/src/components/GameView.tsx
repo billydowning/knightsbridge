@@ -620,6 +620,7 @@ export const GameView: React.FC<GameViewProps> = ({
               color: theme.text,
               fontWeight: '700'
             }}>
+              {/* Force rebuild to clear debug cache */}
               {gameState.fullmoveNumber || 1}
             </div>
           </div>

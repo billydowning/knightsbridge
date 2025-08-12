@@ -484,8 +484,10 @@ function ChessApp() {
   // Toyota protection: prevent any position from overwriting reconstructed position
   const protectReconstructedPosition = (newGameState: any, currentGameState: any): any => {
     // If we have a reconstructed position, don't let any 64-square position overwrite it
+    // Check for reconstructed position: < 64 squares AND has actual pieces from moves
     const hasReconstructedPosition = currentGameState.position &&
-      Object.keys(currentGameState.position).length === 32 &&
+      Object.keys(currentGameState.position).length < 64 &&
+      Object.keys(currentGameState.position).length > 20 &&
       (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' ||
        currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
        
@@ -523,17 +525,29 @@ function ChessApp() {
         ...newGameState,
         position: currentGameState.position,  // Keep our reconstructed position
         currentPlayer: currentGameState.currentPlayer,  // Keep our reconstructed currentPlayer
-        moveHistory: currentGameState.moveHistory  // Keep our reconstructed moveHistory
+        moveHistory: currentGameState.moveHistory,  // Keep our reconstructed moveHistory
+        fullmoveNumber: currentGameState.fullmoveNumber,  // Keep our reconstructed fullmoveNumber
+        halfmoveClock: currentGameState.halfmoveClock,  // Keep our reconstructed halfmoveClock
+        castlingRights: currentGameState.castlingRights,  // Keep our reconstructed castlingRights
+        enPassantTarget: currentGameState.enPassantTarget  // Keep our reconstructed enPassantTarget
       };
     }
     
     // Also protect currentPlayer for any state change when we have a reconstructed position
-    if (hasReconstructedPosition && newGameState.currentPlayer !== currentGameState.currentPlayer) {
-      console.log('🚛 PROTECTED Toyota Protection: Preserving reconstructed currentPlayer');
+    // BUT allow currentPlayer changes if they come with position/moveHistory updates (from real moves)
+    if (hasReconstructedPosition && 
+        newGameState.currentPlayer !== currentGameState.currentPlayer &&
+        !newGameState.position && 
+        !newGameState.moveHistory) {
+      console.log('🚛 PROTECTED Toyota Protection: Preserving reconstructed currentPlayer (no position/move data)');
       return {
         ...newGameState,
         currentPlayer: currentGameState.currentPlayer,  // Keep our reconstructed currentPlayer
-        moveHistory: currentGameState.moveHistory  // Keep our reconstructed moveHistory
+        moveHistory: currentGameState.moveHistory,  // Keep our reconstructed moveHistory
+        fullmoveNumber: currentGameState.fullmoveNumber,  // Keep our reconstructed fullmoveNumber
+        halfmoveClock: currentGameState.halfmoveClock,  // Keep our reconstructed halfmoveClock
+        castlingRights: currentGameState.castlingRights,  // Keep our reconstructed castlingRights
+        enPassantTarget: currentGameState.enPassantTarget  // Keep our reconstructed enPassantTarget
       };
     }
     
@@ -758,8 +772,9 @@ function ChessApp() {
             const positionKeys = hasPosition ? Object.keys(currentGameState.position) : [];
             const positionKeyCount = positionKeys.length;
             
-            // Check if we have a reconstructed position (should have pieces at e4, e5, d4, d5 but not e2, e7, d2, d7)
+            // Check if we have a reconstructed position (< 64 squares AND has actual pieces from moves)
             const hasReconstructedPosition = hasPosition && 
+              positionKeyCount < 64 && positionKeyCount > 20 &&
               (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' || 
                currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
             
@@ -782,7 +797,7 @@ function ChessApp() {
                 castlingRights: savedGameState.castlingRights ?? prev.castlingRights,
                 enPassantTarget: savedGameState.enPassantTarget ?? prev.enPassantTarget,
                 halfmoveClock: savedGameState.halfmoveClock ?? prev.halfmoveClock,
-                fullmoveNumber: savedGameState.fullmoveNumber ?? prev.fullmoveNumber,
+                // fullmoveNumber: savedGameState.fullmoveNumber ?? prev.fullmoveNumber, // DISABLED - keep reconstructed fullmoveNumber
                 inCheck: savedGameState.inCheck ?? prev.inCheck,
                 inCheckmate: savedGameState.inCheckmate ?? prev.inCheckmate,
                 lastMove: savedGameState.lastMove ?? prev.lastMove,
@@ -1582,32 +1597,48 @@ function ChessApp() {
       
       // Extract move data from the server format
       const move = moveData.move;
-      if (move && move.from && move.to && gameState.position) {
-        console.log('🎯 Applying incoming move to local game state');
-        
-        // Create new position by applying the received move
-        const newPosition = { ...gameState.position };
-        const movingPiece = newPosition[move.from];
-        
-        if (movingPiece) {
-          newPosition[move.to] = movingPiece;
-          newPosition[move.from] = '';
+      
+      // 🚛 CRITICAL FIX: Get current game state instead of closure variable
+      // The closure gameState might be stale/64-square, but React state has Toyota protection
+      setGameState((currentState: any) => {
+        if (move && move.from && move.to && currentState.position) {
+          console.log('🎯 Applying incoming move to local game state');
           
-          // Use nextTurn from server
-          const nextPlayer = moveData.nextTurn;
+          // Create new position by applying the received move  
+          const newPosition = { ...currentState.position };
+          const movingPiece = newPosition[move.from];
           
-          // Update game state with the move
-          setGameState((prevState: any) => {
+          console.log(`🔍 Incoming move: ${move.from} → ${move.to}`);
+          console.log(`🔍 Piece at ${move.from}:`, movingPiece);
+          console.log(`🔍 Position around ${move.from}:`, {
+            b3: newPosition.b3,
+            c3: newPosition.c3,
+            d3: newPosition.d3,
+            b2: newPosition.b2,
+            c2: newPosition.c2,
+            d2: newPosition.d2,
+            b4: newPosition.b4,
+            c4: newPosition.c4,
+            d4: newPosition.d4
+          });
+          
+          if (movingPiece) {
+            newPosition[move.to] = movingPiece;
+            newPosition[move.from] = '';
+            
+            // Use nextTurn from server
+            const nextPlayer = moveData.nextTurn;
+            
             const updatedState = {
-              ...prevState,
+              ...currentState,
               position: newPosition,
               currentPlayer: nextPlayer,
               lastMove: { from: move.from, to: move.to },
-              moveHistory: [...prevState.moveHistory, {
+              moveHistory: [...currentState.moveHistory, {
                 from: move.from,
                 to: move.to,
                 piece: movingPiece,
-                capturedPiece: gameState.position[move.to] || null,
+                capturedPiece: currentState.position[move.to] || null,
                 timestamp: Date.now()
               }],
               lastUpdated: Date.now()
@@ -1617,26 +1648,33 @@ function ChessApp() {
             console.log('🔍 New current player:', nextPlayer);
             console.log('🎯 Player role:', playerRole);
             console.log('🎯 Is my turn:', nextPlayer === playerRole);
+            
+            // 🔍 Debug turn state after move received
+            const isMyTurnAfterMove = nextPlayer === playerRole;
+            console.log('🔍 TURN DEBUG after incoming move:', {
+              nextPlayer,
+              playerRole,
+              isMyTurnAfterMove,
+              moveFrom: move.from,
+              moveTo: move.to
+            });
+            
+            setGameStatus(`Move received: ${move.from} → ${move.to}. ${isMyTurnAfterMove ? 'Your turn!' : "Opponent's turn"}`);
+            
             return updatedState;
-          });
-          
-          // 🔍 Debug turn state after move received
-          const isMyTurnAfterMove = nextPlayer === playerRole;
-          console.log('🔍 TURN DEBUG after incoming move:', {
-            nextPlayer,
-            playerRole,
-            isMyTurnAfterMove,
-            moveFrom: move.from,
-            moveTo: move.to
-          });
-          
-          setGameStatus(`Move received: ${move.from} → ${move.to}. ${isMyTurnAfterMove ? 'Your turn!' : "Opponent's turn"}`);
+          } else {
+            console.warn('⚠️ No piece found at source square for incoming move');
+            console.log('🔍 Full move data:', moveData);
+            console.log('🔍 Move object:', move);
+            console.log('🔍 Current position keys:', Object.keys(newPosition).length);
+            console.log('🔍 Sample position entries:', Object.entries(newPosition).slice(0, 10));
+            return currentState; // Return unchanged state if move fails
+          }
         } else {
-          console.warn('⚠️ No piece found at source square for incoming move');
+          console.warn('⚠️ Invalid move data received:', moveData);
+          return currentState; // Return unchanged state for invalid move data
         }
-      } else {
-        console.warn('⚠️ Invalid move data received:', moveData);
-      }
+      });
     });
     
     // Handle move confirmations
@@ -4211,7 +4249,8 @@ function ChessApp() {
                 
                 // Step 8: Success notification and status
                 showSuccess('Reconnected Successfully!', 
-                  `Rejoined game as ${playerRole}. ${restoredGameState.moveHistory.length} moves restored.`
+                  `Rejoined game as ${playerRole}. ${restoredGameState.moveHistory.length} moves restored.`,
+                  7000 // Auto-dismiss after 7 seconds
                 );
                 
                 setGameStatus(`🔄 Reconnected as ${playerRole}! Game resumed.`);

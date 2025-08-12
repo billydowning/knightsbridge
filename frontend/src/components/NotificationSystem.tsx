@@ -3,7 +3,7 @@
  * Provides real-time notifications and alerts for game events
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 export interface Notification {
   id: string;
@@ -60,12 +60,22 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     setIsVisible(true);
     
     if (notification.duration) {
+      console.log(`🔔 Setting auto-dismiss timer for notification "${notification.title}" - ${notification.duration}ms`);
       const timer = setTimeout(() => {
+        console.log(`⏰ Auto-dismissing notification "${notification.title}"`);
         setIsVisible(false);
-        setTimeout(() => onRemove(notification.id), 300);
+        setTimeout(() => {
+          console.log(`🗑️ Removing notification "${notification.title}"`);
+          onRemove(notification.id);
+        }, 300);
       }, notification.duration);
       
-      return () => clearTimeout(timer);
+      return () => {
+        console.log(`🚫 Clearing timer for notification "${notification.title}"`);
+        clearTimeout(timer);
+      };
+    } else {
+      console.log(`⚠️ No duration set for notification "${notification.title}" - will not auto-dismiss`);
     }
   }, [notification.id, notification.duration, onRemove]);
 
@@ -185,9 +195,9 @@ export const useNotifications = () => {
     setNotifications(prev => [...prev, { ...notification, id }]);
   };
 
-  const removeNotification = (id: string) => {
+  const removeNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-  };
+  }, []);
 
   const showSuccess = (title: string, message: string, duration = 5000) => {
     addNotification({ type: 'success', title, message, duration });
