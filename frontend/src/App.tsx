@@ -3825,18 +3825,54 @@ function ChessApp() {
                   lastUpdated: Date.now()
                 };
                 
-                // Step 4: Toyota Reliability - Start with initial position and let server sync fix it
+                // Step 4: Toyota Reliability - Reconstruct position from moves
                 try {
-                  // Use starting position as fallback - server sync will correct any discrepancies
-                  frontendGameState.position = ChessEngine.getInitialPosition();
+                  let currentPosition = ChessEngine.getInitialPosition();
+                  let currentGameState = {
+                    currentPlayer: 'white' as 'white' | 'black',
+                    castlingRights: 'KQkq',
+                    enPassantTarget: null,
+                    halfmoveClock: 0,
+                    fullmoveNumber: 1,
+                    moveHistory: []
+                  };
                   
-                  console.log('✅ Using starting position - server sync will update to correct state');
-                  console.log('🚛 Toyota reliability: Trusting server state over local reconstruction');
+                  console.log(`🔄 Reconstructing position from ${restoredGameState.moveHistory.length} moves...`);
+                  
+                  // Replay all moves to get the correct position
+                  for (const move of restoredGameState.moveHistory) {
+                    try {
+                      const moveResult = ChessEngine.makeMove(
+                        move.from_square, 
+                        move.to_square, 
+                        currentPosition, 
+                        currentGameState
+                      );
+                      
+                      if (moveResult && moveResult.position) {
+                        currentPosition = moveResult.position;
+                        if (moveResult.gameState) {
+                          currentGameState = {
+                            ...currentGameState,
+                            ...moveResult.gameState
+                          };
+                        }
+                      } else {
+                        console.warn(`⚠️ Failed to replay move ${move.from_square}-${move.to_square}: Invalid move result`);
+                      }
+                    } catch (moveError) {
+                      console.warn(`⚠️ Error replaying move ${move.from_square}-${move.to_square}:`, moveError);
+                    }
+                  }
+                  
+                  frontendGameState.position = currentPosition;
+                  console.log('✅ Position reconstructed from move history');
+                  console.log(`🎯 Final position after ${restoredGameState.moveHistory.length} moves applied`);
                 } catch (positionError) {
-                  console.error('❌ Failed to set initial position:', positionError);
-                  showError('Position Error', 'Failed to initialize board position');
-                  setGameStatus('❌ Position initialization failed');
-                  return;
+                  console.error('❌ Failed to reconstruct position from moves:', positionError);
+                  // Fallback to starting position if reconstruction fails
+                  frontendGameState.position = ChessEngine.getInitialPosition();
+                  console.log('🚛 Toyota fallback: Using starting position due to reconstruction error');
                 }
                 
                 // Step 5: Set the restored game state
