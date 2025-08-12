@@ -4249,7 +4249,8 @@ function ChessApp() {
                 
                 // Step 8: Success notification and status
                 showSuccess('Reconnected Successfully!', 
-                  `Rejoined game as ${playerRole}. ${restoredGameState.moveHistory.length} moves restored.`
+                  `Rejoined game as ${playerRole}. ${restoredGameState.moveHistory.length} moves restored.`,
+                  7000 // Auto-dismiss after 7 seconds
                 );
                 
                 setGameStatus(`🔄 Reconnected as ${playerRole}! Game resumed.`);
