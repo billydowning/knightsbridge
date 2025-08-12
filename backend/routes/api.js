@@ -1783,6 +1783,7 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
     // Calculate current game state based on moves
     const moves = movesResult.rows;
     const lastMove = moves.length > 0 ? moves[moves.length - 1] : null;
+    // Toyota logic: After odd number of moves, it's black's turn. After even, it's white's turn.
     const currentPlayer = moves.length % 2 === 0 ? 'white' : 'black';
     
     // Build FEN position by replaying moves (simplified for now)
