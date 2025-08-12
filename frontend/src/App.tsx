@@ -774,8 +774,8 @@ function ChessApp() {
                 inCheck: savedGameState.inCheck ?? prev.inCheck,
                 inCheckmate: savedGameState.inCheckmate ?? prev.inCheckmate,
                 lastMove: savedGameState.lastMove ?? prev.lastMove,
-                // Update other server-side fields but keep our position
-                currentPlayer: savedGameState.currentPlayer ?? prev.currentPlayer,
+                // Update other server-side fields but keep our position AND currentPlayer
+                // currentPlayer: savedGameState.currentPlayer ?? prev.currentPlayer, // DISABLED - keep reconstructed currentPlayer
                 gameActive: savedGameState.gameActive ?? prev.gameActive,
                 winner: savedGameState.winner ?? prev.winner,
                 draw: savedGameState.draw ?? prev.draw
