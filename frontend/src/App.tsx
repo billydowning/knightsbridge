@@ -521,7 +521,17 @@ function ChessApp() {
       console.log('🚛 PROTECTED Toyota Protection: Blocking 64-square position that would lose our reconstructed moves');
       return {
         ...newGameState,
-        position: currentGameState.position  // Keep our reconstructed position
+        position: currentGameState.position,  // Keep our reconstructed position
+        currentPlayer: currentGameState.currentPlayer  // Keep our reconstructed currentPlayer
+      };
+    }
+    
+    // Also protect currentPlayer for any state change when we have a reconstructed position
+    if (hasReconstructedPosition && newGameState.currentPlayer !== currentGameState.currentPlayer) {
+      console.log('🚛 PROTECTED Toyota Protection: Preserving reconstructed currentPlayer');
+      return {
+        ...newGameState,
+        currentPlayer: currentGameState.currentPlayer  // Keep our reconstructed currentPlayer
       };
     }
     
