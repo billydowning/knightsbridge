@@ -343,6 +343,11 @@ class WebSocketService {
     }
   }
 
+  public reconnect() {
+    this.disconnect();
+    this.setupSocket();
+  }
+
   public isConnected(): boolean {
     return this.socket?.connected || false;
   }

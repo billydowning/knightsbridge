@@ -3852,14 +3852,14 @@ function ChessApp() {
                 try {
                   console.log('🚛 Forcing WebSocket reconnection for room:', roomId);
                   
-                  // Disconnect existing WebSocket connection
+                  // Use proper reconnection method
                   console.log('🔌 Disconnecting existing WebSocket connection');
-                  websocketService.disconnect();
+                  websocketService.reconnect();
                   
-                  // Wait for auto-reconnection (Socket.IO will reconnect automatically)
+                  // Wait for new connection to establish (Socket.IO connects async)
                   console.log('🔌 Establishing fresh WebSocket connection');
                   let connectionAttempts = 0;
-                  const maxAttempts = 50; // 5 seconds max
+                  const maxAttempts = 30; // 3 seconds max for new connection
                   
                   while (!websocketService.isConnected() && connectionAttempts < maxAttempts) {
                     await new Promise(resolve => setTimeout(resolve, 100));
