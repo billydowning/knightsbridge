@@ -3845,9 +3845,49 @@ function ChessApp() {
                 // Step 6: Switch to game mode
                 setGameMode('game');
                 
-                // Step 7: WebSocket will reconnect automatically when moves are made
-                // The existing WebSocket service will handle reconnection as needed
-                console.log('🔌 WebSocket will reconnect automatically for real-time sync');
+                // Step 7: Toyota Reliability - Explicitly re-establish WebSocket connection
+                console.log('🔌 Force WebSocket reconnection for real-time sync');
+                
+                // Force WebSocket reconnection to ensure moves sync between players
+                try {
+                  console.log('🚛 Forcing WebSocket reconnection for room:', roomId);
+                  
+                  // Clear any existing connection state
+                  if (webSocketRef.current) {
+                    console.log('🔌 Disconnecting existing WebSocket connection');
+                    webSocketRef.current.disconnect();
+                    webSocketRef.current = null;
+                  }
+                  
+                  // Small delay to ensure clean disconnection
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                  
+                  // Re-establish fresh WebSocket connection
+                  console.log('🔌 Establishing fresh WebSocket connection');
+                  const { connectToGame } = await import('./services/websocketService');
+                  webSocketRef.current = connectToGame(
+                    roomId,
+                    publicKey.toString(),
+                    (newGameState) => {
+                      console.log('🔄 WebSocket game state update received:', newGameState);
+                      if (newGameState && typeof newGameState === 'object') {
+                        setGameState(prev => ({
+                          ...prev,
+                          ...newGameState,
+                          lastUpdated: Date.now()
+                        }));
+                      }
+                    },
+                    (error) => {
+                      console.error('❌ WebSocket error after reconnection:', error);
+                    }
+                  );
+                  
+                  console.log('✅ WebSocket reconnection complete');
+                } catch (wsError) {
+                  console.error('❌ WebSocket reconnection failed:', wsError);
+                  // Don't fail the entire reconnection for WebSocket issues
+                }
                 
                 // Step 8: Success notification and status
                 showSuccess('Reconnected Successfully!', 
