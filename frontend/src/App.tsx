@@ -1582,46 +1582,48 @@ function ChessApp() {
       
       // Extract move data from the server format
       const move = moveData.move;
-      if (move && move.from && move.to && gameState.position) {
-        console.log('🎯 Applying incoming move to local game state');
-        
-        // Create new position by applying the received move
-        const newPosition = { ...gameState.position };
-        const movingPiece = newPosition[move.from];
-        
-        console.log(`🔍 Incoming move: ${move.from} → ${move.to}`);
-        console.log(`🔍 Piece at ${move.from}:`, movingPiece);
-        console.log(`🔍 Position around ${move.from}:`, {
-          b3: newPosition.b3,
-          c3: newPosition.c3,
-          d3: newPosition.d3,
-          b2: newPosition.b2,
-          c2: newPosition.c2,
-          d2: newPosition.d2,
-          b4: newPosition.b4,
-          c4: newPosition.c4,
-          d4: newPosition.d4
-        });
-        
-        if (movingPiece) {
-          newPosition[move.to] = movingPiece;
-          newPosition[move.from] = '';
+      
+      // 🚛 CRITICAL FIX: Get current game state instead of closure variable
+      // The closure gameState might be stale/64-square, but React state has Toyota protection
+      setGameState((currentState: any) => {
+        if (move && move.from && move.to && currentState.position) {
+          console.log('🎯 Applying incoming move to local game state');
           
-          // Use nextTurn from server
-          const nextPlayer = moveData.nextTurn;
+          // Create new position by applying the received move  
+          const newPosition = { ...currentState.position };
+          const movingPiece = newPosition[move.from];
           
-          // Update game state with the move
-          setGameState((prevState: any) => {
+          console.log(`🔍 Incoming move: ${move.from} → ${move.to}`);
+          console.log(`🔍 Piece at ${move.from}:`, movingPiece);
+          console.log(`🔍 Position around ${move.from}:`, {
+            b3: newPosition.b3,
+            c3: newPosition.c3,
+            d3: newPosition.d3,
+            b2: newPosition.b2,
+            c2: newPosition.c2,
+            d2: newPosition.d2,
+            b4: newPosition.b4,
+            c4: newPosition.c4,
+            d4: newPosition.d4
+          });
+          
+          if (movingPiece) {
+            newPosition[move.to] = movingPiece;
+            newPosition[move.from] = '';
+            
+            // Use nextTurn from server
+            const nextPlayer = moveData.nextTurn;
+            
             const updatedState = {
-              ...prevState,
+              ...currentState,
               position: newPosition,
               currentPlayer: nextPlayer,
               lastMove: { from: move.from, to: move.to },
-              moveHistory: [...prevState.moveHistory, {
+              moveHistory: [...currentState.moveHistory, {
                 from: move.from,
                 to: move.to,
                 piece: movingPiece,
-                capturedPiece: gameState.position[move.to] || null,
+                capturedPiece: currentState.position[move.to] || null,
                 timestamp: Date.now()
               }],
               lastUpdated: Date.now()
@@ -1631,30 +1633,33 @@ function ChessApp() {
             console.log('🔍 New current player:', nextPlayer);
             console.log('🎯 Player role:', playerRole);
             console.log('🎯 Is my turn:', nextPlayer === playerRole);
+            
+            // 🔍 Debug turn state after move received
+            const isMyTurnAfterMove = nextPlayer === playerRole;
+            console.log('🔍 TURN DEBUG after incoming move:', {
+              nextPlayer,
+              playerRole,
+              isMyTurnAfterMove,
+              moveFrom: move.from,
+              moveTo: move.to
+            });
+            
+            setGameStatus(`Move received: ${move.from} → ${move.to}. ${isMyTurnAfterMove ? 'Your turn!' : "Opponent's turn"}`);
+            
             return updatedState;
-          });
-          
-          // 🔍 Debug turn state after move received
-          const isMyTurnAfterMove = nextPlayer === playerRole;
-          console.log('🔍 TURN DEBUG after incoming move:', {
-            nextPlayer,
-            playerRole,
-            isMyTurnAfterMove,
-            moveFrom: move.from,
-            moveTo: move.to
-          });
-          
-          setGameStatus(`Move received: ${move.from} → ${move.to}. ${isMyTurnAfterMove ? 'Your turn!' : "Opponent's turn"}`);
+          } else {
+            console.warn('⚠️ No piece found at source square for incoming move');
+            console.log('🔍 Full move data:', moveData);
+            console.log('🔍 Move object:', move);
+            console.log('🔍 Current position keys:', Object.keys(newPosition).length);
+            console.log('🔍 Sample position entries:', Object.entries(newPosition).slice(0, 10));
+            return currentState; // Return unchanged state if move fails
+          }
         } else {
-          console.warn('⚠️ No piece found at source square for incoming move');
-          console.log('🔍 Full move data:', moveData);
-          console.log('🔍 Move object:', move);
-          console.log('🔍 Current position keys:', Object.keys(newPosition).length);
-          console.log('🔍 Sample position entries:', Object.entries(newPosition).slice(0, 10));
+          console.warn('⚠️ Invalid move data received:', moveData);
+          return currentState; // Return unchanged state for invalid move data
         }
-      } else {
-        console.warn('⚠️ Invalid move data received:', moveData);
-      }
+      });
     });
     
     // Handle move confirmations
