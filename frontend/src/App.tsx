@@ -3842,12 +3842,21 @@ function ChessApp() {
                   // Replay all moves to get the correct position
                   for (const move of restoredGameState.moveHistory) {
                     try {
+                      console.log(`🔍 Attempting to replay move: ${move.from_square}-${move.to_square}`);
+                      console.log(`🔍 Current position at ${move.from_square}:`, currentPosition[move.from_square]);
+                      console.log(`🔍 Current game state:`, {
+                        currentPlayer: currentGameState.currentPlayer,
+                        castlingRights: currentGameState.castlingRights
+                      });
+                      
                       const moveResult = ChessEngine.makeMove(
                         move.from_square, 
                         move.to_square, 
                         currentPosition, 
                         currentGameState
                       );
+                      
+                      console.log(`🔍 Move result for ${move.from_square}-${move.to_square}:`, moveResult);
                       
                       if (moveResult && moveResult.position) {
                         currentPosition = moveResult.position;
@@ -3857,8 +3866,18 @@ function ChessApp() {
                             ...moveResult.gameState
                           };
                         }
+                        console.log(`✅ Successfully replayed move ${move.from_square}-${move.to_square}`);
                       } else {
-                        console.warn(`⚠️ Failed to replay move ${move.from_square}-${move.to_square}: Invalid move result`);
+                        console.warn(`⚠️ Failed to replay move ${move.from_square}-${move.to_square}: Move result is null`);
+                        console.log(`🔍 Debug: Move legality check...`);
+                        const isLegal = ChessEngine.isLegalMove(
+                          move.from_square, 
+                          move.to_square, 
+                          currentPosition, 
+                          move.piece.includes('white') ? 'white' : 'black',
+                          currentGameState
+                        );
+                        console.log(`🔍 Is move ${move.from_square}-${move.to_square} legal?`, isLegal);
                       }
                     } catch (moveError) {
                       console.warn(`⚠️ Error replaying move ${move.from_square}-${move.to_square}:`, moveError);
