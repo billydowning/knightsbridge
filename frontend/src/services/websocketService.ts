@@ -226,7 +226,7 @@ class WebSocketService {
       return;
     }
     
-    this.socket.emit('joinGame', gameId, playerInfo);
+    this.socket.emit('joinRoom', gameId, playerInfo);
   }
 
   public makeMove(gameId: string, move: { from: string; to: string; piece: string }, playerId: string, color: 'white' | 'black'): string {
