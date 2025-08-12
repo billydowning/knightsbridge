@@ -1422,6 +1422,13 @@ io.on('connection', (socket) => {
         if (existingPlayer) {
           console.log('✅ Player already in room:', existingPlayer);
           socket.join(roomId);
+          console.log('🔗 Socket joined room (DB existing):', roomId, 'socket ID:', socket.id);
+          
+          // Debug: Check room occupancy after existing player joins
+          const roomSockets = io.sockets.adapter.rooms.get(roomId);
+          const socketCount = roomSockets ? roomSockets.size : 0;
+          console.log('🔗 Room occupancy after existing player join:', roomId, '=', socketCount, 'sockets');
+          
           if (typeof callback === 'function') callback({ success: true, role: existingPlayer.player_white_wallet === playerWallet ? 'white' : 'black' });
           return;
         }
@@ -1903,6 +1910,8 @@ io.on('connection', (socket) => {
         // Broadcast game state update to OTHER players in the room (not the sender)
         // Only broadcast if there are other players in the room
         const room = io.sockets.adapter.rooms.get(roomId);
+        const roomSize = room ? room.size : 0;
+        console.log('🔍 BROADCAST DEBUG: Room', roomId, 'has', roomSize, 'sockets, broadcast needed:', roomSize > 1);
         if (room && room.size > 1) {
           // Broadcast the EXACT same state that was just saved (not from database)
           // Remove the setTimeout to avoid race conditions
@@ -2300,6 +2309,9 @@ io.on('connection', (socket) => {
       );
 
       // Broadcast move to other player with security info
+      const moveRoom = io.sockets.adapter.rooms.get(gameId);
+      const moveRoomSize = moveRoom ? moveRoom.size : 0;
+      console.log('🔍 MOVE BROADCAST DEBUG: Room', gameId, 'has', moveRoomSize, 'sockets for moveMade event');
       socket.to(gameId).emit('moveMade', {
         move,
         playerId,
