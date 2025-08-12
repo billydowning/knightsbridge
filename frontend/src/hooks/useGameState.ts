@@ -156,6 +156,7 @@ export const useGameState = (): GameStateHook => {
       if (isCheckmate) {
         newState.winner = prev.currentPlayer;
         newState.gameActive = false;
+        newState.inCheckmate = true;
         statusMessage = `Checkmate! ${prev.currentPlayer} wins!`;
       } else if (ChessEngine.isStalemate(result.position, nextPlayer, result.gameState)) {
         newState.draw = true;
