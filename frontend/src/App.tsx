@@ -1559,30 +1559,30 @@ function ChessApp() {
     console.log('🔌 Setting up WebSocket event handlers for move synchronization');
     
     // Handle incoming moves from other players
-    websocketService.on('onMoveMade', (moveData: any) => {
+    websocketService.on('moveMade', (moveData: any) => {
       console.log('🔄 Received move from other player:', moveData);
       console.log('🔍 Move details:', {
-        from: moveData.from,
-        to: moveData.to, 
-        piece: moveData.piece,
-        player: moveData.player,
+        move: moveData.move,
+        playerId: moveData.playerId,
+        color: moveData.color,
         nextTurn: moveData.nextTurn
       });
       
-      // Apply the move to our local game state
-      if (moveData.from && moveData.to && gameState.position) {
+      // Extract move data from the server format
+      const move = moveData.move;
+      if (move && move.from && move.to && gameState.position) {
         console.log('🎯 Applying incoming move to local game state');
         
         // Create new position by applying the received move
         const newPosition = { ...gameState.position };
-        const movingPiece = newPosition[moveData.from];
+        const movingPiece = newPosition[move.from];
         
         if (movingPiece) {
-          newPosition[moveData.to] = movingPiece;
-          newPosition[moveData.from] = '';
+          newPosition[move.to] = movingPiece;
+          newPosition[move.from] = '';
           
-          // Calculate next player outside setGameState scope
-          const nextPlayer = moveData.nextTurn || (gameState.currentPlayer === 'white' ? 'black' : 'white');
+          // Use nextTurn from server
+          const nextPlayer = moveData.nextTurn;
           
           // Update game state with the move
           setGameState((prevState: any) => {
@@ -1590,12 +1590,12 @@ function ChessApp() {
               ...prevState,
               position: newPosition,
               currentPlayer: nextPlayer,
-              lastMove: { from: moveData.from, to: moveData.to },
+              lastMove: { from: move.from, to: move.to },
               moveHistory: [...prevState.moveHistory, {
-                from: moveData.from,
-                to: moveData.to,
+                from: move.from,
+                to: move.to,
                 piece: movingPiece,
-                capturedPiece: gameState.position[moveData.to] || null,
+                capturedPiece: gameState.position[move.to] || null,
                 timestamp: Date.now()
               }],
               lastUpdated: Date.now()
@@ -1614,11 +1614,11 @@ function ChessApp() {
             nextPlayer,
             playerRole,
             isMyTurnAfterMove,
-            moveFrom: moveData.from,
-            moveTo: moveData.to
+            moveFrom: move.from,
+            moveTo: move.to
           });
           
-          setGameStatus(`Move received: ${moveData.from} → ${moveData.to}. ${isMyTurnAfterMove ? 'Your turn!' : "Opponent's turn"}`);
+          setGameStatus(`Move received: ${move.from} → ${move.to}. ${isMyTurnAfterMove ? 'Your turn!' : "Opponent's turn"}`);
         } else {
           console.warn('⚠️ No piece found at source square for incoming move');
         }
@@ -1628,12 +1628,12 @@ function ChessApp() {
     });
     
     // Handle move confirmations
-    websocketService.on('onMoveConfirmed', (data: any) => {
+    websocketService.on('moveConfirmed', (data: any) => {
       console.log('✅ Move confirmed by server:', data);
     });
     
     // Handle move errors
-    websocketService.on('onMoveError', (data: any) => {
+    websocketService.on('moveError', (data: any) => {
       console.error('❌ Move error from server:', data);
       setGameStatus(`Move error: ${data.error}`);
     });
