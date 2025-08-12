@@ -484,8 +484,10 @@ function ChessApp() {
   // Toyota protection: prevent any position from overwriting reconstructed position
   const protectReconstructedPosition = (newGameState: any, currentGameState: any): any => {
     // If we have a reconstructed position, don't let any 64-square position overwrite it
+    // Check for reconstructed position: < 64 squares AND has actual pieces from moves
     const hasReconstructedPosition = currentGameState.position &&
-      Object.keys(currentGameState.position).length === 32 &&
+      Object.keys(currentGameState.position).length < 64 &&
+      Object.keys(currentGameState.position).length > 20 &&
       (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' ||
        currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
        
@@ -762,8 +764,9 @@ function ChessApp() {
             const positionKeys = hasPosition ? Object.keys(currentGameState.position) : [];
             const positionKeyCount = positionKeys.length;
             
-            // Check if we have a reconstructed position (should have pieces at e4, e5, d4, d5 but not e2, e7, d2, d7)
+            // Check if we have a reconstructed position (< 64 squares AND has actual pieces from moves)
             const hasReconstructedPosition = hasPosition && 
+              positionKeyCount < 64 && positionKeyCount > 20 &&
               (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' || 
                currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
             
