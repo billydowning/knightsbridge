@@ -1382,6 +1382,7 @@ io.on('connection', (socket) => {
   });
 
   // Join an existing room
+  console.log(`✅ joinRoom event handler registered for socket: ${socket.id}`);
   socket.on('joinRoom', async (data, callback) => {
     try {
       const { roomId, playerWallet } = data;
