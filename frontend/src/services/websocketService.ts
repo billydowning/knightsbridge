@@ -48,6 +48,11 @@ export interface WebSocketEvents {
   onMoveConfirmed: (data: { move: GameMove; nextTurn: 'white' | 'black' }) => void;
   onMoveError: (data: { error: string }) => void;
   
+  // Server move events (without 'on' prefix)
+  moveMade: (data: any) => void;
+  moveConfirmed: (data: any) => void;
+  moveError: (data: any) => void;
+  
   // Chat events
   onNewMessage: (message: ChatMessage) => void;
   onChatHistory: (messages: ChatMessage[]) => void;
