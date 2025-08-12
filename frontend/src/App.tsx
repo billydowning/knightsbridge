@@ -1583,10 +1583,11 @@ function ChessApp() {
           
           // Update game state with the move
           setGameState((prevState: any) => {
+            const nextPlayer = moveData.nextTurn || (prevState.currentPlayer === 'white' ? 'black' : 'white');
             const updatedState = {
               ...prevState,
               position: newPosition,
-              currentPlayer: moveData.nextTurn || (prevState.currentPlayer === 'white' ? 'black' : 'white'),
+              currentPlayer: nextPlayer,
               lastMove: { from: moveData.from, to: moveData.to },
               moveHistory: [...prevState.moveHistory, {
                 from: moveData.from,
@@ -1599,11 +1600,23 @@ function ChessApp() {
             };
             
             console.log('✅ Move applied to local game state');
-            console.log('🔍 New current player:', updatedState.currentPlayer);
+            console.log('🔍 New current player:', nextPlayer);
+            console.log('🎯 Player role:', playerRole);
+            console.log('🎯 Is my turn:', nextPlayer === playerRole);
             return updatedState;
           });
           
-          setGameStatus(`Move received: ${moveData.from} → ${moveData.to}`);
+          // 🔍 Debug turn state after move received
+          const isMyTurnAfterMove = nextPlayer === playerRole;
+          console.log('🔍 TURN DEBUG after incoming move:', {
+            nextPlayer,
+            playerRole,
+            isMyTurnAfterMove,
+            moveFrom: moveData.from,
+            moveTo: moveData.to
+          });
+          
+          setGameStatus(`Move received: ${moveData.from} → ${moveData.to}. ${isMyTurnAfterMove ? 'Your turn!' : "Opponent's turn"}`);
         } else {
           console.warn('⚠️ No piece found at source square for incoming move');
         }
