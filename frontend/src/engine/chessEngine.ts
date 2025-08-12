@@ -74,8 +74,14 @@ export const ChessEngine = {
   isKing: (piece: string): boolean => ChessEngine.PIECES.KINGS.includes(piece),
   
   getPieceColor: (piece: string): 'white' | 'black' | null => {
+    // Handle both Unicode and text-based piece formats (Toyota reliability)
     if (ChessEngine.PIECES.WHITE.includes(piece)) return 'white';
     if (ChessEngine.PIECES.BLACK.includes(piece)) return 'black';
+    
+    // Handle text-based pieces (white-pawn, black-king, etc.)
+    if (piece.startsWith('white-')) return 'white';
+    if (piece.startsWith('black-')) return 'black';
+    
     return null;
   },
 

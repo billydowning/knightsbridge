@@ -273,6 +273,16 @@ export const ChessBoard: React.FC<ChessBoardProps> = React.memo(({
 
   // Memoize the board squares to prevent unnecessary re-renders
   const boardSquares = useMemo(() => {
+    console.log('🔍 ChessBoard: Building squares with position:', {
+      positionKeys: position ? Object.keys(position).length : 0,
+      e4: position?.e4,
+      e5: position?.e5,
+      d4: position?.d4,
+      d5: position?.d5,
+      positionType: typeof position,
+      fullPosition: position
+    });
+    
     const squares = [];
     const files = orientation === 'white' 
       ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']

@@ -48,6 +48,11 @@ export interface WebSocketEvents {
   onMoveConfirmed: (data: { move: GameMove; nextTurn: 'white' | 'black' }) => void;
   onMoveError: (data: { error: string }) => void;
   
+  // Server move events (without 'on' prefix)
+  moveMade: (data: any) => void;
+  moveConfirmed: (data: any) => void;
+  moveError: (data: any) => void;
+  
   // Chat events
   onNewMessage: (message: ChatMessage) => void;
   onChatHistory: (messages: ChatMessage[]) => void;
@@ -216,12 +221,22 @@ class WebSocketService {
   }
 
   public joinGame(gameId: string, playerInfo?: { playerId: string; playerName?: string }) {
+    console.log(`🔍 joinGame called: gameId=${gameId}, connected=${this.socket?.connected}, playerId=${playerInfo?.playerId}`);
+    
     if (!this.socket?.connected) {
-      console.error('Socket not connected');
+      console.error('❌ Socket not connected when joinGame called');
       return;
     }
     
-    this.socket.emit('joinGame', gameId, playerInfo);
+    // Backend expects: { roomId, playerWallet }
+    const joinData = {
+      roomId: gameId,
+      playerWallet: playerInfo?.playerId || 'unknown'
+    };
+    
+    console.log(`🚀 Emitting joinRoom event:`, joinData);
+    this.socket.emit('joinRoom', joinData);
+    console.log(`✅ joinRoom event emitted successfully`);
   }
 
   public makeMove(gameId: string, move: { from: string; to: string; piece: string }, playerId: string, color: 'white' | 'black'): string {
@@ -341,6 +356,11 @@ class WebSocketService {
       this.socket.disconnect();
       this.socket = null;
     }
+  }
+
+  public reconnect() {
+    this.disconnect();
+    this.setupSocket();
   }
 
   public isConnected(): boolean {

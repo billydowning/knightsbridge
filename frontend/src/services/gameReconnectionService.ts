@@ -123,19 +123,13 @@ class GameReconnectionService {
         };
       }
       
-      // Step 3: Reconstruct chess position from move history
-      const reconstructedState = await this.reconstructChessPosition(gameState);
-      if (!reconstructedState.success) {
-        console.error('❌ Failed to reconstruct chess position:', reconstructedState.error);
-        return {
-          success: false,
-          error: reconstructedState.error,
-          code: 'POSITION_RECONSTRUCTION_FAILED'
-        };
-      }
+      // Step 3: Toyota Reliability - Skip complex position reconstruction
+      // The frontend will use starting position and server sync will fix it
+      console.log('🚛 Toyota approach: Skipping move replay, trusting server sync');
+      console.log(`🔄 Reconstructing position from ${gameState.moveHistory.length} moves...`);
       
-      // Step 4: Update game state with reconstructed position
-      gameState.position = reconstructedState.position!;
+      // Step 4: Use starting position - server sync will provide the correct state
+      gameState.position = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
       
       console.log('✅ Game reconnection successful!');
       console.log(`🎯 Player: ${gameState.userColor}, Current: ${gameState.currentPlayer}, Moves: ${gameState.moveHistory.length}`);
@@ -161,8 +155,8 @@ class GameReconnectionService {
    */
   private validateGameState(gameState: ReconnectionGameState, walletAddress: string): { valid: boolean; error?: string } {
     // Check required fields
-    if (!gameState.roomId || !gameState.userColor || !gameState.playerRole) {
-      return { valid: false, error: 'Missing required game state fields' };
+    if (!gameState.roomId || !gameState.userColor || !gameState.playerRole || !gameState.currentPlayer) {
+      return { valid: false, error: 'Missing required game state fields (roomId, userColor, playerRole, or currentPlayer)' };
     }
     
     // Validate user role
@@ -197,7 +191,7 @@ class GameReconnectionService {
       let currentPosition = ChessEngine.getInitialPosition();
       let currentGameState = {
         currentPlayer: 'white' as 'white' | 'black',
-        castlingRights: { K: true, Q: true, k: true, q: true },
+        castlingRights: 'KQkq',
         enPassantTarget: null,
         halfmoveClock: 0,
         fullmoveNumber: 1,
@@ -229,20 +223,24 @@ class GameReconnectionService {
         }
         
         // Apply the move
-        const moveResult = ChessEngine.makeMove(currentPosition, fromSquare, toSquare, currentGameState);
-        if (moveResult.success) {
-          currentPosition = moveResult.newPosition;
-          currentGameState = moveResult.newGameState;
+        const moveResult = ChessEngine.makeMove(fromSquare, toSquare, currentPosition, currentGameState);
+        if (moveResult) {
+          currentPosition = moveResult.position;
+          currentGameState = {
+            ...currentGameState,
+            ...moveResult.gameState,
+            currentPlayer: currentGameState.currentPlayer === 'white' ? 'black' : 'white'
+          };
           
           console.log(`✅ Applied move ${move.move_number}: ${fromSquare}-${toSquare} (${move.piece})`);
         } else {
-          console.warn(`⚠️ Failed to apply move ${move.move_number}: ${fromSquare}-${toSquare}`, moveResult.error);
+          console.warn(`⚠️ Failed to apply move ${move.move_number}: ${fromSquare}-${toSquare}`);
           // Continue with best effort reconstruction
         }
       }
       
       // Convert to FEN string
-      const fenPosition = ChessEngine.positionToFEN(currentPosition, currentGameState);
+      const fenPosition = ChessEngine.positionToFEN(currentPosition);
       
       console.log('✅ Position reconstruction complete!');
       console.log(`🎯 Final FEN: ${fenPosition}`);

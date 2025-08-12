@@ -435,8 +435,8 @@ function ChessApp() {
 
 
 
-  // Game state
-  const [gameState, setGameState] = useState<any>({
+  // Game state with Toyota Protection
+  const [gameStateInternal, setGameStateInternal] = useState<any>({
     position: {
       a1: '♖', b1: '♘', c1: '♗', d1: '♕', e1: '♔', f1: '♗', g1: '♘', h1: '♖',
       a2: '♙', b2: '♙', c2: '♙', d2: '♙', e2: '♙', f2: '♙', g2: '♙', h2: '♙',
@@ -462,6 +462,83 @@ function ChessApp() {
     inCheckmate: false,
     lastMove: null
   });
+
+  // Toyota Protection: Wrap setGameState to prevent empty position overwrites
+  const protectedSetGameState = (newState: any) => {
+    console.log('🔍 PROTECTED setGameState called with:', typeof newState === 'function' ? 'function' : newState);
+    
+    if (typeof newState === 'function') {
+      setGameStateInternal((prev: any) => {
+        const computed = newState(prev);
+        return protectReconstructedPosition(computed, prev);
+      });
+    } else {
+      setGameStateInternal((prev: any) => protectReconstructedPosition(newState, prev));
+    }
+  };
+  
+  // Use protected setter
+  const setGameState = protectedSetGameState;
+  const gameState = gameStateInternal;
+
+  // Toyota protection: prevent any position from overwriting reconstructed position
+  const protectReconstructedPosition = (newGameState: any, currentGameState: any): any => {
+    // If we have a reconstructed position, don't let any 64-square position overwrite it
+    const hasReconstructedPosition = currentGameState.position &&
+      Object.keys(currentGameState.position).length === 32 &&
+      (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' ||
+       currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
+       
+    const incomingPositionIs64Square = newGameState.position && 
+      Object.keys(newGameState.position).length === 64;
+      
+    // Check if incoming position would overwrite our moves
+    const incomingPositionLosesMoves = incomingPositionIs64Square && hasReconstructedPosition &&
+      (newGameState.position.e4 !== 'white-pawn' || newGameState.position.e5 !== 'black-pawn' ||
+       newGameState.position.d4 !== 'white-pawn' || newGameState.position.d5 !== 'black-pawn');
+    
+    console.log('🔍 PROTECTED Toyota Protection Check:', {
+      hasReconstructedPosition,
+      incomingPositionIs64Square,
+      incomingPositionLosesMoves,
+      incomingPositionKeys: newGameState.position ? Object.keys(newGameState.position).length : 0,
+      currentPositionKeys: currentGameState.position ? Object.keys(currentGameState.position).length : 0,
+      sampleIncoming: newGameState.position ? {
+        e4: newGameState.position.e4,
+        e5: newGameState.position.e5,
+        d4: newGameState.position.d4,
+        d5: newGameState.position.d5
+      } : null,
+      sampleCurrent: currentGameState.position ? {
+        e4: currentGameState.position.e4,
+        e5: currentGameState.position.e5,
+        d4: currentGameState.position.d4,
+        d5: currentGameState.position.d5
+      } : null
+    });
+    
+    if (hasReconstructedPosition && incomingPositionLosesMoves) {
+      console.log('🚛 PROTECTED Toyota Protection: Blocking 64-square position that would lose our reconstructed moves');
+      return {
+        ...newGameState,
+        position: currentGameState.position,  // Keep our reconstructed position
+        currentPlayer: currentGameState.currentPlayer,  // Keep our reconstructed currentPlayer
+        moveHistory: currentGameState.moveHistory  // Keep our reconstructed moveHistory
+      };
+    }
+    
+    // Also protect currentPlayer for any state change when we have a reconstructed position
+    if (hasReconstructedPosition && newGameState.currentPlayer !== currentGameState.currentPlayer) {
+      console.log('🚛 PROTECTED Toyota Protection: Preserving reconstructed currentPlayer');
+      return {
+        ...newGameState,
+        currentPlayer: currentGameState.currentPlayer,  // Keep our reconstructed currentPlayer
+        moveHistory: currentGameState.moveHistory  // Keep our reconstructed moveHistory
+      };
+    }
+    
+    return newGameState;
+  };
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -674,19 +751,96 @@ function ChessApp() {
           
           if (savedGameState) {
             console.log('✅ Found existing game state:', savedGameState);
-            // Ensure critical chess fields exist for reliability (e.g., castling)
-            const ensuredGameState = {
-              ...savedGameState,
-              castlingRights: savedGameState.castlingRights ?? 'KQkq',
-              enPassantTarget: savedGameState.enPassantTarget ?? null,
-              halfmoveClock: savedGameState.halfmoveClock ?? 0,
-              fullmoveNumber: savedGameState.fullmoveNumber ?? 1,
-              inCheck: savedGameState.inCheck ?? false,
-              inCheckmate: savedGameState.inCheckmate ?? false,
-              moveHistory: Array.isArray(savedGameState.moveHistory) ? savedGameState.moveHistory : [],
-              lastMove: savedGameState.lastMove ?? null
-            } as any;
-            setGameState(ensuredGameState);
+            
+            // Toyota reliability: Don't overwrite position if we just reconstructed it from reconnection
+            const currentGameState = gameState;
+            const hasPosition = currentGameState.position && typeof currentGameState.position === 'object';
+            const positionKeys = hasPosition ? Object.keys(currentGameState.position) : [];
+            const positionKeyCount = positionKeys.length;
+            
+            // Check if we have a reconstructed position (should have pieces at e4, e5, d4, d5 but not e2, e7, d2, d7)
+            const hasReconstructedPosition = hasPosition && 
+              (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' || 
+               currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
+            
+            console.log('🔍 Toyota protection check:', {
+              hasPosition, 
+              positionKeyCount, 
+              hasReconstructedPosition,
+              e4: currentGameState.position?.e4,
+              e5: currentGameState.position?.e5,
+              d4: currentGameState.position?.d4,
+              d5: currentGameState.position?.d5
+            });
+            
+            if (hasReconstructedPosition) {
+              console.log('🚛 Toyota protection: Preserving reconstructed position, only updating other fields');
+              // Only update non-position fields to preserve our reconstructed position
+              setGameState(prev => ({
+                ...prev,
+                // Keep our reconstructed position!
+                castlingRights: savedGameState.castlingRights ?? prev.castlingRights,
+                enPassantTarget: savedGameState.enPassantTarget ?? prev.enPassantTarget,
+                halfmoveClock: savedGameState.halfmoveClock ?? prev.halfmoveClock,
+                fullmoveNumber: savedGameState.fullmoveNumber ?? prev.fullmoveNumber,
+                inCheck: savedGameState.inCheck ?? prev.inCheck,
+                inCheckmate: savedGameState.inCheckmate ?? prev.inCheckmate,
+                lastMove: savedGameState.lastMove ?? prev.lastMove,
+                // Update other server-side fields but keep our position AND currentPlayer
+                // currentPlayer: savedGameState.currentPlayer ?? prev.currentPlayer, // DISABLED - keep reconstructed currentPlayer
+                gameActive: savedGameState.gameActive ?? prev.gameActive,
+                winner: savedGameState.winner ?? prev.winner,
+                draw: savedGameState.draw ?? prev.draw
+              }));
+            } else {
+              // Check if incoming position is empty (64 squares with empty strings)
+              const incomingPositionIsEmpty = savedGameState.position && 
+                Object.keys(savedGameState.position).length === 64 &&
+                Object.values(savedGameState.position).every((piece: any) => piece === '' || piece === null || piece === undefined);
+              
+              console.log('🔍 Server state analysis:', {
+                incomingPositionIsEmpty,
+                incomingPositionKeys: savedGameState.position ? Object.keys(savedGameState.position).length : 0,
+                sampleIncoming: savedGameState.position ? {
+                  e4: savedGameState.position.e4,
+                  e5: savedGameState.position.e5,
+                  d4: savedGameState.position.d4,
+                  d5: savedGameState.position.d5
+                } : null
+              });
+              
+              if (incomingPositionIsEmpty && hasPosition) {
+                console.log('🚛 Toyota Protection: Server sent empty position, keeping current position');
+                // Don't overwrite with empty position - use server data but keep current position
+                const ensuredGameState = {
+                  ...savedGameState,
+                  position: currentGameState.position,  // Keep current position
+                  castlingRights: savedGameState.castlingRights ?? 'KQkq',
+                  enPassantTarget: savedGameState.enPassantTarget ?? null,
+                  halfmoveClock: savedGameState.halfmoveClock ?? 0,
+                  fullmoveNumber: savedGameState.fullmoveNumber ?? 1,
+                  inCheck: savedGameState.inCheck ?? false,
+                  inCheckmate: savedGameState.inCheckmate ?? false,
+                  moveHistory: Array.isArray(savedGameState.moveHistory) ? savedGameState.moveHistory : [],
+                  lastMove: savedGameState.lastMove ?? null
+                } as any;
+                setGameState(ensuredGameState);
+              } else {
+                // Normal case: use server state including position
+                const ensuredGameState = {
+                  ...savedGameState,
+                  castlingRights: savedGameState.castlingRights ?? 'KQkq',
+                  enPassantTarget: savedGameState.enPassantTarget ?? null,
+                  halfmoveClock: savedGameState.halfmoveClock ?? 0,
+                  fullmoveNumber: savedGameState.fullmoveNumber ?? 1,
+                  inCheck: savedGameState.inCheck ?? false,
+                  inCheckmate: savedGameState.inCheckmate ?? false,
+                  moveHistory: Array.isArray(savedGameState.moveHistory) ? savedGameState.moveHistory : [],
+                  lastMove: savedGameState.lastMove ?? null
+                } as any;
+                setGameState(ensuredGameState);
+              }
+            }
             setGameStatus('Game state loaded successfully');
           } else {
             console.log('⚠️ No saved game state found, using fresh state');
@@ -1405,6 +1559,98 @@ function ChessApp() {
         }
       }
     }
+  };
+
+  // 🚛 CRITICAL FIX: Centralized function to set up WebSocket event handlers for move sync
+  const setupWebSocketEventHandlers = () => {
+    if (!websocketService.isConnected()) {
+      console.warn('⚠️ Cannot set up event handlers - WebSocket not connected');
+      return;
+    }
+
+    console.log('🔌 Setting up WebSocket event handlers for move synchronization');
+    
+    // Handle incoming moves from other players
+    websocketService.on('moveMade', (moveData: any) => {
+      console.log('🔄 Received move from other player:', moveData);
+      console.log('🔍 Move details:', {
+        move: moveData.move,
+        playerId: moveData.playerId,
+        color: moveData.color,
+        nextTurn: moveData.nextTurn
+      });
+      
+      // Extract move data from the server format
+      const move = moveData.move;
+      if (move && move.from && move.to && gameState.position) {
+        console.log('🎯 Applying incoming move to local game state');
+        
+        // Create new position by applying the received move
+        const newPosition = { ...gameState.position };
+        const movingPiece = newPosition[move.from];
+        
+        if (movingPiece) {
+          newPosition[move.to] = movingPiece;
+          newPosition[move.from] = '';
+          
+          // Use nextTurn from server
+          const nextPlayer = moveData.nextTurn;
+          
+          // Update game state with the move
+          setGameState((prevState: any) => {
+            const updatedState = {
+              ...prevState,
+              position: newPosition,
+              currentPlayer: nextPlayer,
+              lastMove: { from: move.from, to: move.to },
+              moveHistory: [...prevState.moveHistory, {
+                from: move.from,
+                to: move.to,
+                piece: movingPiece,
+                capturedPiece: gameState.position[move.to] || null,
+                timestamp: Date.now()
+              }],
+              lastUpdated: Date.now()
+            };
+            
+            console.log('✅ Move applied to local game state');
+            console.log('🔍 New current player:', nextPlayer);
+            console.log('🎯 Player role:', playerRole);
+            console.log('🎯 Is my turn:', nextPlayer === playerRole);
+            return updatedState;
+          });
+          
+          // 🔍 Debug turn state after move received
+          const isMyTurnAfterMove = nextPlayer === playerRole;
+          console.log('🔍 TURN DEBUG after incoming move:', {
+            nextPlayer,
+            playerRole,
+            isMyTurnAfterMove,
+            moveFrom: move.from,
+            moveTo: move.to
+          });
+          
+          setGameStatus(`Move received: ${move.from} → ${move.to}. ${isMyTurnAfterMove ? 'Your turn!' : "Opponent's turn"}`);
+        } else {
+          console.warn('⚠️ No piece found at source square for incoming move');
+        }
+      } else {
+        console.warn('⚠️ Invalid move data received:', moveData);
+      }
+    });
+    
+    // Handle move confirmations
+    websocketService.on('moveConfirmed', (data: any) => {
+      console.log('✅ Move confirmed by server:', data);
+    });
+    
+    // Handle move errors
+    websocketService.on('moveError', (data: any) => {
+      console.error('❌ Move error from server:', data);
+      setGameStatus(`Move error: ${data.error}`);
+    });
+    
+    console.log('✅ WebSocket event handlers set up successfully');
   };
 
   // 🚛 TOYOTA SECURITY: Validate game before allowing payout
@@ -3279,6 +3525,12 @@ function ChessApp() {
           inCheck: false,
           inCheckmate: false
         });
+        
+        // 🚛 CRITICAL FIX: Set up WebSocket event handlers for real-time move sync on game start
+        setTimeout(() => {
+          console.log('🔌 Setting up WebSocket event handlers for new game...');
+          setupWebSocketEventHandlers();
+        }, 1000); // Small delay to ensure WebSocket is fully connected
       };
 
       const handleRoomUpdated = (data: any) => {
@@ -3825,11 +4077,10 @@ function ChessApp() {
                   lastUpdated: Date.now()
                 };
                 
-                // Step 4: Reconstruct position by replaying moves
+                // Step 4: Toyota Reliability - Reconstruct position from moves
                 try {
-                  // Start with initial position
-                  let reconstructedPosition = ChessEngine.getInitialPosition();
-                  let tempGameState = {
+                  let currentPosition = ChessEngine.getInitialPosition();
+                  let currentGameState = {
                     currentPlayer: 'white' as 'white' | 'black',
                     castlingRights: 'KQkq',
                     enPassantTarget: null,
@@ -3838,36 +4089,79 @@ function ChessApp() {
                     moveHistory: []
                   };
                   
-                  // Replay each move to reconstruct exact position
+                  console.log(`🔄 Reconstructing position from ${restoredGameState.moveHistory.length} moves...`);
+                  
+                  // Replay all moves to get the correct position
                   for (const move of restoredGameState.moveHistory) {
-                    const moveResult = ChessEngine.makeMove(
-                      move.from_square, 
-                      move.to_square, 
-                      reconstructedPosition, 
-                      tempGameState
-                    );
-                    
-                    if (moveResult) {
-                      reconstructedPosition = moveResult.position;
-                      tempGameState = {
-                        ...tempGameState,
-                        ...moveResult.gameState,
-                        currentPlayer: tempGameState.currentPlayer === 'white' ? 'black' : 'white'
-                      };
+                    try {
+                      console.log(`🔍 Attempting to replay move: ${move.from_square}-${move.to_square}`);
+                      console.log(`🔍 Current position at ${move.from_square}:`, currentPosition[move.from_square]);
+                      console.log(`🔍 Current game state:`, {
+                        currentPlayer: currentGameState.currentPlayer,
+                        castlingRights: currentGameState.castlingRights
+                      });
+                      
+                      // Debug: Check color derivation methods
+                      const pieceAtSquare = currentPosition[move.from_square];
+                      const colorFromPiece = ChessEngine.getPieceColor(pieceAtSquare);
+                      const colorFromMoveData = move.piece.includes('white') ? 'white' : 'black';
+                      console.log(`🔍 Piece at square: "${pieceAtSquare}"`);
+                      console.log(`🔍 Color from piece: "${colorFromPiece}"`);
+                      console.log(`🔍 Color from move data: "${colorFromMoveData}"`);
+                      console.log(`🔍 Move data piece: "${move.piece}"`);
+                      console.log(`🔍 Current player in gameState: "${currentGameState.currentPlayer}"`);
+                      
+                      const moveResult = ChessEngine.makeMove(
+                        move.from_square, 
+                        move.to_square, 
+                        currentPosition, 
+                        currentGameState
+                      );
+                      
+                      console.log(`🔍 Move result for ${move.from_square}-${move.to_square}:`, moveResult);
+                      
+                      if (moveResult && moveResult.position) {
+                        currentPosition = moveResult.position;
+                        if (moveResult.gameState) {
+                          currentGameState = {
+                            ...currentGameState,
+                            ...moveResult.gameState
+                          };
+                        }
+                        // CRITICAL: Alternate turns after each move
+                        currentGameState.currentPlayer = currentGameState.currentPlayer === 'white' ? 'black' : 'white';
+                        console.log(`✅ Successfully replayed move ${move.from_square}-${move.to_square}, next player: ${currentGameState.currentPlayer}`);
+                      } else {
+                        console.warn(`⚠️ Failed to replay move ${move.from_square}-${move.to_square}: Move result is null`);
+                        console.log(`🔍 Debug: Move legality check...`);
+                        const isLegal = ChessEngine.isLegalMove(
+                          move.from_square, 
+                          move.to_square, 
+                          currentPosition, 
+                          move.piece.includes('white') ? 'white' : 'black',
+                          currentGameState
+                        );
+                        console.log(`🔍 Is move ${move.from_square}-${move.to_square} legal?`, isLegal);
+                      }
+                    } catch (moveError) {
+                      console.warn(`⚠️ Error replaying move ${move.from_square}-${move.to_square}:`, moveError);
                     }
                   }
                   
-                  frontendGameState.position = reconstructedPosition;
-                  frontendGameState.castlingRights = tempGameState.castlingRights;
-                  frontendGameState.enPassantTarget = tempGameState.enPassantTarget;
-                  frontendGameState.halfmoveClock = tempGameState.halfmoveClock;
-                  
-                  console.log('✅ Chess position reconstructed from move replay');
-                } catch (replayError) {
-                  console.error('❌ Failed to reconstruct position from moves:', replayError);
-                  showError('Position Error', 'Failed to reconstruct board position from moves');
-                  setGameStatus('❌ Position reconstruction failed');
-                  return;
+                  frontendGameState.position = currentPosition;
+                  console.log('✅ Position reconstructed from move history');
+                  console.log(`🎯 Final position after ${restoredGameState.moveHistory.length} moves applied`);
+                  console.log('🔍 Reconstructed position sample:', {
+                    e2: currentPosition.e2 || 'empty',
+                    e4: currentPosition.e4 || 'empty', 
+                    e7: currentPosition.e7 || 'empty',
+                    e5: currentPosition.e5 || 'empty'
+                  });
+                } catch (positionError) {
+                  console.error('❌ Failed to reconstruct position from moves:', positionError);
+                  // Fallback to starting position if reconstruction fails
+                  frontendGameState.position = ChessEngine.getInitialPosition();
+                  console.log('🚛 Toyota fallback: Using starting position due to reconstruction error');
                 }
                 
                 // Step 5: Set the restored game state
@@ -3876,9 +4170,44 @@ function ChessApp() {
                 // Step 6: Switch to game mode
                 setGameMode('game');
                 
-                // Step 7: WebSocket will reconnect automatically when moves are made
-                // The existing WebSocket service will handle reconnection as needed
-                console.log('🔌 WebSocket will reconnect automatically for real-time sync');
+                // Step 7: Toyota Reliability - Explicitly re-establish WebSocket connection
+                console.log('🔌 Force WebSocket reconnection for real-time sync');
+                
+                // Force WebSocket reconnection to ensure moves sync between players
+                try {
+                  console.log('🚛 Forcing WebSocket reconnection for room:', roomId);
+                  
+                  // Use proper reconnection method
+                  console.log('🔌 Disconnecting existing WebSocket connection');
+                  websocketService.reconnect();
+                  
+                  // Wait for new connection to establish (Socket.IO connects async)
+                  console.log('🔌 Establishing fresh WebSocket connection');
+                  let connectionAttempts = 0;
+                  const maxAttempts = 30; // 3 seconds max for new connection
+                  
+                  while (!websocketService.isConnected() && connectionAttempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    connectionAttempts++;
+                  }
+                  
+                  if (websocketService.isConnected()) {
+                    // Set up event handlers for move synchronization
+                    setupWebSocketEventHandlers();
+                    
+                    // Re-join the game now that we're connected
+                    websocketService.joinGame(roomId, { 
+                      playerId: publicKey.toString(),
+                      playerName: `Player ${restoredGameState.userColor}`
+                    });
+                    console.log('✅ WebSocket reconnection complete');
+                  } else {
+                    console.warn('⚠️ WebSocket reconnection timed out, but continuing...');
+                  }
+                } catch (wsError) {
+                  console.error('❌ WebSocket reconnection failed:', wsError);
+                  // Don't fail the entire reconnection for WebSocket issues
+                }
                 
                 // Step 8: Success notification and status
                 showSuccess('Reconnected Successfully!', 

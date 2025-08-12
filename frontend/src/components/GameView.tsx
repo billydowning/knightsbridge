@@ -371,7 +371,7 @@ export const GameView: React.FC<GameViewProps> = ({
               gap: '4px'
             }}>
               <span>{gameState.currentPlayer === 'white' ? '♔' : '♚'}</span>
-              {gameState.currentPlayer.charAt(0).toUpperCase() + gameState.currentPlayer.slice(1)}
+              {gameState.currentPlayer ? (gameState.currentPlayer.charAt(0).toUpperCase() + gameState.currentPlayer.slice(1)) : 'Loading...'}
             </div>
           </div>
 
@@ -452,7 +452,7 @@ export const GameView: React.FC<GameViewProps> = ({
               gap: '4px'
             }}>
               <span>{playerRole === 'white' ? '♔' : '♚'}</span>
-              Playing as {playerRole.charAt(0).toUpperCase() + playerRole.slice(1)}
+              Playing as {playerRole ? (playerRole.charAt(0).toUpperCase() + playerRole.slice(1)) : 'Loading...'}
             </div>
           </div>
 
