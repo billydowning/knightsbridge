@@ -797,7 +797,7 @@ function ChessApp() {
                 castlingRights: savedGameState.castlingRights ?? prev.castlingRights,
                 enPassantTarget: savedGameState.enPassantTarget ?? prev.enPassantTarget,
                 halfmoveClock: savedGameState.halfmoveClock ?? prev.halfmoveClock,
-                fullmoveNumber: savedGameState.fullmoveNumber ?? prev.fullmoveNumber,
+                // fullmoveNumber: savedGameState.fullmoveNumber ?? prev.fullmoveNumber, // DISABLED - keep reconstructed fullmoveNumber
                 inCheck: savedGameState.inCheck ?? prev.inCheck,
                 inCheckmate: savedGameState.inCheckmate ?? prev.inCheckmate,
                 lastMove: savedGameState.lastMove ?? prev.lastMove,
