@@ -226,7 +226,11 @@ class WebSocketService {
       return;
     }
     
-    this.socket.emit('joinRoom', gameId, playerInfo);
+    // Backend expects: { roomId, playerWallet }
+    this.socket.emit('joinRoom', {
+      roomId: gameId,
+      playerWallet: playerInfo?.playerId || 'unknown'
+    });
   }
 
   public makeMove(gameId: string, move: { from: string; to: string; piece: string }, playerId: string, color: 'white' | 'black'): string {
