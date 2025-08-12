@@ -3856,17 +3856,26 @@ function ChessApp() {
                   console.log('🔌 Disconnecting existing WebSocket connection');
                   websocketService.disconnect();
                   
-                  // Small delay to ensure clean disconnection
-                  await new Promise(resolve => setTimeout(resolve, 100));
-                  
-                  // Re-establish connection by joining the game (this auto-connects)
+                  // Wait for auto-reconnection (Socket.IO will reconnect automatically)
                   console.log('🔌 Establishing fresh WebSocket connection');
-                  websocketService.joinGame(roomId, { 
-                    playerId: publicKey.toString(),
-                    playerName: `Player ${restoredGameState.userColor}`
-                  });
+                  let connectionAttempts = 0;
+                  const maxAttempts = 50; // 5 seconds max
                   
-                  console.log('✅ WebSocket reconnection complete');
+                  while (!websocketService.isConnected() && connectionAttempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    connectionAttempts++;
+                  }
+                  
+                  if (websocketService.isConnected()) {
+                    // Re-join the game now that we're connected
+                    websocketService.joinGame(roomId, { 
+                      playerId: publicKey.toString(),
+                      playerName: `Player ${restoredGameState.userColor}`
+                    });
+                    console.log('✅ WebSocket reconnection complete');
+                  } else {
+                    console.warn('⚠️ WebSocket reconnection timed out, but continuing...');
+                  }
                 } catch (wsError) {
                   console.error('❌ WebSocket reconnection failed:', wsError);
                   // Don't fail the entire reconnection for WebSocket issues
