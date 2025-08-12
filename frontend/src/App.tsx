@@ -1581,9 +1581,11 @@ function ChessApp() {
           newPosition[moveData.to] = movingPiece;
           newPosition[moveData.from] = '';
           
+          // Calculate next player outside setGameState scope
+          const nextPlayer = moveData.nextTurn || (gameState.currentPlayer === 'white' ? 'black' : 'white');
+          
           // Update game state with the move
           setGameState((prevState: any) => {
-            const nextPlayer = moveData.nextTurn || (prevState.currentPlayer === 'white' ? 'black' : 'white');
             const updatedState = {
               ...prevState,
               position: newPosition,
