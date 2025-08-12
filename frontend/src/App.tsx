@@ -1589,6 +1589,20 @@ function ChessApp() {
         const newPosition = { ...gameState.position };
         const movingPiece = newPosition[move.from];
         
+        console.log(`🔍 Incoming move: ${move.from} → ${move.to}`);
+        console.log(`🔍 Piece at ${move.from}:`, movingPiece);
+        console.log(`🔍 Position around ${move.from}:`, {
+          b3: newPosition.b3,
+          c3: newPosition.c3,
+          d3: newPosition.d3,
+          b2: newPosition.b2,
+          c2: newPosition.c2,
+          d2: newPosition.d2,
+          b4: newPosition.b4,
+          c4: newPosition.c4,
+          d4: newPosition.d4
+        });
+        
         if (movingPiece) {
           newPosition[move.to] = movingPiece;
           newPosition[move.from] = '';
@@ -1633,6 +1647,10 @@ function ChessApp() {
           setGameStatus(`Move received: ${move.from} → ${move.to}. ${isMyTurnAfterMove ? 'Your turn!' : "Opponent's turn"}`);
         } else {
           console.warn('⚠️ No piece found at source square for incoming move');
+          console.log('🔍 Full move data:', moveData);
+          console.log('🔍 Move object:', move);
+          console.log('🔍 Current position keys:', Object.keys(newPosition).length);
+          console.log('🔍 Sample position entries:', Object.entries(newPosition).slice(0, 10));
         }
       } else {
         console.warn('⚠️ Invalid move data received:', moveData);
