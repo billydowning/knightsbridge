@@ -200,6 +200,20 @@ export const GameViewEnhanced: React.FC<GameViewEnhancedProps> = ({
 
         {/* Chess Board */}
         <div className="flex justify-center mb-6">
+          {(() => {
+            // Toyota Debug: Log position before rendering board
+            console.log('🔍 GameViewEnhanced: Rendering ChessBoard with position:', {
+              positionKeys: gameState.position ? Object.keys(gameState.position).length : 0,
+              e4: gameState.position?.e4,
+              e5: gameState.position?.e5,
+              d4: gameState.position?.d4,
+              d5: gameState.position?.d5,
+              e2: gameState.position?.e2,
+              e7: gameState.position?.e7,
+              fullPosition: gameState.position
+            });
+            return null;
+          })()}
           <ChessBoard
             position={gameState.position}
             onSquareClick={onSquareClick}
