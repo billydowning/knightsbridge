@@ -3866,7 +3866,9 @@ function ChessApp() {
                             ...moveResult.gameState
                           };
                         }
-                        console.log(`✅ Successfully replayed move ${move.from_square}-${move.to_square}`);
+                        // CRITICAL: Alternate turns after each move
+                        currentGameState.currentPlayer = currentGameState.currentPlayer === 'white' ? 'black' : 'white';
+                        console.log(`✅ Successfully replayed move ${move.from_square}-${move.to_square}, next player: ${currentGameState.currentPlayer}`);
                       } else {
                         console.warn(`⚠️ Failed to replay move ${move.from_square}-${move.to_square}: Move result is null`);
                         console.log(`🔍 Debug: Move legality check...`);
