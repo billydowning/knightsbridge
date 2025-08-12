@@ -1549,6 +1549,83 @@ function ChessApp() {
     }
   };
 
+  // 🚛 CRITICAL FIX: Centralized function to set up WebSocket event handlers for move sync
+  const setupWebSocketEventHandlers = () => {
+    if (!websocketService.isConnected()) {
+      console.warn('⚠️ Cannot set up event handlers - WebSocket not connected');
+      return;
+    }
+
+    console.log('🔌 Setting up WebSocket event handlers for move synchronization');
+    
+    // Handle incoming moves from other players
+    websocketService.on('onMoveMade', (moveData: any) => {
+      console.log('🔄 Received move from other player:', moveData);
+      console.log('🔍 Move details:', {
+        from: moveData.from,
+        to: moveData.to, 
+        piece: moveData.piece,
+        player: moveData.player,
+        nextTurn: moveData.nextTurn
+      });
+      
+      // Apply the move to our local game state
+      if (moveData.from && moveData.to && gameState.position) {
+        console.log('🎯 Applying incoming move to local game state');
+        
+        // Create new position by applying the received move
+        const newPosition = { ...gameState.position };
+        const movingPiece = newPosition[moveData.from];
+        
+        if (movingPiece) {
+          newPosition[moveData.to] = movingPiece;
+          newPosition[moveData.from] = '';
+          
+          // Update game state with the move
+          setGameState((prevState: any) => {
+            const updatedState = {
+              ...prevState,
+              position: newPosition,
+              currentPlayer: moveData.nextTurn || (prevState.currentPlayer === 'white' ? 'black' : 'white'),
+              lastMove: { from: moveData.from, to: moveData.to },
+              moveHistory: [...prevState.moveHistory, {
+                from: moveData.from,
+                to: moveData.to,
+                piece: movingPiece,
+                capturedPiece: gameState.position[moveData.to] || null,
+                timestamp: Date.now()
+              }],
+              lastUpdated: Date.now()
+            };
+            
+            console.log('✅ Move applied to local game state');
+            console.log('🔍 New current player:', updatedState.currentPlayer);
+            return updatedState;
+          });
+          
+          setGameStatus(`Move received: ${moveData.from} → ${moveData.to}`);
+        } else {
+          console.warn('⚠️ No piece found at source square for incoming move');
+        }
+      } else {
+        console.warn('⚠️ Invalid move data received:', moveData);
+      }
+    });
+    
+    // Handle move confirmations
+    websocketService.on('onMoveConfirmed', (data: any) => {
+      console.log('✅ Move confirmed by server:', data);
+    });
+    
+    // Handle move errors
+    websocketService.on('onMoveError', (data: any) => {
+      console.error('❌ Move error from server:', data);
+      setGameStatus(`Move error: ${data.error}`);
+    });
+    
+    console.log('✅ WebSocket event handlers set up successfully');
+  };
+
   // 🚛 TOYOTA SECURITY: Validate game before allowing payout
   const handleValidationBeforePayout = async () => {
     if (!roomId) {
@@ -3421,6 +3498,12 @@ function ChessApp() {
           inCheck: false,
           inCheckmate: false
         });
+        
+        // 🚛 CRITICAL FIX: Set up WebSocket event handlers for real-time move sync on game start
+        setTimeout(() => {
+          console.log('🔌 Setting up WebSocket event handlers for new game...');
+          setupWebSocketEventHandlers();
+        }, 1000); // Small delay to ensure WebSocket is fully connected
       };
 
       const handleRoomUpdated = (data: any) => {
@@ -4082,6 +4165,9 @@ function ChessApp() {
                   }
                   
                   if (websocketService.isConnected()) {
+                    // Set up event handlers for move synchronization
+                    setupWebSocketEventHandlers();
+                    
                     // Re-join the game now that we're connected
                     websocketService.joinGame(roomId, { 
                       playerId: publicKey.toString(),
