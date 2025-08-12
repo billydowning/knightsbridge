@@ -435,8 +435,8 @@ function ChessApp() {
 
 
 
-  // Game state
-  const [gameState, setGameState] = useState<any>({
+  // Game state with Toyota Protection
+  const [gameStateInternal, setGameStateInternal] = useState<any>({
     position: {
       a1: '♖', b1: '♘', c1: '♗', d1: '♕', e1: '♔', f1: '♗', g1: '♘', h1: '♖',
       a2: '♙', b2: '♙', c2: '♙', d2: '♙', e2: '♙', f2: '♙', g2: '♙', h2: '♙',
@@ -462,6 +462,59 @@ function ChessApp() {
     inCheckmate: false,
     lastMove: null
   });
+
+  // Toyota Protection: Wrap setGameState to prevent empty position overwrites
+  const protectedSetGameState = (newState: any) => {
+    console.log('🔍 PROTECTED setGameState called with:', typeof newState === 'function' ? 'function' : newState);
+    
+    if (typeof newState === 'function') {
+      setGameStateInternal((prev: any) => {
+        const computed = newState(prev);
+        return protectReconstructedPosition(computed, prev);
+      });
+    } else {
+      setGameStateInternal((prev: any) => protectReconstructedPosition(newState, prev));
+    }
+  };
+  
+  // Use protected setter
+  const setGameState = protectedSetGameState;
+  const gameState = gameStateInternal;
+
+  // Toyota protection: prevent any empty position from overwriting reconstructed position
+  const protectReconstructedPosition = (newGameState: any, currentGameState: any): any => {
+    // If we have a reconstructed position, don't let empty positions overwrite it
+    const hasReconstructedPosition = currentGameState.position &&
+      (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' ||
+       currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
+       
+    const incomingPositionIsEmpty = newGameState.position && 
+      Object.keys(newGameState.position).length === 64 &&
+      Object.values(newGameState.position).every((piece: any) => piece === '' || piece === null || piece === undefined);
+    
+    console.log('🔍 PROTECTED Toyota Protection Check:', {
+      hasReconstructedPosition,
+      incomingPositionIsEmpty,
+      incomingPositionKeys: newGameState.position ? Object.keys(newGameState.position).length : 0,
+      currentPositionKeys: currentGameState.position ? Object.keys(currentGameState.position).length : 0,
+      sampleIncoming: newGameState.position ? {
+        e4: newGameState.position.e4,
+        e5: newGameState.position.e5,
+        d4: newGameState.position.d4,
+        d5: newGameState.position.d5
+      } : null
+    });
+    
+    if (hasReconstructedPosition && incomingPositionIsEmpty) {
+      console.log('🚛 PROTECTED Toyota Protection: Blocking empty position overwrite of reconstructed position');
+      return {
+        ...newGameState,
+        position: currentGameState.position  // Keep our reconstructed position
+      };
+    }
+    
+    return newGameState;
+  };
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
