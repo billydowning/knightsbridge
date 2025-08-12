@@ -579,10 +579,14 @@ export const ChessEngine = {
     const capturedPiece = newPosition[to];
     
     // Create new game state
+    const oldFullmoveNumber = gameState.fullmoveNumber || 1;
+    const newFullmoveNumber = oldFullmoveNumber + (color === 'black' ? 1 : 0);
+    console.log(`🔢 Move ${from}-${to} by ${color}: fullmoveNumber ${oldFullmoveNumber} → ${newFullmoveNumber}`);
+    
     const newGameState: Partial<GameState> = {
       ...gameState,
       halfmoveClock: (gameState.halfmoveClock || 0) + 1,
-      fullmoveNumber: (gameState.fullmoveNumber || 1) + (color === 'black' ? 1 : 0),
+      fullmoveNumber: newFullmoveNumber,
       enPassantTarget: null, // Will be set to new target if pawn moves two squares
       lastMove: { from, to }
     };
