@@ -528,8 +528,12 @@ function ChessApp() {
     }
     
     // Also protect currentPlayer for any state change when we have a reconstructed position
-    if (hasReconstructedPosition && newGameState.currentPlayer !== currentGameState.currentPlayer) {
-      console.log('🚛 PROTECTED Toyota Protection: Preserving reconstructed currentPlayer');
+    // BUT allow currentPlayer changes if they come with position/moveHistory updates (from real moves)
+    if (hasReconstructedPosition && 
+        newGameState.currentPlayer !== currentGameState.currentPlayer &&
+        !newGameState.position && 
+        !newGameState.moveHistory) {
+      console.log('🚛 PROTECTED Toyota Protection: Preserving reconstructed currentPlayer (no position/move data)');
       return {
         ...newGameState,
         currentPlayer: currentGameState.currentPlayer,  // Keep our reconstructed currentPlayer
