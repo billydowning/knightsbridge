@@ -3,7 +3,7 @@
  * Provides real-time notifications and alerts for game events
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 export interface Notification {
   id: string;
@@ -195,9 +195,9 @@ export const useNotifications = () => {
     setNotifications(prev => [...prev, { ...notification, id }]);
   };
 
-  const removeNotification = (id: string) => {
+  const removeNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-  };
+  }, []);
 
   const showSuccess = (title: string, message: string, duration = 5000) => {
     addNotification({ type: 'success', title, message, duration });
