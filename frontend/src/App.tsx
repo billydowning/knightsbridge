@@ -3410,6 +3410,36 @@ function ChessApp() {
     }
   }, [gameMode, roomId, websocketService.isConnected()]);
 
+  // 🔍 DEBUG: Listen for ALL WebSocket events to see what the backend actually sends
+  useEffect(() => {
+    if (roomId && databaseMultiplayerState.isConnected()) {
+      try {
+        const socket = (databaseMultiplayerState as any).socket;
+        if (socket) {
+          console.log('🔍 Setting up global event listener for debugging...');
+          
+          // Listen for ALL possible chat-related events
+          const chatEventNames = ['chatMessage', 'newChatMessage', 'onChatMessage', 'chat', 'message', 'newMessage'];
+          
+          chatEventNames.forEach(eventName => {
+            socket.on(eventName, (data: any) => {
+              console.log(`🔍 Received WebSocket event '${eventName}':`, data);
+            });
+          });
+          
+          // Also override the original event emitter to catch everything
+          const originalOn = socket.on.bind(socket);
+          socket.on = function(event: string, handler: any) {
+            console.log(`🔍 Registering handler for event: ${event}`);
+            return originalOn(event, handler);
+          };
+        }
+      } catch (error) {
+        console.error('❌ Error setting up debug listeners:', error);
+      }
+    }
+  }, [roomId, databaseMultiplayerState.isConnected()]);
+
   // Listen for real-time chat messages
   useEffect(() => {
     if (roomId && databaseMultiplayerState.isConnected()) {
