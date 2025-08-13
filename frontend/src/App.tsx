@@ -4463,6 +4463,10 @@ function ChessApp() {
                 
                 console.log('🚛 Toyota-level reconnection complete! Game fully restored.');
                 
+                // 🔄 TOYOTA DIRECT APPROACH: Reload chat after successful reconnection
+                console.log('🔄 *** TOYOTA DIRECT *** Calling chat reload after successful reconnection');
+                reloadChatAfterReconnection();
+                
               } catch (error) {
                 console.error('❌ Unexpected reconnection error:', error);
                 showError('Reconnection Error', 
