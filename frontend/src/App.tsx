@@ -1627,6 +1627,38 @@ function ChessApp() {
             // Use nextTurn from server
             const nextPlayer = moveData.nextTurn;
             
+            // Check for game completion after applying incoming move
+            const isCheck = ChessEngine.isInCheck(newPosition, nextPlayer);
+            const isCheckmate = ChessEngine.isCheckmate(newPosition, nextPlayer, { castlingRights: currentState.castlingRights });
+            const isStalemate = ChessEngine.isStalemate(newPosition, nextPlayer, { castlingRights: currentState.castlingRights });
+            
+            console.log('🔍 Game state check after incoming move:', {
+              nextPlayer,
+              isCheck,
+              isCheckmate,
+              isStalemate,
+              moveFrom: move.from,
+              moveTo: move.to
+            });
+            
+            let winner: 'white' | 'black' | 'draw' | null = null;
+            let gameActive = true;
+            let inCheckmate = false;
+            let draw = false;
+            
+            if (isCheckmate) {
+              // The player who made the move wins (previous player)
+              winner = nextPlayer === 'white' ? 'black' : 'white';
+              gameActive = false;
+              inCheckmate = true;
+              console.log(`🏆 CHECKMATE DETECTED: ${winner} wins!`);
+            } else if (isStalemate) {
+              winner = 'draw';
+              gameActive = false;
+              draw = true;
+              console.log('🤝 STALEMATE DETECTED: Draw!');
+            }
+            
             const updatedState = {
               ...currentState,
               position: newPosition,
@@ -1639,7 +1671,12 @@ function ChessApp() {
                 capturedPiece: currentState.position[move.to] || null,
                 timestamp: Date.now()
               }],
-              lastUpdated: Date.now()
+              lastUpdated: Date.now(),
+              inCheck: isCheck,
+              inCheckmate,
+              winner,
+              gameActive,
+              draw
             };
             
             console.log('✅ Move applied to local game state');
