@@ -270,13 +270,16 @@ class DatabaseMultiplayerStateManager {
         this.notifyCallbacks('gameStateUpdated', data);
       });
 
+      // 🚛 CRITICAL FIX: Ensure chatMessage listener is properly set up
+      console.log('🔧 SOCKET SETUP: Setting up chatMessage listener on main database socket');
       this.socket.on('chatMessage', (data) => {
-        console.log('🔧 SOCKET DEBUG: chatMessage event received on socket, data:', data);
+        console.log('🔧 SOCKET DEBUG: *** MAIN DATABASE SOCKET *** chatMessage event received, data:', data);
         console.log('🔧 SOCKET DEBUG: this.callbacks map has these keys:', Array.from(this.callbacks.keys()));
         console.log('🔧 SOCKET DEBUG: chatMessage callbacks count:', this.callbacks.get('chatMessage')?.size || 0);
         this.notifyCallbacks('chatMessage', data);
         console.log('🔧 SOCKET DEBUG: notifyCallbacks called for chatMessage');
       });
+      console.log('🔧 SOCKET SETUP: chatMessage listener attached to main database socket');
 
       console.log('🔧 CONNECTION DEBUG: All event listeners set up successfully');
       console.log('🔧 CONNECTION DEBUG: Socket instance:', {

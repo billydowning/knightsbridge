@@ -3435,63 +3435,8 @@ function ChessApp() {
     }
   }, [gameMode, roomId, websocketService.isConnected()]);
 
-  // 🔍 DEBUG: Listen for ALL WebSocket events to see what the backend actually sends
-  useEffect(() => {
-    if (roomId && databaseMultiplayerState.isConnected()) {
-      try {
-        const socket = (databaseMultiplayerState as any).socket;
-        if (socket) {
-          console.log('🔍 Setting up global event listener for debugging...');
-          
-          // 🔍 CATCH-ALL: Listen for ANY event to see what the backend actually sends
-          const originalEmit = socket.emit;
-          const originalOnMethod = socket.on;
-          
-          // Override socket.on to log all registered events
-          socket.on = function(eventName: string, handler: any) {
-            console.log(`🔍 Socket listener registered for: ${eventName}`);
-            return originalOnMethod.call(this, eventName, handler);
-          };
-          
-          // Add catch-all listener for ANY event
-          socket.onAny((eventName: string, ...args: any[]) => {
-            console.log(`🔍 *** ANY EVENT RECEIVED *** '${eventName}':`, args);
-            
-            // 🚛 TOYOTA FIX: Debug listener should ONLY log events, not process them
-            // Processing chat messages here causes duplication with the main listener
-            if (eventName.toLowerCase().includes('chat') || eventName.toLowerCase().includes('message')) {
-              console.log(`🔍 This looks like a chat event (DEBUG ONLY - not processing)`);
-              // ✅ REMOVED: Chat processing from debug listener to prevent duplication
-            }
-          });
-          
-          // Listen for ALL possible chat-related events AND PROCESS THEM
-          const chatEventNames = ['chatMessage', 'newChatMessage', 'onChatMessage', 'chat', 'message', 'newMessage'];
-          
-          chatEventNames.forEach(eventName => {
-            socket.off(eventName); // Remove existing listeners first
-            socket.on(eventName, (data: any) => {
-              console.log(`🔍 *** CHAT EVENT RECEIVED *** '${eventName}':`, data);
-              
-              // 🚛 TOYOTA FIX: Debug listeners should ONLY log events, not process them
-              // This was causing duplication with the main setupRealtimeSync chat listener
-              // ✅ REMOVED: Chat processing from debug listener to prevent duplication
-            });
-            console.log(`🔍 Registered DEBUG-ONLY listener for: ${eventName}`);
-          });
-          
-          // Also override the original event emitter to catch everything
-          const originalOn = socket.on.bind(socket);
-          socket.on = function(event: string, handler: any) {
-            console.log(`🔍 Registering handler for event: ${event}`);
-            return originalOn(event, handler);
-          };
-        }
-      } catch (error) {
-        console.error('❌ Error setting up debug listeners:', error);
-      }
-    }
-  }, [roomId, databaseMultiplayerState.isConnected()]);
+  // 🚛 TOYOTA: Removed interfering debug listeners that were breaking chat functionality
+  // The debug code was overriding socket.on and preventing main listeners from working
 
   // Listen for real-time chat messages
   useEffect(() => {
