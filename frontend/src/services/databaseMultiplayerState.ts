@@ -590,7 +590,7 @@ class DatabaseMultiplayerStateManager {
 
         this.socket.emit('getChatMessages', { roomId }, (response: any) => {
           if (response.success) {
-            resolve(response.data);
+            resolve(response.messages);  // 🚛 TOYOTA FIX: Backend returns 'messages', not 'data'
           } else {
             console.error('❌ Failed to get chat messages:', response.error);
             resolve([]);
