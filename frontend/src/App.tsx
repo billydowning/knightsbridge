@@ -4465,7 +4465,13 @@ function ChessApp() {
                 
                 // 🔄 TOYOTA DIRECT APPROACH: Reload chat after successful reconnection
                 console.log('🔄 *** TOYOTA DIRECT *** Calling chat reload after successful reconnection');
-                reloadChatAfterReconnection();
+                console.log('🔄 *** ROOMID CHECK *** roomId available in reconnection context:', roomId);
+                if (roomId) {
+                  console.log('🔄 *** DIRECT CALL *** Calling chat reload with roomId:', roomId);
+                  reloadChatAfterReconnection();
+                } else {
+                  console.error('❌ *** MISSING ROOMID *** Cannot reload chat - roomId is missing in reconnection context');
+                }
                 
               } catch (error) {
                 console.error('❌ Unexpected reconnection error:', error);
