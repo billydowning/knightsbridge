@@ -3090,6 +3090,10 @@ function ChessApp() {
 
   // Chat functions
   const handleSendChatMessage = (message: string) => {
+    console.log('💬 handleSendChatMessage called with message:', message);
+    console.log('💬 Current state - roomId:', roomId, 'publicKey:', publicKey?.toString().slice(0,6) + '...', 'playerRole:', playerRole);
+    console.log('💬 Database connection status:', databaseMultiplayerState.isConnected());
+    
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       playerId: playerRole,
@@ -3102,13 +3106,16 @@ function ChessApp() {
     
     // Add message to local state immediately for UI responsiveness
     setChatMessages(prev => [...prev, newMessage]);
+    console.log('💬 Added message to local state, sending to database...');
     
     // Send via database system
     if (roomId && publicKey) {
+      console.log('💬 Calling databaseMultiplayerState.sendChatMessage...');
       databaseMultiplayerState.sendChatMessage(roomId, message, publicKey.toString(), playerRole)
         .then((response) => {
+          console.log('💬 sendChatMessage resolved with response:', response);
           if (response.success) {
-      
+            console.log('✅ Chat message sent successfully');
           } else {
             console.error('❌ Failed to send chat message:', response.error);
             // Remove the message from local state if it failed
@@ -3163,13 +3170,19 @@ function ChessApp() {
 
   // 🔄 TOYOTA RELIABILITY: Function to reload chat messages after reconnection
   const reloadChatAfterReconnection = useCallback(async () => {
-    if (!roomId) return;
+    console.log('🔄 reloadChatAfterReconnection called - roomId:', roomId);
+    if (!roomId) {
+      console.log('🔄 No roomId, skipping chat reload');
+      return;
+    }
     
     try {
       console.log('🔄 Reloading chat messages after database WebSocket reconnection...');
+      console.log('🔄 Database connection status before reload:', databaseMultiplayerState.isConnected());
       await new Promise(resolve => setTimeout(resolve, 1000)); // Longer delay for database connection stability
       
       const messages = await databaseMultiplayerState.getChatMessages(roomId);
+      console.log('🔄 Raw messages received from database:', messages);
       if (messages && Array.isArray(messages)) {
         const messagesWithTimestamps = messages.map((msg: any) => ({
           ...msg,
@@ -3177,6 +3190,8 @@ function ChessApp() {
         }));
         setChatMessages(messagesWithTimestamps);
         console.log('✅ Chat messages reloaded after reconnection:', messagesWithTimestamps.length, 'messages');
+      } else {
+        console.log('🔄 No messages received or invalid format:', messages);
       }
     } catch (error) {
       console.error('❌ Error reloading chat messages after reconnection:', error);
