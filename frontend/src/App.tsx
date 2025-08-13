@@ -4513,6 +4513,18 @@ function ChessApp() {
                   
                   // Call it immediately
                   loadChatMessages();
+                  
+                  // 🚛 TOYOTA CRITICAL: Rejoin the database chat room after reconnection
+                  console.log('🔄 *** TOYOTA REJOIN *** Ensuring database socket rejoins chat room after reconnection');
+                  const dbSocket = (databaseMultiplayerState as any).socket;
+                  if (dbSocket && publicKey) {
+                    const playerWallet = publicKey.toString();
+                    console.log('🔄 *** REJOINING *** Database socket rejoining room:', roomId, 'wallet:', playerWallet.slice(0,6) + '...');
+                    dbSocket.emit('joinRoom', { roomId, playerWallet });
+                    console.log('✅ *** REJOIN COMPLETE *** Database socket room rejoin attempted');
+                  } else {
+                    console.error('❌ *** REJOIN FAILED *** Database socket or publicKey not available');
+                  }
                 } else {
                   console.error('❌ *** MISSING ROOMID *** Cannot reload chat - roomId is missing in reconnection context');
                 }
