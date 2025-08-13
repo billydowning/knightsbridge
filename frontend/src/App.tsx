@@ -3161,33 +3161,27 @@ function ChessApp() {
     }
   }, [roomId]);
 
-  // 🔄 TOYOTA RELIABILITY: Reload chat messages after WebSocket reconnection
-  // This ensures players see messages sent while they were disconnected
-  useEffect(() => {
-    if (roomId && websocketService.isConnected()) {
-      // Small delay after WebSocket connects to reload chat messages
-      const reloadChatAfterReconnection = async () => {
-        try {
-          console.log('🔄 Reloading chat messages after WebSocket reconnection...');
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const messages = await databaseMultiplayerState.getChatMessages(roomId);
-          if (messages && Array.isArray(messages)) {
-            const messagesWithTimestamps = messages.map((msg: any) => ({
-              ...msg,
-              timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp
-            }));
-            setChatMessages(messagesWithTimestamps);
-            console.log('✅ Chat messages reloaded after reconnection:', messagesWithTimestamps.length, 'messages');
-          }
-        } catch (error) {
-          console.error('❌ Error reloading chat messages after reconnection:', error);
-        }
-      };
+  // 🔄 TOYOTA RELIABILITY: Function to reload chat messages after reconnection
+  const reloadChatAfterReconnection = useCallback(async () => {
+    if (!roomId) return;
+    
+    try {
+      console.log('🔄 Reloading chat messages after database WebSocket reconnection...');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Longer delay for database connection stability
       
-      reloadChatAfterReconnection();
+      const messages = await databaseMultiplayerState.getChatMessages(roomId);
+      if (messages && Array.isArray(messages)) {
+        const messagesWithTimestamps = messages.map((msg: any) => ({
+          ...msg,
+          timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp
+        }));
+        setChatMessages(messagesWithTimestamps);
+        console.log('✅ Chat messages reloaded after reconnection:', messagesWithTimestamps.length, 'messages');
+      }
+    } catch (error) {
+      console.error('❌ Error reloading chat messages after reconnection:', error);
     }
-  }, [roomId, websocketService.isConnected()]); // Trigger when WebSocket connection status changes
+  }, [roomId]);
 
   // Fetch room status
   const fetchRoomStatus = useCallback(async () => {
@@ -3668,6 +3662,9 @@ function ChessApp() {
         } else if (eventData.eventType === 'connected') {
           addDebugMessage(`🔌 WebSocket connected event received`);
           // Connection events are handled by the WebSocket service automatically
+          
+          // 🔄 TOYOTA RELIABILITY: Reload chat messages after database WebSocket reconnection
+          reloadChatAfterReconnection();
         } else if (eventData.eventType === 'disconnected') {
           addDebugMessage(`🔌 WebSocket disconnected event received`);
           // Disconnection events are handled by the WebSocket service automatically
@@ -3741,6 +3738,8 @@ function ChessApp() {
       const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
         if (eventData.eventType === 'connected') {
           checkGameState();
+          // 🔄 TOYOTA RELIABILITY: Reload chat messages after database WebSocket reconnection
+          reloadChatAfterReconnection();
         }
       });
       
