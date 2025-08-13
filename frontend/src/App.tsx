@@ -1723,7 +1723,50 @@ function ChessApp() {
       setGameStatus(`Move error: ${data.error}`);
     });
     
-    console.log('✅ WebSocket event handlers set up successfully');
+    // 🔄 CHAT RECONNECTION: Handle incoming chat messages
+    websocketService.on('onNewMessage', (message: any) => {
+      console.log('💬 Received chat message from WebSocket:', message);
+      
+      // Convert WebSocket ChatMessage to ChatBox ChatMessage format
+      const chatBoxMessage: ChatMessage = {
+        ...message,
+        type: message.type === 'chat' ? 'player' : message.type || 'player'
+      };
+      
+      setChatMessages(prev => {
+        // Avoid duplicates
+        if (prev.find(msg => msg.id === chatBoxMessage.id)) {
+          return prev;
+        }
+        return [...prev, chatBoxMessage];
+      });
+    });
+    
+    // Handle chat history
+    websocketService.on('onChatHistory', (messages: any[]) => {
+      console.log('📜 Received chat history from WebSocket:', messages.length, 'messages');
+      
+      // Convert WebSocket ChatMessage[] to ChatBox ChatMessage[] format
+      const chatBoxMessages: ChatMessage[] = messages.map(msg => ({
+        ...msg,
+        type: msg.type === 'chat' ? 'player' : msg.type || 'player'
+      }));
+      
+      setChatMessages(chatBoxMessages);
+    });
+    
+    // Handle chat errors
+    websocketService.on('onChatError', (data: any) => {
+      console.error('❌ Chat error from server:', data);
+    });
+    
+    console.log('✅ WebSocket event handlers set up successfully (including chat)');
+    
+    // 🔄 CHAT RECONNECTION: Request chat history after reconnection
+    if (roomId) {
+      console.log('📜 Requesting chat history after reconnection...');
+      websocketService.getChatHistory(roomId);
+    }
   };
 
   // 🚛 TOYOTA SECURITY: Validate game before allowing payout
@@ -3092,23 +3135,31 @@ function ChessApp() {
   const handleSendChatMessage = (message: string) => {
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
-      playerId: playerRole,
-      playerName: playerRole,
+      playerId: publicKey?.toString() || 'unknown',
+      playerName: playerRole || 'unknown',
       message,
       timestamp: Date.now()
     };
     
-
+    console.log('💬 Sending chat message:', newMessage);
     
     // Add message to local state immediately for UI responsiveness
     setChatMessages(prev => [...prev, newMessage]);
     
-    // Send via database system
+    // 🔄 CHAT FIX: Send via WebSocket for real-time delivery
+    if (roomId && websocketService && websocketService.isConnected()) {
+      websocketService.sendMessage(roomId, message, newMessage.playerId, newMessage.playerName);
+      console.log('✅ Chat message sent via WebSocket');
+    } else {
+      console.warn('⚠️ WebSocket not connected, chat message not sent via WebSocket');
+    }
+    
+    // Send via database system (for persistence)
     if (roomId && publicKey) {
       databaseMultiplayerState.sendChatMessage(roomId, message, publicKey.toString(), playerRole)
         .then((response) => {
           if (response.success) {
-      
+            console.log('✅ Chat message saved to database');
           } else {
             console.error('❌ Failed to send chat message:', response.error);
             // Remove the message from local state if it failed
