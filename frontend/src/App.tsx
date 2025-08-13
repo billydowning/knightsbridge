@@ -3418,13 +3418,41 @@ function ChessApp() {
         if (socket) {
           console.log('🔍 Setting up global event listener for debugging...');
           
-          // Listen for ALL possible chat-related events
+          // Listen for ALL possible chat-related events AND PROCESS THEM
           const chatEventNames = ['chatMessage', 'newChatMessage', 'onChatMessage', 'chat', 'message', 'newMessage'];
           
           chatEventNames.forEach(eventName => {
+            socket.off(eventName); // Remove existing listeners first
             socket.on(eventName, (data: any) => {
-              console.log(`🔍 Received WebSocket event '${eventName}':`, data);
+              console.log(`🔍 *** CHAT EVENT RECEIVED *** '${eventName}':`, data);
+              
+              // Process this as a chat message since the backend sent it to us
+              try {
+                // Skip if message is from the current player
+                if (data.playerWallet === publicKey?.toString()) {
+                  console.log('💬 Skipping message from self');
+                  return;
+                }
+                
+                const newMessage = {
+                  ...data,
+                  playerId: data.playerRole || data.playerId,
+                  playerName: data.playerRole || data.playerName,
+                  timestamp: typeof data.timestamp === 'string' ? new Date(data.timestamp).getTime() : data.timestamp
+                };
+                
+                console.log('💬 Processing WebSocket chat message:', newMessage);
+                
+                setChatMessages(prev => {
+                  const updated = [...prev, newMessage];
+                  console.log('💬 Chat messages updated via WebSocket:', updated.length, 'total');
+                  return updated;
+                });
+              } catch (error) {
+                console.error('❌ Error processing WebSocket chat message:', error);
+              }
             });
+            console.log(`🔍 Registered PROCESSING listener for: ${eventName}`);
           });
           
           // Also override the original event emitter to catch everything
