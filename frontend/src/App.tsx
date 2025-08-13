@@ -4482,8 +4482,37 @@ function ChessApp() {
                 console.log('🔄 *** TOYOTA DIRECT *** Calling chat reload after successful reconnection');
                 console.log('🔄 *** ROOMID CHECK *** roomId available in reconnection context:', roomId);
                 if (roomId) {
-                  console.log('🔄 *** DIRECT CALL *** Calling chat reload with roomId:', roomId);
-                  reloadChatAfterReconnection(roomId);
+                  console.log('🔄 *** TOYOTA SOLUTION *** Using EXACT working initial loading method');
+                  
+                  // Use the EXACT same approach that works initially (from useEffect)
+                  const loadChatMessages = async () => {
+                    try {
+                      console.log('🔄 *** TOYOTA STEP 1 *** About to wait 1000ms like the working method...');
+                      // Wait longer for database transaction to commit (more conservative) - EXACT COPY
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      console.log('🔄 *** TOYOTA STEP 2 *** Calling getChatMessages like the working method...');
+                      
+                      const messages = await databaseMultiplayerState.getChatMessages(roomId);
+                      console.log('🔄 *** TOYOTA STEP 3 *** Got response:', messages ? 'data' : 'null/undefined');
+                      if (messages && Array.isArray(messages)) {
+                        console.log('🔄 *** TOYOTA STEP 4 *** Processing', messages.length, 'messages...');
+                        // Convert timestamp strings back to numbers - EXACT COPY
+                        const messagesWithTimestamps = messages.map((msg: any) => ({
+                          ...msg,
+                          timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp
+                        }));
+                        setChatMessages(messagesWithTimestamps);
+                        console.log('✅ *** TOYOTA SUCCESS *** Chat reloaded using EXACT working method:', messagesWithTimestamps.length, 'messages');
+                      } else {
+                        console.log('❌ *** TOYOTA ISSUE *** Messages not array:', typeof messages, messages);
+                      }
+                    } catch (error) {
+                      console.error('❌ *** TOYOTA ERROR *** Chat reload failed:', error);
+                    }
+                  };
+                  
+                  // Call it immediately
+                  loadChatMessages();
                 } else {
                   console.error('❌ *** MISSING ROOMID *** Cannot reload chat - roomId is missing in reconnection context');
                 }
