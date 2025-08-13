@@ -3554,12 +3554,15 @@ function ChessApp() {
       };
 
       // Use the databaseMultiplayerState callback system instead of direct socket listeners
+      console.log('🔧 CHAT DEBUG: Setting up chat-specific setupRealtimeSync callback for room:', roomId);
       const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
         try {
-          console.log('💬 setupRealtimeSync received event:', eventData.eventType, eventData);
+          console.log('💬 *** CHAT CALLBACK *** setupRealtimeSync received event:', eventData.eventType, eventData);
           if (eventData.eventType === 'chatMessage') {
-            console.log('💬 Processing chatMessage event with data:', eventData.data);
+            console.log('💬 *** CHAT PROCESSING *** Processing chatMessage event with data:', eventData.data);
             handleChatMessage(eventData.data);
+          } else {
+            console.log('💬 *** CHAT CALLBACK *** Non-chat event received:', eventData.eventType);
           }
         } catch (error) {
           console.error('❌ Error in chat message callback:', error);
@@ -3570,6 +3573,7 @@ function ChessApp() {
           });
         }
       });
+      console.log('🔧 CHAT DEBUG: Chat setupRealtimeSync callback registered, cleanup function:', typeof cleanup);
       
       return cleanup;
     }

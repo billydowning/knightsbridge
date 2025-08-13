@@ -260,7 +260,9 @@ class DatabaseMultiplayerStateManager {
       });
 
       this.socket.on('chatMessage', (data) => {
+        console.log('🔧 SOCKET DEBUG: chatMessage event received on socket, data:', data);
         this.notifyCallbacks('chatMessage', data);
+        console.log('🔧 SOCKET DEBUG: notifyCallbacks called for chatMessage');
       });
 
     } catch (error) {
@@ -625,15 +627,23 @@ class DatabaseMultiplayerStateManager {
   }
 
   private notifyCallbacks(eventType: string, data: any): void {
+    console.log(`🔧 NOTIFY DEBUG: notifyCallbacks called for eventType: ${eventType}, data:`, data);
     const callbacks = this.callbacks.get(eventType);
+    console.log(`🔧 NOTIFY DEBUG: Found ${callbacks?.size || 0} callbacks for eventType: ${eventType}`);
     if (callbacks) {
+      let callbackIndex = 0;
       callbacks.forEach(callback => {
         try {
+          console.log(`🔧 NOTIFY DEBUG: Calling callback ${callbackIndex} for eventType: ${eventType}`);
           callback({ eventType, data });
+          console.log(`🔧 NOTIFY DEBUG: Callback ${callbackIndex} completed successfully for eventType: ${eventType}`);
+          callbackIndex++;
         } catch (error) {
-          console.error('❌ Error in callback:', error);
+          console.error(`❌ Error in callback ${callbackIndex} for eventType ${eventType}:`, error);
         }
       });
+    } else {
+      console.log(`🔧 NOTIFY DEBUG: No callbacks registered for eventType: ${eventType}`);
     }
   }
 
