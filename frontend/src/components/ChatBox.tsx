@@ -153,6 +153,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
     switch (type) {
       case 'system':
         return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'player':
+        return 'bg-green-50 text-green-800 border-green-200';
       case 'draw_offer':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'resignation':

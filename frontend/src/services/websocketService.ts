@@ -58,6 +58,9 @@ export interface WebSocketEvents {
   onChatHistory: (messages: ChatMessage[]) => void;
   onChatError: (data: { error: string }) => void;
   
+  // Backend chat events (actual event names from backend)
+  chatMessage: (message: any) => void;
+  
   // Game state events
   onGameState: (state: GameState) => void;
   onGameResigned: (data: { playerId: string; color: 'white' | 'black'; winner: 'white' | 'black' }) => void;

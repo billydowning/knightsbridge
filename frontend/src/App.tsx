@@ -1723,14 +1723,22 @@ function ChessApp() {
       setGameStatus(`Move error: ${data.error}`);
     });
     
-    // 🔄 CHAT RECONNECTION: Handle incoming chat messages
-    websocketService.on('onNewMessage', (message: any) => {
-      console.log('💬 Received chat message from WebSocket:', message);
+    // 🔄 CHAT RECONNECTION: Handle chat messages that come via WebSocket after reconnection
+    // (Backend sends 'chatMessage' events based on your logs)
+    websocketService.on('chatMessage', (data: any) => {
+      console.log('💬 Received chat message via WebSocket after reconnection:', data);
       
-      // Convert WebSocket ChatMessage to ChatBox ChatMessage format
+      // Extract message from backend event data structure
+      const message = data.data || data;
+      
+      // Convert to ChatBox format
       const chatBoxMessage: ChatMessage = {
-        ...message,
-        type: message.type === 'chat' ? 'player' : message.type || 'player'
+        id: message.id || Date.now().toString(),
+        playerId: message.playerId || message.playerWallet || 'unknown',
+        playerName: message.playerName || message.playerRole || 'player',
+        message: message.message || message.content || '',
+        timestamp: message.timestamp || Date.now(),
+        type: 'player'
       };
       
       setChatMessages(prev => {
@@ -3146,13 +3154,8 @@ function ChessApp() {
     // Add message to local state immediately for UI responsiveness
     setChatMessages(prev => [...prev, newMessage]);
     
-    // 🔄 CHAT FIX: Send via WebSocket for real-time delivery
-    if (roomId && websocketService && websocketService.isConnected()) {
-      websocketService.sendMessage(roomId, message, newMessage.playerId, newMessage.playerName);
-      console.log('✅ Chat message sent via WebSocket');
-    } else {
-      console.warn('⚠️ WebSocket not connected, chat message not sent via WebSocket');
-    }
+    // Note: Keep existing database-only sending for now since WebSocket causes backend errors
+    // TODO: Fix WebSocket chat sending in future iteration
     
     // Send via database system (for persistence)
     if (roomId && publicKey) {
