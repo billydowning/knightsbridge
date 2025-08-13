@@ -3415,6 +3415,10 @@ function ChessApp() {
     if (roomId && databaseMultiplayerState.isConnected()) {
       const handleChatMessage = (message: any) => {
         try {
+          console.log('💬 handleChatMessage called with:', message);
+          console.log('💬 Current publicKey:', publicKey?.toString());
+          console.log('💬 Message playerWallet:', message.playerWallet);
+          
           const newMessage = {
             ...message,
             playerId: message.playerRole || message.playerId, // Map playerRole to playerId
@@ -3422,10 +3426,24 @@ function ChessApp() {
             timestamp: typeof message.timestamp === 'string' ? new Date(message.timestamp).getTime() : message.timestamp
           };
           
-          setChatMessages(prev => {
-            const updated = [...prev, newMessage];
-            return updated;
-          });
+          console.log('💬 Processed newMessage:', newMessage);
+          
+          // Don't add our own messages (they're already in local state)
+          if (message.playerWallet !== publicKey?.toString()) {
+            console.log('💬 Adding message from other player');
+            setChatMessages(prev => {
+              // Avoid duplicates
+              if (prev.find(msg => msg.id === newMessage.id)) {
+                console.log('💬 Duplicate message, skipping');
+                return prev;
+              }
+              const updated = [...prev, newMessage];
+              console.log('💬 Updated chat messages:', updated.length, 'total messages');
+              return updated;
+            });
+          } else {
+            console.log('💬 Skipping own message (already in local state)');
+          }
         } catch (error) {
           console.error('❌ Error in handleChatMessage:', error);
         }
@@ -3434,7 +3452,9 @@ function ChessApp() {
       // Use the databaseMultiplayerState callback system instead of direct socket listeners
       const cleanup = databaseMultiplayerState.setupRealtimeSync(roomId, (eventData: any) => {
         try {
+          console.log('💬 setupRealtimeSync received event:', eventData.eventType, eventData);
           if (eventData.eventType === 'chatMessage') {
+            console.log('💬 Processing chatMessage event with data:', eventData.data);
             handleChatMessage(eventData.data);
           }
         } catch (error) {
