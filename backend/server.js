@@ -852,12 +852,7 @@ app.get('/deploy-schema', async (req, res) => {
         started_at TIMESTAMP WITH TIME ZONE,
         finished_at TIMESTAMP WITH TIME ZONE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        
-        -- 🛡️ TIMER SECURITY: Server-side timer tracking
-        white_time_remaining INTEGER,
-        black_time_remaining INTEGER,
-        last_move_time TIMESTAMP WITH TIME ZONE
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       )`,
 
       // Escrows Table
@@ -1683,14 +1678,7 @@ io.on('connection', (socket) => {
             escrows.length === 2) {
           
           console.log('🎮 Starting game automatically - both players and escrows ready');
-          // 🛡️ TIMER SECURITY: Initialize timers when game starts
-          const gameData = await poolInstance.query('SELECT time_limit FROM games WHERE room_id = $1', [roomId]);
-          const timeLimit = gameData.rows[0]?.time_limit || 600;
-          
-          await poolInstance.query(
-            'UPDATE games SET game_state = $1, white_time_remaining = $2, black_time_remaining = $3, last_move_time = NOW(), started_at = NOW() WHERE room_id = $4', 
-            ['active', timeLimit, timeLimit, roomId]
-          );
+          await poolInstance.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
           
           // Broadcast game started event to ALL players in the room
           console.log('📢 Broadcasting gameStarted event to room:', roomId);
@@ -1798,14 +1786,8 @@ io.on('connection', (socket) => {
         
         console.log('🎮 Both deposits confirmed - starting game!');
         
-        // 🛡️ TIMER SECURITY: Update game state to active and initialize timers
-        const gameData = await poolInstance.query('SELECT time_limit FROM games WHERE room_id = $1', [roomId]);
-        const timeLimit = gameData.rows[0]?.time_limit || 600;
-        
-        await poolInstance.query(
-          'UPDATE games SET game_state = $1, white_time_remaining = $2, black_time_remaining = $3, last_move_time = NOW(), started_at = NOW() WHERE room_id = $4', 
-          ['active', timeLimit, timeLimit, roomId]
-        );
+        // Update game state to active
+        await poolInstance.query('UPDATE games SET game_state = $1 WHERE room_id = $2', ['active', roomId]);
         
         // Broadcast game started event to ALL players in the room
         console.log('📢 Broadcasting gameStarted event to room:', roomId);
@@ -2276,39 +2258,6 @@ io.on('connection', (socket) => {
       );
       const moveCount = moveCountResult.rows[0].next_move_number;
       
-      // 🛡️ TIMER SECURITY: Get current timer values and calculate new values
-      const currentGameData = await poolInstance.query(
-        'SELECT white_time_remaining, black_time_remaining, time_limit, last_move_time FROM games WHERE room_id = $1',
-        [gameId]
-      );
-      
-      let whiteTimeRemaining, blackTimeRemaining;
-      if (currentGameData.rows.length > 0 && currentGameData.rows[0].white_time_remaining !== null) {
-        // Use existing timer values
-        whiteTimeRemaining = currentGameData.rows[0].white_time_remaining;
-        blackTimeRemaining = currentGameData.rows[0].black_time_remaining;
-        
-        // Calculate time spent on this move
-        const lastMoveTime = currentGameData.rows[0].last_move_time;
-        const currentTime = Date.now();
-        const timeSpentOnMove = lastMoveTime ? Math.floor((currentTime - new Date(lastMoveTime).getTime()) / 1000) : 0;
-        
-        // Deduct time from the player who just moved
-        if (color === 'white') {
-          whiteTimeRemaining = Math.max(0, whiteTimeRemaining - timeSpentOnMove);
-        } else {
-          blackTimeRemaining = Math.max(0, blackTimeRemaining - timeSpentOnMove);
-        }
-        
-        console.log(`🛡️ TIMER UPDATE: ${color} spent ${timeSpentOnMove}s, remaining: white=${whiteTimeRemaining}s, black=${blackTimeRemaining}s`);
-      } else {
-        // Initialize timer values for new game
-        const timeLimit = currentGameData.rows[0]?.time_limit || 600;
-        whiteTimeRemaining = timeLimit;
-        blackTimeRemaining = timeLimit;
-        console.log(`🛡️ TIMER INIT: Starting with ${timeLimit}s for both players`);
-      }
-
       // Store in game_moves table with proper structure
       console.log(`🔧 About to store move: gameUUID=${gameUUID}, moveCount=${moveCount}, color=${color}, piece=${piece}`);
       await poolInstance.query(`
@@ -2334,10 +2283,10 @@ io.on('connection', (socket) => {
       ]);
       console.log(`🎯 Move INSERT completed successfully`);
       
-      // 🛡️ TIMER SECURITY: Update move_count and timer values in games table
+      // Update move_count in games table
       await poolInstance.query(
-        'UPDATE games SET move_count = $1, white_time_remaining = $2, black_time_remaining = $3, last_move_time = NOW() WHERE room_id = $4',
-        [moveCount, whiteTimeRemaining, blackTimeRemaining, gameId]
+        'UPDATE games SET move_count = $1 WHERE room_id = $2',
+        [moveCount, gameId]
       );
       
       console.log(`✅ Move ${moveCount} stored in database for ${gameId}`);
