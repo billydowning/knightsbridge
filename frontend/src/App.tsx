@@ -494,28 +494,28 @@ function ChessApp() {
     const incomingPositionIs64Square = newGameState.position && 
       Object.keys(newGameState.position).length === 64;
       
-    // Check if incoming position would overwrite our moves
+    // Check if incoming position would overwrite our moves (detect ANY moves, not just specific ones)
+    const incomingPositionKeys = newGameState.position ? Object.keys(newGameState.position).length : 0;
     const incomingPositionLosesMoves = incomingPositionIs64Square && hasReconstructedPosition &&
-      (newGameState.position.e4 !== 'white-pawn' || newGameState.position.e5 !== 'black-pawn' ||
-       newGameState.position.d4 !== 'white-pawn' || newGameState.position.d5 !== 'black-pawn');
+      incomingPositionKeys >= 60; // 64-square position with mostly empty squares means it's likely empty/default
     
     console.log('🔍 PROTECTED Toyota Protection Check:', {
       hasReconstructedPosition,
       incomingPositionIs64Square,
       incomingPositionLosesMoves,
-      incomingPositionKeys: newGameState.position ? Object.keys(newGameState.position).length : 0,
+      incomingPositionKeys,
       currentPositionKeys: currentGameState.position ? Object.keys(currentGameState.position).length : 0,
       sampleIncoming: newGameState.position ? {
-        e4: newGameState.position.e4,
-        e5: newGameState.position.e5,
-        d4: newGameState.position.d4,
-        d5: newGameState.position.d5
+        f4: newGameState.position.f4,
+        e6: newGameState.position.e6,
+        f2: newGameState.position.f2,
+        e7: newGameState.position.e7
       } : null,
       sampleCurrent: currentGameState.position ? {
-        e4: currentGameState.position.e4,
-        e5: currentGameState.position.e5,
-        d4: currentGameState.position.d4,
-        d5: currentGameState.position.d5
+        f4: currentGameState.position.f4,
+        e6: currentGameState.position.e6,
+        f2: currentGameState.position.f2,
+        e7: currentGameState.position.e7
       } : null
     });
     
