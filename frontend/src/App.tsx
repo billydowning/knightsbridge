@@ -3182,18 +3182,29 @@ function ChessApp() {
     
     try {
       console.log('🔄 *** TOYOTA APPROACH *** Using EXACT same method that works initially');
+      console.log('🔄 *** STEP 1 *** About to wait 1000ms for database stability...');
       // Wait longer for database transaction to commit (more conservative)
       await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('🔄 *** STEP 2 *** Wait complete, calling getChatMessages with roomId:', actualRoomId);
       
       const messages = await databaseMultiplayerState.getChatMessages(actualRoomId);
+      console.log('🔄 *** STEP 3 *** getChatMessages returned:', messages ? 'data received' : 'null/undefined');
+      console.log('🔄 *** STEP 3.1 *** messages type:', typeof messages, 'isArray:', Array.isArray(messages));
+      if (messages) {
+        console.log('🔄 *** STEP 3.2 *** messages length:', messages.length, 'sample:', messages[0]);
+      }
       if (messages && Array.isArray(messages)) {
+        console.log('🔄 *** STEP 4 *** Processing messages array...');
         // Convert timestamp strings back to numbers
         const messagesWithTimestamps = messages.map((msg: any) => ({
           ...msg,
           timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp
         }));
+        console.log('🔄 *** STEP 5 *** About to setChatMessages with:', messagesWithTimestamps.length, 'messages');
         setChatMessages(messagesWithTimestamps);
         console.log('✅ *** TOYOTA SUCCESS *** Chat reloaded using working method:', messagesWithTimestamps.length, 'messages');
+      } else {
+        console.log('❌ *** STEP 4 *** Messages not valid array:', messages);
       }
     } catch (error) {
       console.error('❌ Chat reload failed, trying once more...', error);
