@@ -282,7 +282,7 @@ class DatabaseMultiplayerStateManager {
       console.log('🔧 CONNECTION DEBUG: Socket instance:', {
         id: this.socket.id,
         connected: this.socket.connected,
-        eventNames: this.socket.eventNames()
+        hasSocket: !!this.socket
       });
 
     } catch (error) {
