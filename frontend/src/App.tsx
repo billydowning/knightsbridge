@@ -503,18 +503,16 @@ function ChessApp() {
       incomingPositionLosesMoves,
       incomingPositionKeys,
       currentPositionKeys: currentGameState.position ? Object.keys(currentGameState.position).length : 0,
-      sampleIncoming: newGameState.position ? {
-        f4: newGameState.position.f4,
-        e6: newGameState.position.e6,
-        f2: newGameState.position.f2,
-        e7: newGameState.position.e7
-      } : null,
-      sampleCurrent: currentGameState.position ? {
-        f4: currentGameState.position.f4,
-        e6: currentGameState.position.e6,
-        f2: currentGameState.position.f2,
-        e7: currentGameState.position.e7
-      } : null
+      sampleIncoming: newGameState.position ? 
+        Object.keys(newGameState.position).slice(0, 4).reduce((acc, key) => {
+          acc[key] = newGameState.position[key];
+          return acc;
+        }, {} as any) : null,
+      sampleCurrent: currentGameState.position ? 
+        Object.keys(currentGameState.position).slice(0, 4).reduce((acc, key) => {
+          acc[key] = currentGameState.position[key];
+          return acc;
+        }, {} as any) : null
     });
     
     if (hasReconstructedPosition && incomingPositionLosesMoves) {
@@ -770,20 +768,20 @@ function ChessApp() {
             const positionKeys = hasPosition ? Object.keys(currentGameState.position) : [];
             const positionKeyCount = positionKeys.length;
             
-            // Check if we have a reconstructed position (< 64 squares AND has actual pieces from moves)
+            // Check if we have a reconstructed position (< 64 squares AND has moved pieces)
             const hasReconstructedPosition = hasPosition && 
-              positionKeyCount < 64 && positionKeyCount > 20 &&
-              (currentGameState.position.e4 === 'white-pawn' || currentGameState.position.e5 === 'black-pawn' || 
-               currentGameState.position.d4 === 'white-pawn' || currentGameState.position.d5 === 'black-pawn');
+              positionKeyCount < 64 && positionKeyCount > 20;
             
             console.log('🔍 Toyota protection check:', {
               hasPosition, 
               positionKeyCount, 
               hasReconstructedPosition,
-              e4: currentGameState.position?.e4,
-              e5: currentGameState.position?.e5,
-              d4: currentGameState.position?.d4,
-              d5: currentGameState.position?.d5
+              samplePosition: currentGameState.position ? 
+                Object.keys(currentGameState.position).slice(0, 4).reduce((acc, key) => {
+                  acc[key] = currentGameState.position[key];
+                  return acc;
+                }, {} as any) : null,
+
             });
             
             if (hasReconstructedPosition) {
@@ -814,12 +812,11 @@ function ChessApp() {
               console.log('🔍 Server state analysis:', {
                 incomingPositionIsEmpty,
                 incomingPositionKeys: savedGameState.position ? Object.keys(savedGameState.position).length : 0,
-                sampleIncoming: savedGameState.position ? {
-                  e4: savedGameState.position.e4,
-                  e5: savedGameState.position.e5,
-                  d4: savedGameState.position.d4,
-                  d5: savedGameState.position.d5
-                } : null
+                sampleIncoming: savedGameState.position ? 
+                  Object.keys(savedGameState.position).slice(0, 4).reduce((acc, key) => {
+                    acc[key] = savedGameState.position[key];
+                    return acc;
+                  }, {} as any) : null
               });
               
               if (incomingPositionIsEmpty && hasPosition) {
@@ -978,14 +975,17 @@ function ChessApp() {
         }
         
         // Notify backend about game completion (only do this once per game)
-        if (websocketService && websocketService.isConnected()) {
-          websocketService.gameComplete({
-            roomId,
-            winner,
-            gameResult,
-            playerRole
-          });
-        }
+        // Add small delay to ensure the final move is confirmed first
+        setTimeout(() => {
+          if (websocketService && websocketService.isConnected()) {
+            websocketService.gameComplete({
+              roomId,
+              winner,
+              gameResult,
+              playerRole
+            });
+          }
+        }, 1000); // 1 second delay to allow move confirmation
         
         // 🚛 TOYOTA MOVE PERSISTENCE: Clear game data after completion
         try {
