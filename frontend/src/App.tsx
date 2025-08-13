@@ -3169,10 +3169,14 @@ function ChessApp() {
   }, [roomId]);
 
   // 🔄 TOYOTA RELIABILITY: Function to reload chat messages after reconnection
-  const reloadChatAfterReconnection = useCallback(async () => {
-    console.log('🔄 reloadChatAfterReconnection called - roomId:', roomId);
-    if (!roomId) {
-      console.log('🔄 No roomId, skipping chat reload');
+  const reloadChatAfterReconnection = useCallback(async (targetRoomId?: string) => {
+    const actualRoomId = targetRoomId || roomId;
+    console.log('🔄 *** PARAMETER FIX *** reloadChatAfterReconnection called');
+    console.log('🔄 *** DEBUG *** targetRoomId param:', targetRoomId);
+    console.log('🔄 *** DEBUG *** roomId state:', roomId);
+    console.log('🔄 *** DEBUG *** actualRoomId used:', actualRoomId);
+    if (!actualRoomId) {
+      console.log('🔄 No roomId available, skipping chat reload');
       return;
     }
     
@@ -3181,7 +3185,7 @@ function ChessApp() {
       // Wait longer for database transaction to commit (more conservative)
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const messages = await databaseMultiplayerState.getChatMessages(roomId);
+      const messages = await databaseMultiplayerState.getChatMessages(actualRoomId);
       if (messages && Array.isArray(messages)) {
         // Convert timestamp strings back to numbers
         const messagesWithTimestamps = messages.map((msg: any) => ({
@@ -3196,7 +3200,7 @@ function ChessApp() {
       // If first attempt fails, try once more after longer delay (network issues)
       setTimeout(async () => {
         try {
-          const messages = await databaseMultiplayerState.getChatMessages(roomId);
+          const messages = await databaseMultiplayerState.getChatMessages(actualRoomId);
           if (messages && Array.isArray(messages)) {
             setChatMessages(messages);
             console.log('✅ *** TOYOTA RETRY SUCCESS *** Chat reloaded on retry');
@@ -4468,7 +4472,7 @@ function ChessApp() {
                 console.log('🔄 *** ROOMID CHECK *** roomId available in reconnection context:', roomId);
                 if (roomId) {
                   console.log('🔄 *** DIRECT CALL *** Calling chat reload with roomId:', roomId);
-                  reloadChatAfterReconnection();
+                  reloadChatAfterReconnection(roomId);
                 } else {
                   console.error('❌ *** MISSING ROOMID *** Cannot reload chat - roomId is missing in reconnection context');
                 }
