@@ -3418,6 +3418,47 @@ function ChessApp() {
         if (socket) {
           console.log('🔍 Setting up global event listener for debugging...');
           
+          // 🔍 CATCH-ALL: Listen for ANY event to see what the backend actually sends
+          const originalEmit = socket.emit;
+          const originalOn = socket.on;
+          
+          // Override socket.on to log all registered events
+          socket.on = function(eventName: string, handler: any) {
+            console.log(`🔍 Socket listener registered for: ${eventName}`);
+            return originalOn.call(this, eventName, handler);
+          };
+          
+          // Add catch-all listener for ANY event
+          socket.onAny((eventName: string, ...args: any[]) => {
+            console.log(`🔍 *** ANY EVENT RECEIVED *** '${eventName}':`, args);
+            
+            // If it looks like a chat message, process it
+            if (eventName.toLowerCase().includes('chat') || eventName.toLowerCase().includes('message')) {
+              console.log(`🔍 This looks like a chat event, processing...`);
+              try {
+                const data = args[0];
+                if (data && data.playerWallet !== publicKey?.toString()) {
+                  const newMessage = {
+                    ...data,
+                    playerId: data.playerRole || data.playerId,
+                    playerName: data.playerRole || data.playerName,
+                    timestamp: typeof data.timestamp === 'string' ? new Date(data.timestamp).getTime() : data.timestamp
+                  };
+                  
+                  console.log('💬 Processing ANY event as chat message:', newMessage);
+                  
+                  setChatMessages(prev => {
+                    const updated = [...prev, newMessage];
+                    console.log('💬 Chat updated via ANY event listener:', updated.length, 'total');
+                    return updated;
+                  });
+                }
+              } catch (error) {
+                console.error('❌ Error processing ANY event as chat:', error);
+              }
+            }
+          });
+          
           // Listen for ALL possible chat-related events AND PROCESS THEM
           const chatEventNames = ['chatMessage', 'newChatMessage', 'onChatMessage', 'chat', 'message', 'newMessage'];
           
