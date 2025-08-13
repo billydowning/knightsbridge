@@ -3517,7 +3517,8 @@ function ChessApp() {
             setChatMessages(prev => {
               // 🚛 TOYOTA DEDUP: Check for duplicates by content + player (robust field matching)
               const isDuplicate = prev.find(msg => {
-                const msgPlayerWallet = msg.playerWallet || msg.playerId;
+                // ChatMessage uses playerId, WebSocket messages use playerWallet
+                const msgPlayerWallet = (msg as any).playerWallet || msg.playerId;
                 const newPlayerWallet = newMessage.playerWallet || newMessage.playerId;
                 const messageMatch = msg.message === newMessage.message;
                 const playerMatch = msgPlayerWallet === newPlayerWallet;
