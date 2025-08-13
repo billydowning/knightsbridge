@@ -3177,24 +3177,34 @@ function ChessApp() {
     }
     
     try {
-      console.log('🔄 Reloading chat messages after database WebSocket reconnection...');
-      console.log('🔄 Database connection status before reload:', databaseMultiplayerState.isConnected());
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Longer delay for database connection stability
+      console.log('🔄 *** TOYOTA APPROACH *** Using EXACT same method that works initially');
+      // Wait longer for database transaction to commit (more conservative)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const messages = await databaseMultiplayerState.getChatMessages(roomId);
-      console.log('🔄 Raw messages received from database:', messages);
       if (messages && Array.isArray(messages)) {
+        // Convert timestamp strings back to numbers
         const messagesWithTimestamps = messages.map((msg: any) => ({
           ...msg,
           timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp
         }));
         setChatMessages(messagesWithTimestamps);
-        console.log('✅ Chat messages reloaded after reconnection:', messagesWithTimestamps.length, 'messages');
-      } else {
-        console.log('🔄 No messages received or invalid format:', messages);
+        console.log('✅ *** TOYOTA SUCCESS *** Chat reloaded using working method:', messagesWithTimestamps.length, 'messages');
       }
     } catch (error) {
-      console.error('❌ Error reloading chat messages after reconnection:', error);
+      console.error('❌ Chat reload failed, trying once more...', error);
+      // If first attempt fails, try once more after longer delay (network issues)
+      setTimeout(async () => {
+        try {
+          const messages = await databaseMultiplayerState.getChatMessages(roomId);
+          if (messages && Array.isArray(messages)) {
+            setChatMessages(messages);
+            console.log('✅ *** TOYOTA RETRY SUCCESS *** Chat reloaded on retry');
+          }
+        } catch (retryError) {
+          console.error('❌ *** TOYOTA RETRY FAILED *** Both attempts failed:', retryError);
+        }
+      }, 1000);
     }
   }, [roomId]);
 
