@@ -3457,42 +3457,11 @@ function ChessApp() {
           socket.onAny((eventName: string, ...args: any[]) => {
             console.log(`🔍 *** ANY EVENT RECEIVED *** '${eventName}':`, args);
             
-            // If it looks like a chat message, process it
+            // 🚛 TOYOTA FIX: Debug listener should ONLY log events, not process them
+            // Processing chat messages here causes duplication with the main listener
             if (eventName.toLowerCase().includes('chat') || eventName.toLowerCase().includes('message')) {
-              console.log(`🔍 This looks like a chat event, processing...`);
-              try {
-                const data = args[0];
-                if (data && data.playerWallet !== publicKey?.toString()) {
-                  const newMessage = {
-                    ...data,
-                    playerId: data.playerRole || data.playerId,
-                    playerName: data.playerRole || data.playerName,
-                    timestamp: typeof data.timestamp === 'string' ? new Date(data.timestamp).getTime() : data.timestamp
-                  };
-                  
-                  console.log('💬 Processing ANY event as chat message:', newMessage);
-                  
-                  setChatMessages(prev => {
-                    // 🚛 TOYOTA DEDUP: Check for duplicates by content + timestamp + player (same logic as main handler)
-                    const isDuplicate = prev.find(msg => 
-                      msg.message === newMessage.message && 
-                      msg.playerWallet === newMessage.playerWallet &&
-                      Math.abs((msg.timestamp || 0) - (newMessage.timestamp || 0)) < 5000 // Within 5 seconds
-                    );
-                    
-                    if (isDuplicate) {
-                      console.log('💬 *** TOYOTA DEDUP ANY *** Duplicate message via ANY event, skipping:', newMessage.message);
-                      return prev;
-                    }
-                    
-                    const updated = [...prev, newMessage];
-                    console.log('💬 *** TOYOTA ANY SUCCESS *** Added unique message via ANY event:', updated.length, 'total');
-                    return updated;
-                  });
-                }
-              } catch (error) {
-                console.error('❌ Error processing ANY event as chat:', error);
-              }
+              console.log(`🔍 This looks like a chat event (DEBUG ONLY - not processing)`);
+              // ✅ REMOVED: Chat processing from debug listener to prevent duplication
             }
           });
           
@@ -3504,33 +3473,11 @@ function ChessApp() {
             socket.on(eventName, (data: any) => {
               console.log(`🔍 *** CHAT EVENT RECEIVED *** '${eventName}':`, data);
               
-              // Process this as a chat message since the backend sent it to us
-              try {
-                // Skip if message is from the current player
-                if (data.playerWallet === publicKey?.toString()) {
-                  console.log('💬 Skipping message from self');
-                  return;
-                }
-                
-                const newMessage = {
-                  ...data,
-                  playerId: data.playerRole || data.playerId,
-                  playerName: data.playerRole || data.playerName,
-                  timestamp: typeof data.timestamp === 'string' ? new Date(data.timestamp).getTime() : data.timestamp
-                };
-                
-                console.log('💬 Processing WebSocket chat message:', newMessage);
-                
-                setChatMessages(prev => {
-                  const updated = [...prev, newMessage];
-                  console.log('💬 Chat messages updated via WebSocket:', updated.length, 'total');
-                  return updated;
-                });
-              } catch (error) {
-                console.error('❌ Error processing WebSocket chat message:', error);
-              }
+              // 🚛 TOYOTA FIX: Debug listeners should ONLY log events, not process them
+              // This was causing duplication with the main setupRealtimeSync chat listener
+              // ✅ REMOVED: Chat processing from debug listener to prevent duplication
             });
-            console.log(`🔍 Registered PROCESSING listener for: ${eventName}`);
+            console.log(`🔍 Registered DEBUG-ONLY listener for: ${eventName}`);
           });
           
           // Also override the original event emitter to catch everything
@@ -3568,12 +3515,25 @@ function ChessApp() {
           if (message.playerWallet !== publicKey?.toString()) {
             console.log('💬 Adding message from other player');
             setChatMessages(prev => {
-              // 🚛 TOYOTA DEDUP: Check for duplicates by content + timestamp + player (not just ID)
-              const isDuplicate = prev.find(msg => 
-                msg.message === newMessage.message && 
-                msg.playerWallet === newMessage.playerWallet &&
-                Math.abs((msg.timestamp || 0) - (newMessage.timestamp || 0)) < 5000 // Within 5 seconds
-              );
+              // 🚛 TOYOTA DEDUP: Check for duplicates by content + player (robust field matching)
+              const isDuplicate = prev.find(msg => {
+                const msgPlayerWallet = msg.playerWallet || msg.playerId;
+                const newPlayerWallet = newMessage.playerWallet || newMessage.playerId;
+                const messageMatch = msg.message === newMessage.message;
+                const playerMatch = msgPlayerWallet === newPlayerWallet;
+                const timeMatch = Math.abs((msg.timestamp || 0) - (newMessage.timestamp || 0)) < 5000;
+                
+                console.log('🔍 DEDUP CHECK:', {
+                  messageMatch,
+                  playerMatch,
+                  timeMatch,
+                  msgPlayer: msgPlayerWallet,
+                  newPlayer: newPlayerWallet,
+                  message: msg.message
+                });
+                
+                return messageMatch && playerMatch && timeMatch;
+              });
               
               if (isDuplicate) {
                 console.log('💬 *** TOYOTA DEDUP *** Duplicate message detected, skipping:', newMessage.message);
