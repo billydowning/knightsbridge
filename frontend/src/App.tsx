@@ -3420,12 +3420,12 @@ function ChessApp() {
           
           // 🔍 CATCH-ALL: Listen for ANY event to see what the backend actually sends
           const originalEmit = socket.emit;
-          const originalOn = socket.on;
+          const originalOnMethod = socket.on;
           
           // Override socket.on to log all registered events
           socket.on = function(eventName: string, handler: any) {
             console.log(`🔍 Socket listener registered for: ${eventName}`);
-            return originalOn.call(this, eventName, handler);
+            return originalOnMethod.call(this, eventName, handler);
           };
           
           // Add catch-all listener for ANY event
