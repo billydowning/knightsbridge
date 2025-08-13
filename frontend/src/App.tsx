@@ -3473,8 +3473,20 @@ function ChessApp() {
                   console.log('💬 Processing ANY event as chat message:', newMessage);
                   
                   setChatMessages(prev => {
+                    // 🚛 TOYOTA DEDUP: Check for duplicates by content + timestamp + player (same logic as main handler)
+                    const isDuplicate = prev.find(msg => 
+                      msg.message === newMessage.message && 
+                      msg.playerWallet === newMessage.playerWallet &&
+                      Math.abs((msg.timestamp || 0) - (newMessage.timestamp || 0)) < 5000 // Within 5 seconds
+                    );
+                    
+                    if (isDuplicate) {
+                      console.log('💬 *** TOYOTA DEDUP ANY *** Duplicate message via ANY event, skipping:', newMessage.message);
+                      return prev;
+                    }
+                    
                     const updated = [...prev, newMessage];
-                    console.log('💬 Chat updated via ANY event listener:', updated.length, 'total');
+                    console.log('💬 *** TOYOTA ANY SUCCESS *** Added unique message via ANY event:', updated.length, 'total');
                     return updated;
                   });
                 }
@@ -3556,13 +3568,20 @@ function ChessApp() {
           if (message.playerWallet !== publicKey?.toString()) {
             console.log('💬 Adding message from other player');
             setChatMessages(prev => {
-              // Avoid duplicates
-              if (prev.find(msg => msg.id === newMessage.id)) {
-                console.log('💬 Duplicate message, skipping');
+              // 🚛 TOYOTA DEDUP: Check for duplicates by content + timestamp + player (not just ID)
+              const isDuplicate = prev.find(msg => 
+                msg.message === newMessage.message && 
+                msg.playerWallet === newMessage.playerWallet &&
+                Math.abs((msg.timestamp || 0) - (newMessage.timestamp || 0)) < 5000 // Within 5 seconds
+              );
+              
+              if (isDuplicate) {
+                console.log('💬 *** TOYOTA DEDUP *** Duplicate message detected, skipping:', newMessage.message);
                 return prev;
               }
+              
               const updated = [...prev, newMessage];
-              console.log('💬 Updated chat messages:', updated.length, 'total messages');
+              console.log('💬 *** TOYOTA SUCCESS *** Added unique message:', updated.length, 'total messages');
               return updated;
             });
           } else {
