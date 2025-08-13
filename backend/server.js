@@ -1798,14 +1798,8 @@ io.on('connection', (socket) => {
         
         console.log('🎮 Both deposits confirmed - starting game!');
         
-        // 🛡️ TIMER SECURITY: Update game state to active and initialize timers
-        const gameData = await poolInstance.query('SELECT time_limit FROM games WHERE room_id = $1', [roomId]);
-        const timeLimit = gameData.rows[0]?.time_limit || 600;
-        
-        await poolInstance.query(
-          'UPDATE games SET game_state = $1, white_time_remaining = $2, black_time_remaining = $3, last_move_time = NOW(), started_at = NOW() WHERE room_id = $4', 
-          ['active', timeLimit, timeLimit, roomId]
-        );
+        // Update game state to active
+        await poolInstance.query('UPDATE games SET game_state = $1, started_at = NOW() WHERE room_id = $2', ['active', roomId]);
         
         // Broadcast game started event to ALL players in the room
         console.log('📢 Broadcasting gameStarted event to room:', roomId);
