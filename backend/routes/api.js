@@ -1704,6 +1704,11 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
         g.winner,
         g.created_at as "createdAt",
         g.started_at as "startedAt",
+        
+        -- 🛡️ TIMER SECURITY: Include actual timer values
+        g.white_time_remaining as "whiteTimeRemaining",
+        g.black_time_remaining as "blackTimeRemaining",
+        g.last_move_time as "lastMoveTime",
         CASE 
           WHEN g.player_white_wallet = $2 THEN 'white'
           WHEN g.player_black_wallet = $2 THEN 'black'
@@ -1789,15 +1794,20 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
     // Build FEN position by replaying moves (simplified for now)
     const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     
-    // Calculate estimated time remaining (simplified)
-    const timeLimit = game.timeLimit || 1800; // Default 30 minutes
-    const gameStartTime = new Date(game.startedAt || game.createdAt).getTime();
-    const now = Date.now();
-    const elapsedTime = Math.floor((now - gameStartTime) / 1000);
-    
-    // Estimate time per player (rough calculation)
-    const whiteTime = Math.max(0, timeLimit - Math.floor(elapsedTime / 2));
-    const blackTime = Math.max(0, timeLimit - Math.floor(elapsedTime / 2));
+    // 🛡️ TIMER SECURITY: Use actual timer values from database instead of estimates
+    let whiteTime, blackTime;
+    if (game.whiteTimeRemaining !== null && game.blackTimeRemaining !== null) {
+      // Use actual timer values from database
+      whiteTime = game.whiteTimeRemaining;
+      blackTime = game.blackTimeRemaining;
+      console.log(`🛡️ Using actual timer values: white=${whiteTime}s, black=${blackTime}s`);
+    } else {
+      // Fallback to time limit for games without timer data yet
+      const timeLimit = game.timeLimit || 1800; // Default 30 minutes
+      whiteTime = timeLimit;
+      blackTime = timeLimit;
+      console.log(`🛡️ Fallback to timeLimit: white=${whiteTime}s, black=${blackTime}s`);
+    }
     
     const gameStateResponse = {
       // Game metadata
