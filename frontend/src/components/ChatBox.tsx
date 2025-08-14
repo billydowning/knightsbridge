@@ -132,15 +132,15 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('🎯 ChatBox handleSubmit called with message:', newMessage);
-    console.log('🎯 onSendMessage function exists:', typeof onSendMessage);
+
+
     
     if (!newMessage.trim()) {
-      console.log('🎯 Empty message, returning');
+
       return;
     }
     
-    console.log('🎯 Calling onSendMessage with:', newMessage.trim());
+
     onSendMessage(newMessage.trim());
     setNewMessage('');
   };

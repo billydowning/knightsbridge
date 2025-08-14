@@ -88,20 +88,15 @@ class DatabaseMultiplayerStateManager {
    * Connect to the WebSocket server with robust retry logic
    */
   async connect(): Promise<void> {
-    console.log('🔧 CONNECTION DEBUG: connect() called, current socket state:', {
-      socketExists: !!this.socket,
-      socketConnected: this.socket?.connected,
-      isConnecting: this.isConnecting,
-      connectionAttempts: this.connectionAttempts
-    });
+
     
     if (this.socket?.connected) {
-      console.log('🔧 CONNECTION DEBUG: Socket already connected, returning early');
+
       return;
     }
 
     if (this.isConnecting) {
-      console.log('🔧 CONNECTION DEBUG: Already connecting, waiting...');
+
       while (this.isConnecting) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -116,11 +111,10 @@ class DatabaseMultiplayerStateManager {
     this.connectionAttempts++;
 
     try {
-      console.log('🔧 CONNECTION DEBUG: Starting new connection attempt', this.connectionAttempts);
+  
       
       // Clean up any existing socket
       if (this.socket) {
-        console.log('🔧 CONNECTION DEBUG: Cleaning up existing socket');
         this.socket.disconnect();
         this.socket = null;
       }
@@ -271,22 +265,16 @@ class DatabaseMultiplayerStateManager {
       });
 
       // 🚛 CRITICAL FIX: Ensure chatMessage listener is properly set up
-      console.log('🔧 SOCKET SETUP: Setting up chatMessage listener on main database socket');
-      this.socket.on('chatMessage', (data) => {
-        console.log('🔧 SOCKET DEBUG: *** MAIN DATABASE SOCKET *** chatMessage event received, data:', data);
-        console.log('🔧 SOCKET DEBUG: this.callbacks map has these keys:', Array.from(this.callbacks.keys()));
-        console.log('🔧 SOCKET DEBUG: chatMessage callbacks count:', this.callbacks.get('chatMessage')?.size || 0);
-        this.notifyCallbacks('chatMessage', data);
-        console.log('🔧 SOCKET DEBUG: notifyCallbacks called for chatMessage');
-      });
-      console.log('🔧 SOCKET SETUP: chatMessage listener attached to main database socket');
 
-      console.log('🔧 CONNECTION DEBUG: All event listeners set up successfully');
-      console.log('🔧 CONNECTION DEBUG: Socket instance:', {
-        id: this.socket.id,
-        connected: this.socket.connected,
-        hasSocket: !!this.socket
+      this.socket.on('chatMessage', (data) => {
+
+        this.notifyCallbacks('chatMessage', data);
+
       });
+
+
+
+
 
     } catch (error) {
       console.error('❌ Connection error:', error);
@@ -629,58 +617,52 @@ class DatabaseMultiplayerStateManager {
   }
 
   setupRealtimeSync(roomId: string, callback: (data: any) => void): () => void {
-    console.log('🔧 SETUP DEBUG: setupRealtimeSync called for room:', roomId);
+
     const eventTypes = ['roomUpdated', 'escrowUpdated', 'gameStarted', 'gameStateUpdated', 'chatMessage', 'connected'];
     
-    console.log('🔧 SETUP DEBUG: Registering callback for event types:', eventTypes);
-    console.log('🔧 SETUP DEBUG: Current callbacks map before registration:', 
-      Object.fromEntries(Array.from(this.callbacks.entries()).map(([k, v]) => [k, v.size]))
-    );
+
     
     eventTypes.forEach(eventType => {
       if (!this.callbacks.has(eventType)) {
-        console.log('🔧 SETUP DEBUG: Creating new callback set for:', eventType);
+
         this.callbacks.set(eventType, new Set());
       }
       this.callbacks.get(eventType)!.add(callback);
-      console.log('🔧 SETUP DEBUG: Added callback for', eventType, '- total callbacks:', this.callbacks.get(eventType)!.size);
+
     });
 
-    console.log('🔧 SETUP DEBUG: Final callbacks map after registration:', 
-      Object.fromEntries(Array.from(this.callbacks.entries()).map(([k, v]) => [k, v.size]))
-    );
+
 
     // Return cleanup function
     return () => {
-      console.log('🔧 CLEANUP DEBUG: Cleaning up callbacks for room:', roomId);
+
       eventTypes.forEach(eventType => {
         const callbacks = this.callbacks.get(eventType);
         if (callbacks) {
           callbacks.delete(callback);
-          console.log('🔧 CLEANUP DEBUG: Removed callback for', eventType, '- remaining:', callbacks.size);
+
         }
       });
     };
   }
 
   private notifyCallbacks(eventType: string, data: any): void {
-    console.log(`🔧 NOTIFY DEBUG: notifyCallbacks called for eventType: ${eventType}, data:`, data);
     const callbacks = this.callbacks.get(eventType);
-    console.log(`🔧 NOTIFY DEBUG: Found ${callbacks?.size || 0} callbacks for eventType: ${eventType}`);
+
     if (callbacks) {
       let callbackIndex = 0;
       callbacks.forEach(callback => {
         try {
-          console.log(`🔧 NOTIFY DEBUG: Calling callback ${callbackIndex} for eventType: ${eventType}`);
+
           callback({ eventType, data });
-          console.log(`🔧 NOTIFY DEBUG: Callback ${callbackIndex} completed successfully for eventType: ${eventType}`);
+
           callbackIndex++;
         } catch (error) {
           console.error(`❌ Error in callback ${callbackIndex} for eventType ${eventType}:`, error);
         }
       });
     } else {
-      console.log(`🔧 NOTIFY DEBUG: No callbacks registered for eventType: ${eventType}`);
+
     }
   }
 
