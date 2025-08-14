@@ -1795,6 +1795,7 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
     const timeLimit = game.timeLimit || 1800; // Default 30 minutes
     const whiteTime = timeLimit;
     const blackTime = timeLimit;
+    const now = Date.now();
     
     const gameStateResponse = {
       // Game metadata
