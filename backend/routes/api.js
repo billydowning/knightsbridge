@@ -1705,10 +1705,7 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
         g.created_at as "createdAt",
         g.started_at as "startedAt",
         
-        -- 🛡️ TIMER SECURITY: Include actual timer values
-        g.white_time_remaining as "whiteTimeRemaining",
-        g.black_time_remaining as "blackTimeRemaining",
-        g.last_move_time as "lastMoveTime",
+
         CASE 
           WHEN g.player_white_wallet = $2 THEN 'white'
           WHEN g.player_black_wallet = $2 THEN 'black'
@@ -1794,20 +1791,10 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
     // Build FEN position by replaying moves (simplified for now)
     const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     
-    // 🛡️ TIMER SECURITY: Use actual timer values from database instead of estimates
-    let whiteTime, blackTime;
-    if (game.whiteTimeRemaining !== null && game.blackTimeRemaining !== null) {
-      // Use actual timer values from database
-      whiteTime = game.whiteTimeRemaining;
-      blackTime = game.blackTimeRemaining;
-      console.log(`🛡️ Using actual timer values: white=${whiteTime}s, black=${blackTime}s`);
-    } else {
-      // Fallback to time limit for games without timer data yet
-      const timeLimit = game.timeLimit || 1800; // Default 30 minutes
-      whiteTime = timeLimit;
-      blackTime = timeLimit;
-      console.log(`🛡️ Fallback to timeLimit: white=${whiteTime}s, black=${blackTime}s`);
-    }
+    // Use time limit for timer values
+    const timeLimit = game.timeLimit || 1800; // Default 30 minutes
+    const whiteTime = timeLimit;
+    const blackTime = timeLimit;
     
     const gameStateResponse = {
       // Game metadata
