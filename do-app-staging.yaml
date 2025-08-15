@@ -26,7 +26,10 @@ services:
     value: "true"
     scope: RUN_AND_BUILD_TIME
 databases:
-- engine: PG
+- cluster_name: chess-db-do-user-24118504-0
+  db_name: staging
+  db_user: doadmin
+  engine: PG
   name: chess-db-staging
-  production: false
+  production: true
   version: "17"
