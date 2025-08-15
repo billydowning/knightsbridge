@@ -1,0 +1,35 @@
+name: knightsbridge-staging
+services:
+- name: backend
+  source_dir: /
+  github:
+    repo: billydowning/knightsbridge
+    branch: staging
+  run_command: npm start
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: NODE_ENV
+    value: staging
+    scope: RUN_AND_BUILD_TIME
+  - key: PORT
+    value: "8080"
+    scope: RUN_AND_BUILD_TIME
+  - key: CORS_ORIGIN
+    value: "https://knightsbridge-staging.vercel.app"
+    scope: RUN_AND_BUILD_TIME
+  - key: DATABASE_URL
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: DEBUG
+    value: "true"
+    scope: RUN_AND_BUILD_TIME
+databases:
+- cluster_name: chess-db-staging-do-user-24118504-0
+  db_name: defaultdb
+  db_user: doadmin
+  engine: PG
+  name: chess-db-staging
+  production: false
+  version: "17"
