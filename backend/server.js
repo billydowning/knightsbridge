@@ -554,7 +554,8 @@ app.get('/init-staging-schema', async (req, res) => {
       await poolInstance.query(createTableQuery);
     }
     
-    // Create indexes for performance
+    // Create indexes for performance (after all tables are created)
+    console.log('🔧 Creating performance indexes...');
     const createIndexes = [
       'CREATE INDEX IF NOT EXISTS idx_games_room_id ON games(room_id)',
       'CREATE INDEX IF NOT EXISTS idx_games_white_wallet ON games(player_white_wallet)',
@@ -566,8 +567,14 @@ app.get('/init-staging-schema', async (req, res) => {
       'CREATE INDEX IF NOT EXISTS idx_users_wallet ON users(wallet_address)'
     ];
     
-    for (const createIndexQuery of createIndexes) {
-      await poolInstance.query(createIndexQuery);
+    for (let i = 0; i < createIndexes.length; i++) {
+      try {
+        await poolInstance.query(createIndexes[i]);
+        console.log(`✅ Created index ${i + 1}/${createIndexes.length}`);
+      } catch (indexError) {
+        console.log(`⚠️ Index creation failed (${i + 1}/${createIndexes.length}):`, indexError.message);
+        // Continue with other indexes even if one fails
+      }
     }
     
     // Verify tables exist
