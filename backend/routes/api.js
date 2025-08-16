@@ -1690,7 +1690,7 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
     
     const pool = getPool();
     
-    // Get game details with enhanced validation
+    // Get game details with enhanced validation and timer security data
     const gameQuery = `
       SELECT 
         g.id,
@@ -1704,7 +1704,9 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
         g.winner,
         g.created_at as "createdAt",
         g.started_at as "startedAt",
-        
+        g.white_time_remaining as "whiteTimeRemaining",
+        g.black_time_remaining as "blackTimeRemaining",
+        g.last_move_time as "lastMoveTime",
 
         CASE 
           WHEN g.player_white_wallet = $2 THEN 'white'
@@ -1791,10 +1793,22 @@ router.get('/games/:roomId/reconnect/:walletAddress', async (req, res) => {
     // Build FEN position by replaying moves (simplified for now)
     const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     
-    // Use time limit for timer values
+    // 🔐 TIMER SECURITY: Use actual timer values from database
     const timeLimit = game.timeLimit || 1800; // Default 30 minutes
-    const whiteTime = timeLimit;
-    const blackTime = timeLimit;
+    let whiteTime, blackTime;
+    
+    if (game.whiteTimeRemaining !== null && game.blackTimeRemaining !== null) {
+      // Use actual server-side timer values for anti-cheat security
+      whiteTime = game.whiteTimeRemaining;
+      blackTime = game.blackTimeRemaining;
+      console.log('🔐 Using server-side timer values:', { whiteTime, blackTime });
+    } else {
+      // Fallback to time limit if timer security not initialized
+      whiteTime = timeLimit;
+      blackTime = timeLimit;
+      console.log('⚠️ Timer security not initialized, using time limit:', timeLimit);
+    }
+    
     const now = Date.now();
     
     const gameStateResponse = {
