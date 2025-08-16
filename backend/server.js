@@ -606,6 +606,60 @@ app.get('/init-staging-schema', async (req, res) => {
   }
 });
 
+// 🔐 Add Timer Security Columns to Staging Database
+app.get('/add-timer-security-columns', async (req, res) => {
+  try {
+    console.log('🔐 Adding timer security columns to staging database...');
+    
+    const poolInstance = getPool();
+    
+    // Add timer persistence columns to games table
+    const addTimerColumns = `
+      ALTER TABLE games 
+      ADD COLUMN IF NOT EXISTS white_time_remaining INTEGER,
+      ADD COLUMN IF NOT EXISTS black_time_remaining INTEGER,
+      ADD COLUMN IF NOT EXISTS last_move_time TIMESTAMP WITH TIME ZONE;
+    `;
+    
+    await poolInstance.query(addTimerColumns);
+    
+    // Create index for timer queries
+    const createTimerIndex = `
+      CREATE INDEX IF NOT EXISTS idx_games_last_move_time ON games(last_move_time);
+    `;
+    
+    await poolInstance.query(createTimerIndex);
+    
+    // Verify columns were added
+    const columnsResult = await poolInstance.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'games' AND table_schema = 'public'
+      ORDER BY column_name
+    `);
+    
+    console.log('✅ Timer security columns added successfully!');
+    console.log('📊 Games table columns:', columnsResult.rows.map(row => `${row.column_name} (${row.data_type})`));
+    
+    res.json({ 
+      success: true,
+      message: 'Timer security columns added successfully! 🔐⏰',
+      columnsAdded: ['white_time_remaining', 'black_time_remaining', 'last_move_time'],
+      allColumns: columnsResult.rows.map(row => `${row.column_name} (${row.data_type})`),
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'staging'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error adding timer security columns:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Create escrows table endpoint
 app.get('/create-escrows-table', async (req, res) => {
   try {
