@@ -1,0 +1,20 @@
+{
+  "env": {
+    "VITE_API_URL": "https://knightsbridge-staging-5b3xe.ondigitalocean.app",
+    "VITE_WS_URL": "wss://knightsbridge-staging-5b3xe.ondigitalocean.app",
+    "VITE_BACKEND_URL": "https://knightsbridge-staging-5b3xe.ondigitalocean.app"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://knightsbridge-staging-5b3xe.ondigitalocean.app",
+      "VITE_WS_URL": "wss://knightsbridge-staging-5b3xe.ondigitalocean.app",
+      "VITE_BACKEND_URL": "https://knightsbridge-staging-5b3xe.ondigitalocean.app"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
